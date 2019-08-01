@@ -18,6 +18,7 @@
 #include <fstream>
 #include <vector>
 #include <random>
+// #include <system>
 
 
 using namespace std;
@@ -33,18 +34,30 @@ const double kGravity = 9.81;
 /* ************************************************************************* */
 int main(int argc, char* argv[]) {
 
-    // IMU preintegrator
+  // IMU preintegrator
+  double accel_noise_sigma = 0.0003924; // what units??
+  double gyro_noise_sigma = 0.000205689024915;
+  double accel_bias_rw_sigma = 0.004905;
+  double gyro_bias_rw_sigma = 0.000001454441043;
+  Matrix33 measured_acc_cov = I_3x3 * pow(accel_noise_sigma,2);
+  Matrix33 measured_omega_cov = I_3x3 * pow(gyro_noise_sigma,2);
+  Matrix33 integration_error_cov = I_3x3 * 1e-8; // error committed in integrating position from velocities
+  Matrix33 bias_acc_cov = I_3x3 * pow(accel_bias_rw_sigma,2);
+  Matrix33 bias_omega_cov = I_3x3 * pow(gyro_bias_rw_sigma,2);
+  Matrix66 bias_acc_omega_int = Matrix::Identity(6,6) * 1e-5; // error in the bias used for preintegration
+
+  // create parameters
   boost::shared_ptr<PreintegratedCombinedMeasurements::Params> imu_params = 
                               PreintegratedCombinedMeasurements::Params::MakeSharedU(kGravity);
-  imu_params->accelerometerCovariance = (I_3x3 * 0.1);
-  imu_params->setGyroscopeCovariance(I_3x3 * 0.1);
-  imu_params->setIntegrationCovariance(I_3x3 * 0.1);
+  imu_params->setAccelerometerCovariance(measured_acc_cov);
+  imu_params->setGyroscopeCovariance(measured_omega_cov);
+  imu_params->biasAccCovariance = bias_acc_cov; // acc bias in continuous
+  imu_params->biasOmegaCovariance = bias_omega_cov; // gyro bias in continuous
+  imu_params->biasAccOmegaInt = bias_acc_omega_int;
+  imu_params->setIntegrationCovariance(integration_error_cov);
   imu_params->setUse2ndOrderCoriolis(false);
   imu_params->setOmegaCoriolis(Vector3(0, 0, 0));
   PreintegratedCombinedMeasurements accum(imu_params);
-
-  // I think this is the error that we introduce artificially in the starting points
-  Pose3 delta(Rot3::Rodrigues(-0.1, 0.2, 0.25), Point3(0.05, -0.10, 0.20));
 
   // Start with a camera on x-axis looking at origin (only use pose_0 from here to generate the scenario)
   double radius = 30;
@@ -155,6 +168,9 @@ int main(int argc, char* argv[]) {
   // newgraph.saveGraph(cout, result);
 
   // GTSAM_PRINT(result);
+
+  string command = "python ../python_plot_example.py";
+  system(command.c_str());
   return 0;
 }
 /* ************************************************************************* */
