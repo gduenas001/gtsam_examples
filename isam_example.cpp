@@ -31,6 +31,17 @@ using symbol_shorthand::B;
 
 const double kGravity = 9.81;
 
+// generate a random 3D point
+Point3 generate_random_point(std::default_random_engine &generator, std::normal_distribution<double> &distribution) {
+  Point3 point(distribution(generator),distribution(generator),distribution(generator));
+  // point.x = distribution(generator);
+  // point.y = distribution(generator);
+  // point.z = distribution(generator);
+
+  return point;
+}
+
+
 /* ************************************************************************* */
 int main(int argc, char* argv[]) {
 
@@ -47,6 +58,7 @@ int main(int argc, char* argv[]) {
   double gyro_noise_sigma = 0.000205689024915;
   double accel_bias_rw_sigma = 0.004905;
   double gyro_bias_rw_sigma = 0.000001454441043;
+  double gps_noise_sigma = 0.5; // meters
   Matrix33 measured_acc_cov = I_3x3 * pow(accel_noise_sigma,2);
   Matrix33 measured_omega_cov = I_3x3 * pow(gyro_noise_sigma,2);
   Matrix33 integration_error_cov = I_3x3 * 1e-8; // error committed in integrating position from velocities
@@ -124,9 +136,10 @@ int main(int argc, char* argv[]) {
   std::default_random_engine noise_generator;
   std::normal_distribution<double> accel_noise_dist(0, accel_noise_sigma);
   std::normal_distribution<double> gyro_noise_dist(0, gyro_noise_sigma);
+  std::normal_distribution<double> gps_noise_dist(0, gps_noise_sigma);
 
   // initialize variables
-  noiseModel::Diagonal::shared_ptr gps_cov = noiseModel::Isotropic::Sigma(3,0.5); // GPS covariance is constant
+  noiseModel::Diagonal::shared_ptr gps_cov = noiseModel::Isotropic::Sigma(3, gps_noise_sigma); // GPS covariance is constant
   NavState prev_state, predict_state;
   imuBias::ConstantBias prev_bias;
   std::vector<Point3> true_positions;
@@ -166,9 +179,17 @@ int main(int argc, char* argv[]) {
     complete_graph.add(imufac);
 
     // // Adding GPS factor
-    if (i < 6)
-    {
-      GPSFactor gps_factor(X(i), scenario.pose(current_time).translation(), gps_cov);
+    if (i < 6) {
+      Point3 point_noise(generate_random_point(noise_generator, gps_noise_dist));
+      // Point3 point_noise(Point3(gps_noise_dist(noise_generator),gps_noise_dist(noise_generator),gps_noise_dist(noise_generator)));
+      Point3 gps_msmt = scenario.pose(current_time).translation() + 
+        point_noise;
+        // Point3(gps_noise_dist(noise_generator),gps_noise_dist(noise_generator),gps_noise_dist(noise_generator));
+       // generate_random_point(noise_generator, gps_noise_dist);
+
+      cout<< "generated random point for gps noise: "<< point_noise<< endl;
+
+      GPSFactor gps_factor(X(i), gps_msmt, gps_cov);
       newgraph.add(gps_factor);
       complete_graph.add(gps_factor);  
     }

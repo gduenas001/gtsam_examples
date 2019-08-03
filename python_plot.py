@@ -56,11 +56,11 @@ ax.set_ylabel('Y')
 ax.set_zlabel('Z')
 
 
-# plt.show(block=False)
-# plt.pause(10)
-# plt.close()
+plt.show(block=False)
+plt.pause(10)
+plt.close()
 
-plt.show()
+# plt.show()
 print "figure closed"
 
 
