@@ -1,0 +1,13 @@
+** GENERAL EXPLANATION
+The example "scenario_isam" shows how to integrate GPS and IMU in an increamental factor graph solution with ISAM2. The solution is only computed at the GPS updates.
+
+
+** TODO
+I don't know how the IMU noise is specified. Reading the documentation, it says that you must input the covariance in continuous time. However, it does not me too much sense to me as that would required other parameters such as autocorrelation.
+
+
+** USAGE
+mkdir build
+cd build
+cmake ..
+make scenario_isam [simulation_time=30]
