@@ -33,18 +33,34 @@ with open('true_positions.csv', 'rb') as csvfile:
 		true_positions_y.append( float(position[1]) )
 		true_positions_z.append( float(position[2]) )
 
+# add landmarks to the plot
+landmarks_x= []
+landmarks_y= []
+landmarks_z= []
+with open('landmarks.csv', 'rb') as csvfile:
+     true_positions = csv.reader(csvfile, delimiter=',')
+     for position in true_positions:
+          landmarks_x.append( float(position[0]) )
+          landmarks_y.append( float(position[1]) )
+          landmarks_z.append( float(position[2]) )
+
+
 plt.plot(estimated_positions_x, estimated_positions_y, estimated_positions_z, color= 'b', linestyle='-', marker='o')
-# plt.axis('equal')
-
 plt.plot(true_positions_x, true_positions_y, true_positions_z, color= 'r', linestyle='-')
-# plt.axis('equal')
+ax.scatter3D(landmarks_x, landmarks_y, landmarks_z, color= 'g', marker='^', s=100)
 
+x_max = max(max(estimated_positions_x) , max(landmarks_x)) + 1
+y_max = max(max(estimated_positions_y) , max(landmarks_y)) + 1
+z_max = max(max(estimated_positions_z) , max(landmarks_z)) + 1
+x_min = min(min(estimated_positions_x) , min(landmarks_x)) - 1
+y_min = min(min(estimated_positions_y) , min(landmarks_y)) - 1
+z_min = min(min(estimated_positions_z) , min(landmarks_z)) - 1
 
-max_range = np.array([max(estimated_positions_x) - min(estimated_positions_x), max(estimated_positions_y) - min(estimated_positions_y), max(estimated_positions_z) - min(estimated_positions_z)]).max() / 2.0
+max_range = np.array([x_max - x_min, y_max - y_min, z_max - z_min]).max() / 2.0
 
-mid_x = ( max(estimated_positions_x) + min(estimated_positions_x) ) * 0.5
-mid_y = ( max(estimated_positions_y) + min(estimated_positions_y) ) * 0.5
-mid_z = ( max(estimated_positions_z) + min(estimated_positions_z) ) * 0.5
+mid_x = ( x_max + x_min ) * 0.5
+mid_y = ( y_max + y_min ) * 0.5
+mid_z = ( z_max + z_min ) * 0.5
 ax.set_xlim(mid_x - max_range, mid_x + max_range)
 ax.set_ylim(mid_y - max_range, mid_y + max_range)
 ax.set_zlim(mid_z - max_range, mid_z + max_range)

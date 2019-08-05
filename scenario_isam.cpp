@@ -63,6 +63,32 @@ void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, NonlinearFactorGra
 
 }
 
+ConstantTwistScenario createConstantTwistScenario(double radius = 30, double linear_velocity = 25) {
+  // Start with a camera on x-axis looking at origin (only use pose_0 from here to generate the scenario)
+  const Point3 up(0, 0, 1), target(0, 0, 0);
+  const Point3 position(radius, 0, 0);
+  const SimpleCamera camera = SimpleCamera::Lookat(position, target, up);
+  const Pose3 pose_0 = camera.pose();
+
+  // Now, create a constant-twist scenario that makes the camera orbit the origin
+  double angular_velocity = linear_velocity / radius;  // rad/sec
+  Vector3 angular_velocity_vector(0, -angular_velocity, 0);
+  Vector3 linear_velocity_vector(linear_velocity, 0, 0);
+  return ConstantTwistScenario(angular_velocity_vector, linear_velocity_vector, pose_0);
+}
+
+std::vector<Point3>  createLandmarks(double radius){
+  double distance = radius + radius/10;
+  std::vector<Point3> landmarks;
+  landmarks.push_back( Point3(distance, 0, 0) );
+  landmarks.push_back( Point3(0, distance, 0) );
+  landmarks.push_back( Point3(-distance, 0, 0) );
+  landmarks.push_back( Point3(0, -distance, 0) );
+  return landmarks;
+}
+
+
+
 /* ************************************************************************* */
 int main(int argc, char* argv[]) {
 
@@ -81,7 +107,9 @@ int main(int argc, char* argv[]) {
   double gyro_bias_rw_sigma = 0.000001454441043; //1e-20; //000001454441043
   double gps_noise_sigma = 3; // meters
   double dt_imu = 1.0 / 125, // makes for 10 degrees per step (1.0 / 18)
-         dt_gps = 1.0; // seconds
+         dt_gps = 1.0, // seconds
+         scenario_radius = 30, // meters
+         scenario_linear_vel = 50 / 3.6; // m/s
 
   // create parameters
   Matrix33 measured_acc_cov = I_3x3 * pow(accel_noise_sigma,2);
@@ -107,19 +135,8 @@ int main(int argc, char* argv[]) {
   std::normal_distribution<double> gyro_noise_dist(0, gyro_noise_sigma);
   std::normal_distribution<double> gps_noise_dist(0, gps_noise_sigma);
   noiseModel::Diagonal::shared_ptr gps_cov = noiseModel::Isotropic::Sigma(3, gps_noise_sigma); // GPS covariance is constant
-
-  // Start with a camera on x-axis looking at origin (only use pose_0 from here to generate the scenario)
-  double radius = 30;
-  const Point3 up(0, 0, 1), target(0, 0, 0);
-  const Point3 position(radius, 0, 0);
-  const SimpleCamera camera = SimpleCamera::Lookat(position, target, up);
-  const Pose3 pose_0 = camera.pose();
-
-  // Now, create a constant-twist scenario that makes the camera orbit the origin
-  double angular_velocity = M_PI/4;  // rad/sec
-  Vector3 angular_velocity_vector(0, -angular_velocity, 0);
-  Vector3 linear_velocity_vector(radius * angular_velocity, 0, 0);
-  ConstantTwistScenario scenario(angular_velocity_vector, linear_velocity_vector, pose_0);
+  ConstantTwistScenario scenario = createConstantTwistScenario(scenario_radius, scenario_linear_vel);
+  std::vector<Point3> landmarks = createLandmarks(scenario_radius);
 
   // Create a factor graph &  ISAM2
   NonlinearFactorGraph newgraph, complete_graph;
@@ -200,7 +217,7 @@ int main(int argc, char* argv[]) {
   } // end for loop
   
 
-  // write poses into file
+  // write estimated poses into file
   string filename = "estimated_positions.csv";
   fstream stream(filename.c_str(), fstream::out);
   for(const Values::ConstKeyValuePair& key_value: result) {
@@ -211,12 +228,22 @@ int main(int argc, char* argv[]) {
   }
   stream.close();
 
+  // write true poses into a file
   filename = "true_positions.csv";
   stream.open(filename.c_str(), fstream::out);
   for (std::vector<Point3>::iterator it = true_positions.begin() ; it != true_positions.end(); ++it) {
     stream << it->x() << "," << it->y() << "," << it->z() << endl;
   }
   stream.close();
+
+  // write landmark into a file
+  filename = "landmarks.csv";
+  stream.open(filename.c_str(), fstream::out);
+  for (std::vector<Point3>::iterator it = landmarks.begin() ; it != landmarks.end(); ++it) {
+    stream << it->x() << "," << it->y() << "," << it->z() << endl;
+  }
+  stream.close();
+
 
   // print path with python
   string command = "python ../python_plot.py";
