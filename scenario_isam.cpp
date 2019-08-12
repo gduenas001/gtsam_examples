@@ -11,6 +11,7 @@
 #include <gtsam/navigation/GPSFactor.h>
 #include <gtsam/navigation/Scenario.h>
 #include <gtsam/nonlinear/ISAM2.h>
+#include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <gtsam/slam/PriorFactor.h>
@@ -92,25 +93,33 @@ std::vector<Point3>  createLandmarks(double radius){
 }
 
 
+// Factor for range bearing measurements to a map (no key for the landmarks)
 class RangeBearingFactorMap: public NoiseModelFactor1<Pose3> {
   double range_;
   Unit3 bearing_;
   Point3 landmark_;
 
-public:
-  // The constructor requires the variable key, the (X, Y) measurement value, and the noise model
-  RangeBearingFactorMap(Key j, double range, Unit3 bearing, Point3 landmark, const SharedNoiseModel& noise_model):
-    NoiseModelFactor1<Pose3>(noise_model, j), range_(range), bearing_(bearing), landmark_(landmark) {}
+  public:
+    // The constructor requires the variable key, the (X, Y) measurement value, and the noise model
+    RangeBearingFactorMap(Key j, double range, Unit3 bearing, Point3 landmark, const SharedNoiseModel& noise_model):
+      NoiseModelFactor1<Pose3>(noise_model, j), 
+      range_(range), 
+      bearing_(bearing), 
+      landmark_(landmark) {}
 
-  ~RangeBearingFactorMap();
+    virtual ~RangeBearingFactorMap() {}
 
-  Vector evaluateError(const Pose3& q, boost::optional<Matrix&> H = boost::none) {
-    double expected_range = pow( q.x() - landmark_.x(), 2 ) + pow( q.y() - landmark_.y(), 2 ) + pow( q.z() - landmark_.z(), 2 );
-    Unit3 expected_bearing(landmark_.x() - q.x(), landmark_.y() - q.y(), landmark_.z() - q.z());
+    Vector evaluateError(const Pose3& q, boost::optional<Matrix&> H = boost::none) const {
+      double expected_range = sqrt(pow( q.x() - landmark_.x(), 2 ) + 
+                                   pow( q.y() - landmark_.y(), 2 ) + 
+                                   pow( q.z() - landmark_.z(), 2 ) );
+      Unit3 expected_bearing(landmark_.x() - q.x(), 
+                             landmark_.y() - q.y(), 
+                             landmark_.z() - q.z());
 
-    if (H) (*H) = Eigen::MatrixXd::Zero(2,6);
-    return (Vector(2) << expected_range - range_, expected_bearing.error(bearing_)).finished();
-  }
+      if (H) (*H) = Eigen::MatrixXd::Zero(2,6);
+      return (Vector(3) << expected_range - range_, expected_bearing.errorVector(bearing_)).finished();
+    }
 };
 
 
@@ -139,8 +148,8 @@ int main(int argc, char* argv[]) {
          dt_gps = 1.0, // seconds
          scenario_radius = 30, // meters
          scenario_linear_vel = 50 / 3.6, // m/s
-         range_sigma = 0.1, // range standard deviation
-         bearing_sigma = 5 * M_PI / 180; // bearing standard dev
+         range_sigma = 1, // range standard deviation
+         bearing_sigma = 20 * M_PI / 180; // bearing standard dev
 
   // create parameters
   Matrix33 measured_acc_cov = I_3x3 * pow(accel_noise_sigma,2);
@@ -236,12 +245,16 @@ int main(int argc, char* argv[]) {
       complete_graph.add(gps_factor);  
 
       // lidar measurements
-      for (int j = 0; j < landmarks.size(); ++j) {
-        auto measurement = BearingRange3D(
-                           scenario.pose(current_time).bearing(landmarks[j]), scenario.pose(current_time).range(landmarks[j]));
-        // RangeBearingFactorMap bearing_range_factor
-                // (X(pose_factor_count), measurement.range(), measurement.bearing(), landmarks[j], lidar_cov);
-      }      
+      // for (int j = 0; j < landmarks.size(); ++j) {
+      BearingRange3D measurement = BearingRange3D(scenario.pose(current_time).bearing(landmarks[1]), 
+                                                  scenario.pose(current_time).range(landmarks[1]));
+      RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
+                                                 measurement.range(), 
+                                                 measurement.bearing(), 
+                                                 landmarks[1], 
+                                                 lidar_cov);;
+      newgraph.add(range_bearing_factor);
+      // }      
       
 
 

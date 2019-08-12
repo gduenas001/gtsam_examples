@@ -17,3 +17,7 @@ target_link_libraries(read_file_fg PRIVATE gtsam)
 
 add_executable(scenario_isam scenario_isam.cpp)
 target_link_libraries(scenario_isam PRIVATE gtsam)
+
+add_executable(LocalizationExample LocalizationExample.cpp)
+target_link_libraries(LocalizationExample PRIVATE gtsam)
+
