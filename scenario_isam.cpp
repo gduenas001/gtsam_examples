@@ -117,7 +117,7 @@ class RangeBearingFactorMap: public NoiseModelFactor1<Pose3> {
                              landmark_.y() - q.y(), 
                              landmark_.z() - q.z());
 
-      if (H) (*H) = Eigen::MatrixXd::Zero(2,6);
+      if (H) (*H) = Eigen::MatrixXd::Zero(3,6);
       return (Vector(3) << expected_range - range_, expected_bearing.errorVector(bearing_)).finished();
     }
 };
@@ -143,13 +143,13 @@ int main(int argc, char* argv[]) {
   double gyro_noise_sigma = 0.1; //000205689024915
   double accel_bias_rw_sigma = 0.005; //1e-20; //004905
   double gyro_bias_rw_sigma = 0.000001454441043; //1e-20; //000001454441043
-  double gps_noise_sigma = 3; // meters
+  double gps_noise_sigma = 5; // meters
   double dt_imu = 1.0 / 125, // makes for 10 degrees per step (1.0 / 18)
          dt_gps = 1.0, // seconds
          scenario_radius = 30, // meters
          scenario_linear_vel = 50 / 3.6, // m/s
-         range_sigma = 1, // range standard deviation
-         bearing_sigma = 20 * M_PI / 180; // bearing standard dev
+         range_sigma = 0.05, // range standard deviation
+         bearing_sigma = 0.5 * M_PI / 180; // bearing standard dev
 
   // create parameters
   Matrix33 measured_acc_cov = I_3x3 * pow(accel_noise_sigma,2);
@@ -176,7 +176,7 @@ int main(int argc, char* argv[]) {
   std::normal_distribution<double> gps_noise_dist(0, gps_noise_sigma);
   noiseModel::Diagonal::shared_ptr gps_cov = noiseModel::Isotropic::Sigma(3, gps_noise_sigma); // GPS covariance is constant
   ConstantTwistScenario scenario = createConstantTwistScenario(scenario_radius, scenario_linear_vel);
-  noiseModel::Diagonal::shared_ptr lidar_cov = noiseModel::Diagonal::Sigmas( (Vector(2) << bearing_sigma, range_sigma).finished() );
+  noiseModel::Diagonal::shared_ptr lidar_cov = noiseModel::Diagonal::Sigmas( (Vector(3) << bearing_sigma, bearing_sigma, range_sigma).finished() );
   std::vector<Point3> landmarks = createLandmarks(scenario_radius);
 
   // Create a factor graph &  ISAM2
@@ -242,22 +242,20 @@ int main(int argc, char* argv[]) {
       Point3 gps_msmt = scenario.pose(current_time).translation() + Point3(generate_random_point(noise_generator, gps_noise_dist));
       GPSFactor gps_factor(X(pose_factor_count), gps_msmt, gps_cov);
       newgraph.add(gps_factor);
-      complete_graph.add(gps_factor);  
+      complete_graph.add(gps_factor);
 
       // lidar measurements
-      // for (int j = 0; j < landmarks.size(); ++j) {
-      BearingRange3D measurement = BearingRange3D(scenario.pose(current_time).bearing(landmarks[1]), 
-                                                  scenario.pose(current_time).range(landmarks[1]));
-      RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
-                                                 measurement.range(), 
-                                                 measurement.bearing(), 
-                                                 landmarks[1], 
-                                                 lidar_cov);;
-      newgraph.add(range_bearing_factor);
-      // }      
+      for (int j = 0; j < landmarks.size(); ++j) {
+        BearingRange3D measurement = BearingRange3D(scenario.pose(current_time).bearing(landmarks[j]), 
+                                                    scenario.pose(current_time).range(landmarks[j]));
+        RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
+                                                   measurement.range(), 
+                                                   measurement.bearing(), 
+                                                   landmarks[j], 
+                                                   lidar_cov);;
+        newgraph.add(range_bearing_factor);
+      }      
       
-
-
       // Incremental solution
       isam.update(newgraph, initialEstimate);
       result = isam.calculateEstimate();
