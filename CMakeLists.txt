@@ -1,23 +1,48 @@
-# This file shows how to build and link a user project against GTSAM using CMake
+# This file should be used as a template for creating new projects using the CMake tools
+# This project has the following features
+#    - GTSAM linking
+#    - Unit tests via CppUnitLite
+#    - Scripts
+#    - Automatic MATLAB wrapper generation
+
 ###################################################################################
 # To create your own project, replace "example" with the actual name of your project
 cmake_minimum_required(VERSION 3.0)
-project(guillermo CXX)
+project(guillermo CXX C)
 
-# Find GTSAM, either from a local build, or from a Debian/Ubuntu package.
-find_package(GTSAM REQUIRED)
+# Include GTSAM CMake tools
+find_package(GTSAMCMakeTools)
+include(GtsamBuildTypes) # Load build type flags and default to Debug mode
+# include(GtsamTesting)    # Easy functions for creating unit tests and scripts
+# include(GtsamMatlabWrap) # Automatic MATLAB wrapper generation
 
-add_executable(read_file_fg read_file_fg.cpp)
+# Ensure that local folder is searched before library folders
+include_directories(BEFORE "${PROJECT_SOURCE_DIR}")
 
-# By using CMake exported targets, a simple "link" dependency introduces the
-# include directories (-I) flags, links against Boost, and add any other
-# required build flags (e.g. C++11, etc.)
-target_link_libraries(read_file_fg PRIVATE gtsam)
+###################################################################################
+# Find GTSAM components
+find_package(GTSAM REQUIRED) # Uses installed package
+# Note: Since Jan-2019, GTSAMConfig.cmake defines exported CMake targets
+# that automatically do include the include_directories() without the need
+# to call include_directories(), just target_link_libraries(NAME gtsam)
+# include_directories(${GTSAM_INCLUDE_DIR})
 
+###################################################################################
+# Build static library from common sources
+set(CONVENIENCE_LIB_NAME ${PROJECT_NAME})
+add_library(${CONVENIENCE_LIB_NAME} SHARED LocalizationExample.cpp)
+target_link_libraries(${CONVENIENCE_LIB_NAME} gtsam)
 
-add_executable(scenario_isam scenario_isam.cpp)
-target_link_libraries(scenario_isam PRIVATE gtsam)
+# Install library
+install(TARGETS ${CONVENIENCE_LIB_NAME} LIBRARY DESTINATION lib ARCHIVE DESTINATION lib RUNTIME DESTINATION bin)
+
+###################################################################################
+# Build scripts (CMake tracks the dependecy to link with GTSAM through our project's static library)
+# gtsamAddExamplesGlob("*.cpp" "" "${CONVENIENCE_LIB_NAME}")
+
 
 add_executable(LocalizationExample LocalizationExample.cpp)
 target_link_libraries(LocalizationExample PRIVATE gtsam)
 
+add_executable(scenario_isam scenario_isam.cpp)
+target_link_libraries(scenario_isam PRIVATE gtsam)

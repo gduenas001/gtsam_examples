@@ -96,15 +96,21 @@ std::vector<Point3>  createLandmarks(double radius){
 // Factor for range bearing measurements to a map (no key for the landmarks)
 class RangeBearingFactorMap: public NoiseModelFactor1<Pose3> {
   double range_;
+  Eigen::MatrixXd range_jacobian_, bearing_jacobian_;
   Unit3 bearing_;
   Point3 landmark_;
 
   public:
     // The constructor requires the variable key, the (X, Y) measurement value, and the noise model
-    RangeBearingFactorMap(Key j, double range, Unit3 bearing, Point3 landmark, const SharedNoiseModel& noise_model):
+    RangeBearingFactorMap(Key j, 
+                          double range, Eigen::MatrixXd range_jacobian,
+                          Unit3 bearing, Eigen::MatrixXd bearing_jacobian,
+                          Point3 landmark, const SharedNoiseModel& noise_model):
       NoiseModelFactor1<Pose3>(noise_model, j), 
       range_(range), 
+      range_jacobian_(range_jacobian),
       bearing_(bearing), 
+      bearing_jacobian_(bearing_jacobian),
       landmark_(landmark) {}
 
     virtual ~RangeBearingFactorMap() {}
@@ -117,7 +123,10 @@ class RangeBearingFactorMap: public NoiseModelFactor1<Pose3> {
                              landmark_.y() - q.y(), 
                              landmark_.z() - q.z());
 
-      if (H) (*H) = Eigen::MatrixXd::Zero(3,6);
+      if (H) {
+        (*H) = (Eigen::MatrixXd << range_jacobian_ , bearing_jacobian_).finished();
+
+      }
       return (Vector(3) << expected_range - range_, expected_bearing.errorVector(bearing_)).finished();
     }
 };
@@ -144,7 +153,7 @@ int main(int argc, char* argv[]) {
   double accel_bias_rw_sigma = 0.005; //1e-20; //004905
   double gyro_bias_rw_sigma = 0.000001454441043; //1e-20; //000001454441043
   double gps_noise_sigma = 5; // meters
-  double dt_imu = 1.0 / 125, // makes for 10 degrees per step (1.0 / 18)
+  double dt_imu = 1.0 / 100, // default 125HZ -- makes for 10 degrees per step (1.0 / 18)
          dt_gps = 1.0, // seconds
          scenario_radius = 30, // meters
          scenario_linear_vel = 50 / 3.6, // m/s
@@ -245,16 +254,20 @@ int main(int argc, char* argv[]) {
       complete_graph.add(gps_factor);
 
       // lidar measurements
-      for (int j = 0; j < landmarks.size(); ++j) {
-        BearingRange3D measurement = BearingRange3D(scenario.pose(current_time).bearing(landmarks[j]), 
-                                                    scenario.pose(current_time).range(landmarks[j]));
-        RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
-                                                   measurement.range(), 
-                                                   measurement.bearing(), 
-                                                   landmarks[j], 
-                                                   lidar_cov);;
-        newgraph.add(range_bearing_factor);
-      }      
+      // for (int j = 0; j < landmarks.size(); ++j) {
+      Eigen::MatrixXd range_jacobian;
+      Eigen::MatrixXd bearing_jacobian;
+      double range = scenario.pose(current_time).range(landmarks[0], range_jacobian);
+      Unit3 bearing = scenario.pose(current_time).bearing(landmarks[0], bearing_jacobian);
+      RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
+                                                 range, range_jacobian,
+                                                 bearing, bearing_jacobian,
+                                                 landmarks[0], 
+                                                 lidar_cov);;
+      newgraph.add(range_bearing_factor);
+
+
+      // }      
       
       // Incremental solution
       isam.update(newgraph, initialEstimate);
@@ -299,8 +312,8 @@ int main(int argc, char* argv[]) {
 
 
   // print path with python
-  string command = "python ../python_plot.py";
-  system(command.c_str());
+  // string command = "python ../python_plot.py";
+  // system(command.c_str());
 
 
   // save factor graph as graphviz dot file
