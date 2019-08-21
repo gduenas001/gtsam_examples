@@ -29,9 +29,9 @@ find_package(GTSAM REQUIRED) # Uses installed package
 
 ###################################################################################
 # Build static library from common sources
-set(CONVENIENCE_LIB_NAME ${PROJECT_NAME})
-add_library(${CONVENIENCE_LIB_NAME} SHARED LocalizationExample.cpp)
-target_link_libraries(${CONVENIENCE_LIB_NAME} gtsam)
+#set(CONVENIENCE_LIB_NAME ${PROJECT_NAME})
+#add_library(${CONVENIENCE_LIB_NAME} SHARED LocalizationExample.cpp)
+#target_link_libraries(${CONVENIENCE_LIB_NAME} gtsam)
 
 # Install library
 install(TARGETS ${CONVENIENCE_LIB_NAME} LIBRARY DESTINATION lib ARCHIVE DESTINATION lib RUNTIME DESTINATION bin)
@@ -41,8 +41,5 @@ install(TARGETS ${CONVENIENCE_LIB_NAME} LIBRARY DESTINATION lib ARCHIVE DESTINAT
 # gtsamAddExamplesGlob("*.cpp" "" "${CONVENIENCE_LIB_NAME}")
 
 
-add_executable(LocalizationExample LocalizationExample.cpp)
-target_link_libraries(LocalizationExample PRIVATE gtsam)
-
-add_executable(scenario_isam scenario_isam.cpp)
+add_executable(scenario_isam scenario_isam.cpp helpers.cpp)
 target_link_libraries(scenario_isam PRIVATE gtsam)

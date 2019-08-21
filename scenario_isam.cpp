@@ -20,6 +20,7 @@
 #include <vector>
 #include <random>
 
+#include "helpers.h"
 
 using namespace std;
 using namespace gtsam;
@@ -33,11 +34,6 @@ const double kGravity = 9.81;
 
 typedef BearingRange<Pose3, Point3> BearingRange3D;
 
-
-// generate a random 3D point
-Point3 generate_random_point(std::default_random_engine &generator, std::normal_distribution<double> &distribution) {
-  return Point3(distribution(generator),distribution(generator),distribution(generator));
-}
 
 // add a noiseless prior factor
 void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, NonlinearFactorGraph &complete_graph, Values &initial_estimate,
@@ -148,6 +144,10 @@ class RangeBearingFactorMap: public NoiseModelFactor1<Pose3> {
 
 
 
+
+
+
+
 /* ************************************************************************* */
 int main(int argc, char* argv[]) {
 
@@ -164,12 +164,12 @@ int main(int argc, char* argv[]) {
   double gyro_noise_sigma = 0.1; //000205689024915
   double accel_bias_rw_sigma = 0.005; //1e-20; //004905
   double gyro_bias_rw_sigma = 0.000001454441043; //1e-20; //000001454441043
-  double gps_noise_sigma = 5; // meters
+  double gps_noise_sigma = 10; // meters
   double dt_imu = 1.0 / 100, // default 125HZ -- makes for 10 degrees per step (1.0 / 18)
          dt_gps = 1.0, // seconds
          scenario_radius = 30, // meters
          scenario_linear_vel = 50 / 3.6, // m/s
-         range_sigma = 0.05, // range standard deviation
+         range_sigma = 0.01, // range standard deviation
          bearing_sigma = 0.5 * M_PI / 180; // bearing standard dev
 
   // create parameters
@@ -228,9 +228,6 @@ int main(int argc, char* argv[]) {
     current_time = i * dt_imu;
     gps_time_accum += dt_imu;
       
-    // save the current position
-    true_positions.push_back( scenario.pose(current_time).translation() );
-
     // Predict acceleration and gyro measurements in (actual) body frame
     Point3 acc_noise = generate_random_point( noise_generator, accel_noise_dist );
     Vector3 measuredAcc = scenario.acceleration_b(current_time) -
@@ -242,6 +239,10 @@ int main(int argc, char* argv[]) {
 
     // GPS update 
     if (gps_time_accum > dt_gps) {
+
+      // save the current position
+      true_positions.push_back( scenario.pose(current_time).translation() );
+
       // predict from IMU accumulated msmts
       prev_state = NavState(result.at<Pose3>(X(pose_factor_count-1)), result.at<Vector3>(V(pose_factor_count-1)));
       prev_bias = result.at<imuBias::ConstantBias>(B(pose_factor_count-1));
@@ -266,20 +267,18 @@ int main(int argc, char* argv[]) {
       complete_graph.add(gps_factor);
 
       // lidar measurements
-      // for (int j = 0; j < landmarks.size(); ++j) {
-      Eigen::MatrixXd range_jacobian;
-      Eigen::MatrixXd bearing_jacobian;
-      double range = scenario.pose(current_time).range(landmarks[0], range_jacobian);
-      Unit3 bearing = scenario.pose(current_time).bearing(landmarks[0], bearing_jacobian);
-      RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
-                                                 range,
-                                                 bearing,
-                                                 landmarks[0], 
-                                                 lidar_cov);;
-      newgraph.add(range_bearing_factor);
-
-
-      // }      
+      for (int j = 0; j < landmarks.size(); ++j) {
+        Eigen::MatrixXd range_jacobian;
+        Eigen::MatrixXd bearing_jacobian;
+        double range = scenario.pose(current_time).range(landmarks[j], range_jacobian);
+        Unit3 bearing = scenario.pose(current_time).bearing(landmarks[j], bearing_jacobian);
+        RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
+                                                   range,
+                                                   bearing,
+                                                   landmarks[j], 
+                                                   lidar_cov);;
+        newgraph.add(range_bearing_factor);
+      }      
       
       // Incremental solution
       isam.update(newgraph, initialEstimate);
@@ -324,8 +323,8 @@ int main(int argc, char* argv[]) {
 
 
   // print path with python
-  string command = "python ../python_plot.py";
-  system(command.c_str());
+  // string command = "python ../python_plot.py";
+  // system(command.c_str());
 
 
   // save factor graph as graphviz dot file
