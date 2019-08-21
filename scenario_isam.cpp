@@ -94,21 +94,23 @@ std::vector<Point3>  createLandmarks(double radius){
 
 
 // Factor for range bearing measurements to a map (no key for the landmarks)
-class RangeBearingFactorMap: public NoiseModelFactor1<Point3> {
-  double range_msmt;
-  Unit3 bearing_msmt;
-  Point3 landmark_;
+class RangeBearingFactorMap: public NoiseModelFactor1<Pose3> {
+  public:
+    double range_msmt;
+    Unit3 bearing_msmt;
+    Point3 landmark_;
 
   public:
     // The constructor requires the variable key, the (X, Y) measurement value, and the noise model
     RangeBearingFactorMap(Key j, 
                           double range,
                           Unit3 bearing,
-                          Point3 landmark, const SharedNoiseModel& noise_model):
-      NoiseModelFactor1<Point3>(noise_model, j), 
+                          Point3 landmark, 
+                          const SharedNoiseModel& noise_model):
       range_msmt(range), 
       bearing_msmt(bearing),
-      landmark_(landmark) {}
+      landmark_(landmark),
+      NoiseModelFactor1<Pose3>(noise_model, j) {}
 
     virtual ~RangeBearingFactorMap() {}
 
@@ -127,7 +129,7 @@ class RangeBearingFactorMap: public NoiseModelFactor1<Point3> {
       // Unit3 expected_bearing(landmark_.x() - q.x(), 
       //                        landmark_.y() - q.y(), 
       //                        landmark_.z() - q.z());
-      Vector(2) bearing_error = expected_bearing.errorVector(bearing_msmt);
+      Vector2 bearing_error = expected_bearing.errorVector(bearing_msmt);
 
       if (H) {
         Eigen::MatrixXd jacobian( 3, 6);
@@ -270,8 +272,8 @@ int main(int argc, char* argv[]) {
       double range = scenario.pose(current_time).range(landmarks[0], range_jacobian);
       Unit3 bearing = scenario.pose(current_time).bearing(landmarks[0], bearing_jacobian);
       RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
-                                                 range, range_jacobian,
-                                                 bearing, bearing_jacobian,
+                                                 range,
+                                                 bearing,
                                                  landmarks[0], 
                                                  lidar_cov);;
       newgraph.add(range_bearing_factor);
@@ -322,8 +324,8 @@ int main(int argc, char* argv[]) {
 
 
   // print path with python
-  // string command = "python ../python_plot.py";
-  // system(command.c_str());
+  string command = "python ../python_plot.py";
+  system(command.c_str());
 
 
   // save factor graph as graphviz dot file
