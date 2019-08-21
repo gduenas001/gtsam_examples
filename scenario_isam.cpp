@@ -94,40 +94,50 @@ std::vector<Point3>  createLandmarks(double radius){
 
 
 // Factor for range bearing measurements to a map (no key for the landmarks)
-class RangeBearingFactorMap: public NoiseModelFactor1<Pose3> {
-  double range_;
-  Eigen::MatrixXd range_jacobian_, bearing_jacobian_;
-  Unit3 bearing_;
+class RangeBearingFactorMap: public NoiseModelFactor1<Point3> {
+  double range_msmt;
+  Unit3 bearing_msmt;
   Point3 landmark_;
 
   public:
     // The constructor requires the variable key, the (X, Y) measurement value, and the noise model
     RangeBearingFactorMap(Key j, 
-                          double range, Eigen::MatrixXd range_jacobian,
-                          Unit3 bearing, Eigen::MatrixXd bearing_jacobian,
+                          double range,
+                          Unit3 bearing,
                           Point3 landmark, const SharedNoiseModel& noise_model):
-      NoiseModelFactor1<Pose3>(noise_model, j), 
-      range_(range), 
-      range_jacobian_(range_jacobian),
-      bearing_(bearing), 
-      bearing_jacobian_(bearing_jacobian),
+      NoiseModelFactor1<Point3>(noise_model, j), 
+      range_msmt(range), 
+      bearing_msmt(bearing),
       landmark_(landmark) {}
 
     virtual ~RangeBearingFactorMap() {}
 
     Vector evaluateError(const Pose3& q, boost::optional<Matrix&> H = boost::none) const {
-      double expected_range = sqrt(pow( q.x() - landmark_.x(), 2 ) + 
-                                   pow( q.y() - landmark_.y(), 2 ) + 
-                                   pow( q.z() - landmark_.z(), 2 ) );
-      Unit3 expected_bearing(landmark_.x() - q.x(), 
-                             landmark_.y() - q.y(), 
-                             landmark_.z() - q.z());
+
+      Eigen::MatrixXd range_jacobian;
+      Eigen::MatrixXd bearing_jacobian;
+      
+      double expected_range = q.range(landmark_, range_jacobian);
+      // double expected_range = sqrt(pow( q.x() - landmark_.x(), 2 ) + 
+      //                              pow( q.y() - landmark_.y(), 2 ) + 
+      //                              pow( q.z() - landmark_.z(), 2 ) );
+      double range_error = expected_range - range_msmt;
+
+      Unit3 expected_bearing = q.bearing(landmark_, bearing_jacobian);  
+      // Unit3 expected_bearing(landmark_.x() - q.x(), 
+      //                        landmark_.y() - q.y(), 
+      //                        landmark_.z() - q.z());
+      Vector(2) bearing_error = expected_bearing.errorVector(bearing_msmt);
 
       if (H) {
-        (*H) = (Eigen::MatrixXd << range_jacobian_ , bearing_jacobian_).finished();
+        Eigen::MatrixXd jacobian( 3, 6);
+        jacobian << bearing_jacobian, range_jacobian;
+        // (*H) = (Eigen::MatrixXd << range_jacobian_ , bearing_jacobian_).finished();
+        (*H) = jacobian;
 
       }
-      return (Vector(3) << expected_range - range_, expected_bearing.errorVector(bearing_)).finished();
+      return (Vector(3) << bearing_error, range_error).finished();
+      // return (Vector(3) << expected_range - range_, expected_bearing.errorVector(bearing_)).finished();
     }
 };
 
