@@ -41,5 +41,7 @@ install(TARGETS ${CONVENIENCE_LIB_NAME} LIBRARY DESTINATION lib ARCHIVE DESTINAT
 # gtsamAddExamplesGlob("*.cpp" "" "${CONVENIENCE_LIB_NAME}")
 
 
-add_executable(scenario_isam scenario_isam.cpp helpers.cpp)
+add_executable(scenario_isam scenario_isam.cpp 
+			   helpers.cpp 
+			   RangeBearingFactorMap.cpp)
 target_link_libraries(scenario_isam PRIVATE gtsam)

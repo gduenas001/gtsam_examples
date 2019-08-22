@@ -3,150 +3,21 @@
 // - add lidar msmts to landmarks (start with known associations)
 
 
-#include <gtsam/geometry/SimpleCamera.h>
-#include <gtsam/inference/Symbol.h>
-#include <gtsam/navigation/ImuBias.h>
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/ImuFactor.h>
 #include <gtsam/navigation/GPSFactor.h>
-#include <gtsam/navigation/Scenario.h>
-#include <gtsam/nonlinear/ISAM2.h>
-#include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
-#include <gtsam/slam/PriorFactor.h>
 #include <typeinfo>
 #include <fstream>
-#include <vector>
-#include <random>
 
-#include "helpers.h"
+#include <helpers.h>
+#include <RangeBearingFactorMap.h>
 
 using namespace std;
 using namespace gtsam;
 
-// Shorthand for velocity and pose variables
-using symbol_shorthand::X;
-using symbol_shorthand::V;
-using symbol_shorthand::B;
-
 const double kGravity = 9.81;
-
-typedef BearingRange<Pose3, Point3> BearingRange3D;
-
-
-// add a noiseless prior factor
-void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, NonlinearFactorGraph &complete_graph, Values &initial_estimate,
-                             const Scenario &scenario) {
-  // Add a prior on pose x0. This indirectly specifies where the origin is.
-  noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(0.0), Vector3::Constant(0.0)).finished());
-  PriorFactor<Pose3> pose_prior(X(0), scenario.pose(0), pose_noise);
-  new_graph.add(PriorFactor<Pose3>(X(0), scenario.pose(0), pose_noise));
-  complete_graph.add(PriorFactor<Pose3>(X(0), scenario.pose(0), pose_noise));
-  initial_estimate.insert(X(0), scenario.pose(0));
-
-  // add velocity prior to graph and init values
-  Vector vel_prior(3); // needs to be a dynamically allocated vector (I don't know why)
-  vel_prior= scenario.velocity_n(0);
-  noiseModel::Diagonal::shared_ptr vel_noise = noiseModel::Diagonal::Sigmas( Vector3::Constant(0.0) ); // default 0.01
-  PriorFactor<Vector> vel_prior_factor(V(0), vel_prior, vel_noise);
-  new_graph.add(vel_prior_factor);
-  complete_graph.add(vel_prior_factor);  
-  initial_estimate.insert(V(0), vel_prior);
-
-  // Add bias priors to graph and init values
-  noiseModel::Diagonal::shared_ptr bias_noise = noiseModel::Diagonal::Sigmas(Vector6::Constant(0.0)); // default 0.1
-  PriorFactor<imuBias::ConstantBias> bias_prior_factor(B(0), imuBias::ConstantBias(), bias_noise);
-  new_graph.add(bias_prior_factor); 
-  complete_graph.add(bias_prior_factor); 
-  initial_estimate.insert(B(0), imuBias::ConstantBias());
-
-}
-
-ConstantTwistScenario createConstantTwistScenario(double radius = 30, double linear_velocity = 25) {
-  // Start with a camera on x-axis looking at origin (only use pose_0 from here to generate the scenario)
-  const Point3 up(0, 0, 1), target(0, 0, 0);
-  const Point3 position(radius, 0, 0);
-  const SimpleCamera camera = SimpleCamera::Lookat(position, target, up);
-  const Pose3 pose_0 = camera.pose();
-
-  // Now, create a constant-twist scenario that makes the camera orbit the origin
-  double angular_velocity = linear_velocity / radius;  // rad/sec
-  Vector3 angular_velocity_vector(0, -angular_velocity, 0);
-  Vector3 linear_velocity_vector(linear_velocity, 0, 0);
-  return ConstantTwistScenario(angular_velocity_vector, linear_velocity_vector, pose_0);
-}
-
-std::vector<Point3>  createLandmarks(double radius){
-  double distance = radius + radius/10;
-  std::vector<Point3> landmarks;
-  landmarks.push_back( Point3(distance, 0, 0) );  
-  landmarks.push_back( Point3(0, distance, 0) );
-  landmarks.push_back( Point3(-distance, 0, 0) );
-  landmarks.push_back( Point3(0, -distance, 0) );
-  
-  return landmarks;
-}
-
-
-// Factor for range bearing measurements to a map (no key for the landmarks)
-class RangeBearingFactorMap: public NoiseModelFactor1<Pose3> {
-  public:
-    double range_msmt;
-    Unit3 bearing_msmt;
-    Point3 landmark_;
-
-  public:
-    // The constructor requires the variable key, the (X, Y) measurement value, and the noise model
-    RangeBearingFactorMap(Key j, 
-                          double range,
-                          Unit3 bearing,
-                          Point3 landmark, 
-                          const SharedNoiseModel& noise_model):
-      range_msmt(range), 
-      bearing_msmt(bearing),
-      landmark_(landmark),
-      NoiseModelFactor1<Pose3>(noise_model, j) {}
-
-    virtual ~RangeBearingFactorMap() {}
-
-    Vector evaluateError(const Pose3& q, boost::optional<Matrix&> H = boost::none) const {
-
-      Eigen::MatrixXd range_jacobian;
-      Eigen::MatrixXd bearing_jacobian;
-      
-      double expected_range = q.range(landmark_, range_jacobian);
-      // double expected_range = sqrt(pow( q.x() - landmark_.x(), 2 ) + 
-      //                              pow( q.y() - landmark_.y(), 2 ) + 
-      //                              pow( q.z() - landmark_.z(), 2 ) );
-      double range_error = expected_range - range_msmt;
-
-      Unit3 expected_bearing = q.bearing(landmark_, bearing_jacobian);  
-      // Unit3 expected_bearing(landmark_.x() - q.x(), 
-      //                        landmark_.y() - q.y(), 
-      //                        landmark_.z() - q.z());
-      Vector2 bearing_error = expected_bearing.errorVector(bearing_msmt);
-
-      if (H) {
-        Eigen::MatrixXd jacobian( 3, 6);
-        jacobian << bearing_jacobian, range_jacobian;
-        // (*H) = (Eigen::MatrixXd << range_jacobian_ , bearing_jacobian_).finished();
-        (*H) = jacobian;
-
-      }
-      return (Vector(3) << bearing_error, range_error).finished();
-      // return (Vector(3) << expected_range - range_, expected_bearing.errorVector(bearing_)).finished();
-    }
-};
-
-
-
-
-
-
-
-
-
 
 /* ************************************************************************* */
 int main(int argc, char* argv[]) {
@@ -164,7 +35,7 @@ int main(int argc, char* argv[]) {
   double gyro_noise_sigma = 0.1; //000205689024915
   double accel_bias_rw_sigma = 0.005; //1e-20; //004905
   double gyro_bias_rw_sigma = 0.000001454441043; //1e-20; //000001454441043
-  double gps_noise_sigma = 10; // meters
+  double gps_noise_sigma = 10.0; // meters
   double dt_imu = 1.0 / 100, // default 125HZ -- makes for 10 degrees per step (1.0 / 18)
          dt_gps = 1.0, // seconds
          scenario_radius = 30, // meters
