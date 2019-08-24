@@ -3,6 +3,7 @@
 // - data association for landmarks
 // - different frequencies for GPS and lidar
 // - use sliding window filter
+// - check residuals
 
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/ImuFactor.h>
@@ -89,7 +90,7 @@ int main(int argc, char* argv[]) {
   std::vector<Point3> true_positions;
   std::vector<Pose3> online_error; // error when computed online
   true_positions.push_back( scenario.pose(0).translation() );
-
+  ISAM2Result isam_result;
 
   // solve the graph once
   addNoiselessPriorFactor(newgraph, complete_graph, initialEstimate, scenario);
@@ -170,7 +171,7 @@ int main(int argc, char* argv[]) {
       }      
       
       // Incremental solution
-      isam.update(newgraph, initialEstimate);
+      isam_result = isam.update(newgraph, initialEstimate);
       result = isam.calculateEstimate();
 
       
@@ -191,6 +192,13 @@ int main(int argc, char* argv[]) {
     }
   } // end for loop
   
+  // check residuals
+  double residual = isam.error(isam.getDelta());
+  // double error_before = isam_result.errorBefore;
+  // cout<< "error before: "<< error_before << endl;
+  // cout<< "error after: "<< isam_result.errorAfter()<< endl;
+  cout<< "the residual is: "<< residual<< endl;
+
   // save the data TODO: give option to save in different folder
   saveData(result,
            true_positions,
