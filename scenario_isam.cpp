@@ -3,7 +3,6 @@
 // - data association for landmarks
 // - different frequencies for GPS and lidar
 // - use sliding window filter
-// - evaluate error
 
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/ImuFactor.h>
@@ -11,7 +10,7 @@
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <typeinfo>
-#include <fstream>
+// #include <fstream>
 
 #include <helpers.h>
 #include <RangeBearingFactorMap.h>
@@ -192,52 +191,11 @@ int main(int argc, char* argv[]) {
     }
   } // end for loop
   
-
-  // write estimated poses into file
-  string filename = "estimated_positions.csv";
-  fstream stream(filename.c_str(), fstream::out);
-  for(const Values::ConstKeyValuePair& key_value: result) {
-    if ( typeid(key_value.value) == typeid(gtsam::GenericValue<gtsam::Pose3>) ) {
-      const Pose3& write_pose = key_value.value.cast<Pose3>();
-      stream << write_pose.x() << "," << write_pose.y() << "," << write_pose.z() << endl;
-    }
-  }
-  stream.close();
-
-  // write true poses into a file
-  filename = "true_positions.csv";
-  stream.open(filename.c_str(), fstream::out);
-  for (std::vector<Point3>::iterator it = true_positions.begin() ; it != true_positions.end(); ++it) {
-    stream << it->x() << "," << it->y() << "," << it->z() << endl;
-  }
-  stream.close();
-
-  // write landmark into a file
-  filename = "landmarks.csv";
-  stream.open(filename.c_str(), fstream::out);
-  for (std::vector<Point3>::iterator it = landmarks.begin() ; it != landmarks.end(); ++it) {
-    stream << it->x() << "," << it->y() << "," << it->z() << endl;
-  }
-  stream.close();
-
-// write errors into a file
-  filename = "errors.csv";
-  stream.open(filename.c_str(), fstream::out);
-  for (std::vector<Pose3>::iterator it = online_error.begin() ; it != online_error.end(); ++it) {
-    stream << it->translation().x() <<","
-           << it->translation().y() <<","
-           << it->translation().z() <<","
-           << (it->rotation()).roll() <<"," 
-    	     << (it->rotation()).pitch() << "," 
-    	     << (it->rotation()).yaw() << endl;
-  }
-  stream << "\n\n--------------- Average Error ---------------\n"<< endl;
-  Vector6 ave_error = errorAverage(online_error);
-  stream << "x[m] \t y[m] \t z[m] \t rho[deg] \t pitch[deg] \t yaw[deg]"<< endl;
-  stream << ave_error[0] <<","<< ave_error[1] <<","<< ave_error[2]<<","
-         << ave_error[3] * 180/M_PI <<","<< ave_error[4] * 180/M_PI <<","<< ave_error[5] * 180/M_PI<< endl;
-  stream.close();
-
+  // save the data TODO: give option to save in different folder
+  saveData(result,
+           true_positions,
+           landmarks,
+           online_error);
 
   // print path with python
   string command = "python ../python_plot.py";

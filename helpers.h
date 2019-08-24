@@ -3,6 +3,8 @@
 
 
 #include <random>
+#include <fstream>
+
 #include <gtsam/geometry/SimpleCamera.h>
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/navigation/Scenario.h>
@@ -19,6 +21,12 @@ using namespace std;
 using symbol_shorthand::X;
 using symbol_shorthand::V;
 using symbol_shorthand::B;
+
+// save data
+void saveData(Values result,
+              std::vector<Point3> true_positions,
+              std::vector<Point3> landmarks,
+              std::vector<Pose3> online_error);
 
 
 // generate a random 3D point

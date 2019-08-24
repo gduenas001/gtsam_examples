@@ -17,10 +17,12 @@ estimated_positions_z= []
 with open('estimated_positions.csv', 'rb') as csvfile:
      estimated_positions = csv.reader(csvfile, delimiter=',')
      for position in estimated_positions:
-     	estimated_positions_x.append(float(position[0]))
-     	estimated_positions_y.append(float(position[1]))
-     	estimated_positions_z.append(float(position[2]))
-
+          try:
+               estimated_positions_x.append(float(position[0]))
+               estimated_positions_y.append(float(position[1]))
+               estimated_positions_z.append(float(position[2]))
+          except:
+               pass
 
 # add estimated positions to the plot
 true_positions_x= []
@@ -29,10 +31,13 @@ true_positions_z= []
 with open('true_positions.csv', 'rb') as csvfile:
      true_positions = csv.reader(csvfile, delimiter=',')
      for position in true_positions:
-		true_positions_x.append( float(position[0]) )
-		true_positions_y.append( float(position[1]) )
-		true_positions_z.append( float(position[2]) )
-
+          try:
+               true_positions_x.append( float(position[0]) )
+               true_positions_y.append( float(position[1]) )
+               true_positions_z.append( float(position[2]) )
+          except:
+               pass
+		
 # add landmarks to the plot
 landmarks_x= []
 landmarks_y= []
