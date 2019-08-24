@@ -1,7 +1,9 @@
 // TODO 
 // - need to figure out how the imu noise is specified: continuous - discrete time conversion.
-// - add lidar msmts to landmarks (start with known associations)
-
+// - data association for landmarks
+// - different frequencies for GPS and lidar
+// - use sliding window filter
+// - evaluate error
 
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/ImuFactor.h>
@@ -84,7 +86,9 @@ int main(int argc, char* argv[]) {
   NavState prev_state, predict_state;
   imuBias::ConstantBias prev_bias;
   std::vector<Point3> true_positions;
+  std::vector<Pose3> online_error; // error when computed online
   true_positions.push_back( scenario.pose(0).translation() );
+
 
   // solve the graph once
   addNoiselessPriorFactor(newgraph, complete_graph, initialEstimate, scenario);
@@ -155,12 +159,21 @@ int main(int argc, char* argv[]) {
       isam.update(newgraph, initialEstimate);
       result = isam.calculateEstimate();
 
-      // reset variables
+      
+      // compute error
+      Rot3 rotation_error = scenario.pose(current_time).rotation() *
+      	   Rot3( result.at<Pose3>(X(pose_factor_count)).rotation().transpose() );
+      Point3 translation_error = scenario.pose(current_time).translation() - 
+      							 result.at<Pose3>(X(pose_factor_count)).translation();
+      online_error.push_back( Pose3( rotation_error, translation_error ));
+
+	  // reset variables
       newgraph = NonlinearFactorGraph();
       accum.resetIntegration();
       initialEstimate.clear();
       gps_time_accum = 0.0;
       pose_factor_count++;  // increase the factor count
+
     }
   } // end for loop
   
@@ -189,6 +202,17 @@ int main(int argc, char* argv[]) {
   stream.open(filename.c_str(), fstream::out);
   for (std::vector<Point3>::iterator it = landmarks.begin() ; it != landmarks.end(); ++it) {
     stream << it->x() << "," << it->y() << "," << it->z() << endl;
+  }
+  stream.close();
+
+// write errors into a file
+  filename = "errors.csv";
+  stream.open(filename.c_str(), fstream::out);
+  for (std::vector<Pose3>::iterator it = online_error.begin() ; it != online_error.end(); ++it) {
+  	// Vector3 ypr = it->ypr();
+    stream << (it->rotation()).roll() <<"," 
+    	   << (it->rotation()).pitch() << "," 
+    	   << (it->rotation()).yaw() << endl;
   }
   stream.close();
 

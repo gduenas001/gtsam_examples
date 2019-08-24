@@ -31,6 +31,9 @@ void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph,
 							 Values &initial_estimate,
                              const Scenario &scenario);
 
+// creates the ground truth from where we simulate the measurements and measure the error
 ConstantTwistScenario createConstantTwistScenario(double radius = 30, double linear_velocity = 25);
 
+
+// creates the map of landmarks and stores them in a vector of 3D points
 std::vector<Point3>  createLandmarks(double radius);
