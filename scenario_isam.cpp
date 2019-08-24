@@ -37,13 +37,13 @@ int main(int argc, char* argv[]) {
   double gyro_noise_sigma = 0.1; //000205689024915
   double accel_bias_rw_sigma = 0.005; //1e-20; //004905
   double gyro_bias_rw_sigma = 0.000001454441043; //1e-20; //000001454441043
-  double gps_noise_sigma = 10.0; // meters
+  double gps_noise_sigma = 1.0; // meters
   double dt_imu = 1.0 / 100, // default 125HZ -- makes for 10 degrees per step (1.0 / 18)
          dt_gps = 1.0, // seconds
          scenario_radius = 30, // meters
          scenario_linear_vel = 50 / 3.6, // m/s
-         range_sigma = 0.01, // range standard deviation
-         bearing_sigma = 0.5 * M_PI / 180; // bearing standard dev
+         range_noise_sigma = 0.20, // range standard deviation
+         bearing_noise_sigma = 3 * M_PI / 180; // bearing standard dev
 
   // create parameters
   Matrix33 measured_acc_cov = I_3x3 * pow(accel_noise_sigma,2);
@@ -67,10 +67,12 @@ int main(int argc, char* argv[]) {
   std::default_random_engine noise_generator;    // noise generator
   std::normal_distribution<double> accel_noise_dist(0, accel_noise_sigma);
   std::normal_distribution<double> gyro_noise_dist(0, gyro_noise_sigma);
+  std::normal_distribution<double> range_noise_dist(0, range_noise_sigma);
+  std::normal_distribution<double> bearing_noise_dist(0, bearing_noise_sigma);
   std::normal_distribution<double> gps_noise_dist(0, gps_noise_sigma);
   noiseModel::Diagonal::shared_ptr gps_cov = noiseModel::Isotropic::Sigma(3, gps_noise_sigma); // GPS covariance is constant
   ConstantTwistScenario scenario = createConstantTwistScenario(scenario_radius, scenario_linear_vel);
-  noiseModel::Diagonal::shared_ptr lidar_cov = noiseModel::Diagonal::Sigmas( (Vector(3) << bearing_sigma, bearing_sigma, range_sigma).finished() );
+  noiseModel::Diagonal::shared_ptr lidar_cov = noiseModel::Diagonal::Sigmas( (Vector(3) << bearing_noise_sigma, bearing_noise_sigma, range_noise_sigma).finished() );
   std::vector<Point3> landmarks = createLandmarks(scenario_radius);
 
   // Create a factor graph &  ISAM2
@@ -136,7 +138,8 @@ int main(int argc, char* argv[]) {
       complete_graph.add(imufac);
 
       // // Adding GPS factor
-      Point3 gps_msmt = scenario.pose(current_time).translation() + Point3(generate_random_point(noise_generator, gps_noise_dist));
+      Point3 gps_noise(generate_random_point(noise_generator, gps_noise_dist));
+      Point3 gps_msmt = scenario.pose(current_time).translation() + gps_noise;
       GPSFactor gps_factor(X(pose_factor_count), gps_msmt, gps_cov);
       newgraph.add(gps_factor);
       complete_graph.add(gps_factor);
@@ -145,8 +148,20 @@ int main(int argc, char* argv[]) {
       for (int j = 0; j < landmarks.size(); ++j) {
         Eigen::MatrixXd range_jacobian;
         Eigen::MatrixXd bearing_jacobian;
+        
+        // range
         double range = scenario.pose(current_time).range(landmarks[j], range_jacobian);
+        double range_noise = range_noise_dist(noise_generator);
+        range = range + range_noise;
+
+        // bearing
         Unit3 bearing = scenario.pose(current_time).bearing(landmarks[j], bearing_jacobian);
+        Rot3 bearing_noise = Rot3::RzRyRx(bearing_noise_dist(noise_generator),
+                                          bearing_noise_dist(noise_generator),
+                                          bearing_noise_dist(noise_generator));
+        bearing = bearing_noise.rotate(bearing);
+
+        // range-bearing factor
         RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
                                                    range,
                                                    bearing,
@@ -209,17 +224,21 @@ int main(int argc, char* argv[]) {
   filename = "errors.csv";
   stream.open(filename.c_str(), fstream::out);
   for (std::vector<Pose3>::iterator it = online_error.begin() ; it != online_error.end(); ++it) {
-  	// Vector3 ypr = it->ypr();
-    stream << (it->rotation()).roll() <<"," 
-    	   << (it->rotation()).pitch() << "," 
-    	   << (it->rotation()).yaw() << endl;
+    stream << it->translation().x() <<","
+           << it->translation().y() <<","
+           << it->translation().z() <<","
+           << (it->rotation()).roll() <<"," 
+    	     << (it->rotation()).pitch() << "," 
+    	     << (it->rotation()).yaw() << endl;
   }
+  stream << "\n\n--------------- Average Error ---------------\n"<< endl;
+  // stream << 
   stream.close();
 
 
   // print path with python
-  // string command = "python ../python_plot.py";
-  // system(command.c_str());
+  string command = "python ../python_plot.py";
+  system(command.c_str());
 
 
   // save factor graph as graphviz dot file

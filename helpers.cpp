@@ -9,6 +9,15 @@ Point3 generate_random_point(std::default_random_engine &generator, std::normal_
   return Point3(distribution(generator),distribution(generator),distribution(generator));
 }
 
+// compute average of vector of poses
+Pose3 Pose3_vector_average(std::vector<Pose3> poses){
+  // Point3 ave_translation
+  for (std::vector<Pose3>::iterator it = poses.begin() ; it != poses.end(); ++it) {
+
+  }
+  return Pose3();
+}
+
 
 // add a noiseless prior factor
 void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, NonlinearFactorGraph &complete_graph, Values &initial_estimate,
