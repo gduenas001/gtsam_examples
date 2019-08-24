@@ -42,8 +42,8 @@ int main(int argc, char* argv[]) {
          dt_gps = 1.0, // seconds
          scenario_radius = 30, // meters
          scenario_linear_vel = 50 / 3.6, // m/s
-         range_noise_sigma = 0.20, // range standard deviation
-         bearing_noise_sigma = 3 * M_PI / 180; // bearing standard dev
+         range_noise_sigma = 0.50, // range standard deviation
+         bearing_noise_sigma = 5 * M_PI / 180; // bearing standard dev
 
   // create parameters
   Matrix33 measured_acc_cov = I_3x3 * pow(accel_noise_sigma,2);
@@ -232,7 +232,10 @@ int main(int argc, char* argv[]) {
     	     << (it->rotation()).yaw() << endl;
   }
   stream << "\n\n--------------- Average Error ---------------\n"<< endl;
-  // stream << 
+  Vector6 ave_error = errorAverage(online_error);
+  stream << "x[m] \t y[m] \t z[m] \t rho[deg] \t pitch[deg] \t yaw[deg]"<< endl;
+  stream << ave_error[0] <<","<< ave_error[1] <<","<< ave_error[2]<<","
+         << ave_error[3] * 180/M_PI <<","<< ave_error[4] * 180/M_PI <<","<< ave_error[5] * 180/M_PI<< endl;
   stream.close();
 
 

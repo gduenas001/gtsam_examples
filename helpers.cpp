@@ -10,12 +10,16 @@ Point3 generate_random_point(std::default_random_engine &generator, std::normal_
 }
 
 // compute average of vector of poses
-Pose3 Pose3_vector_average(std::vector<Pose3> poses){
-  // Point3 ave_translation
+Vector6 errorAverage(std::vector<Pose3> poses){
+  Vector3 ave_translation, ave_rotation; // deault constructor -> zero translation
   for (std::vector<Pose3>::iterator it = poses.begin() ; it != poses.end(); ++it) {
-
+    ave_translation += abs( it->translation() );
+    ave_rotation += abs(Vector3( it->rotation().roll(),
+                                 it->rotation().pitch(),
+                                 it->rotation().yaw() ));
   }
-  return Pose3();
+  return (Vector(6) << ave_translation / poses.size(), 
+                       ave_rotation / poses.size() ).finished();
 }
 
 

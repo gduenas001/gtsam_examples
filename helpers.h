@@ -25,6 +25,9 @@ using symbol_shorthand::B;
 Point3 generate_random_point(std::default_random_engine &generator, 
 							 std::normal_distribution<double> &distribution);
 
+// TBD
+Vector6 errorAverage(std::vector<Pose3> poses);
+
 // add a noiseless prior factor
 void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
 							 NonlinearFactorGraph &complete_graph, 
