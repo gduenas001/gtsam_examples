@@ -74,10 +74,12 @@ int main(int argc, char* argv[]) {
   ConstantTwistScenario scenario = createConstantTwistScenario(scenario_radius, scenario_linear_vel);
   noiseModel::Diagonal::shared_ptr lidar_cov = noiseModel::Diagonal::Sigmas( (Vector(3) << bearing_noise_sigma, bearing_noise_sigma, range_noise_sigma).finished() );
   std::vector<Point3> landmarks = createLandmarks(scenario_radius);
+  ISAM2Params isam_params;
+  isam_params.evaluateNonlinearError = true;
 
   // Create a factor graph &  ISAM2
   NonlinearFactorGraph newgraph, complete_graph;
-  ISAM2 isam;
+  ISAM2 isam(isam_params);
   Values initialEstimate, result; // Create the initial estimate to the solution
 
   // initialize variables
@@ -182,7 +184,7 @@ int main(int argc, char* argv[]) {
       							 result.at<Pose3>(X(pose_factor_count)).translation();
       online_error.push_back( Pose3( rotation_error, translation_error ));
 
-	  // reset variables
+	    // reset variables
       newgraph = NonlinearFactorGraph();
       accum.resetIntegration();
       initialEstimate.clear();
@@ -192,12 +194,15 @@ int main(int argc, char* argv[]) {
     }
   } // end for loop
   
+
   // check residuals
+  boost::optional<double> error_before = isam_result.errorBefore;
+  cout<< "the error before is: "<< error_before.value_or(-1)<< endl;
+  boost::optional<double> error_after = isam_result.errorAfter;
+  cout<< "error after: "<< error_after.value_or(-1)<< endl;
   double residual = isam.error(isam.getDelta());
-  // double error_before = isam_result.errorBefore;
-  // cout<< "error before: "<< error_before << endl;
-  // cout<< "error after: "<< isam_result.errorAfter()<< endl;
   cout<< "the residual is: "<< residual<< endl;
+
 
   // save the data TODO: give option to save in different folder
   saveData(result,
