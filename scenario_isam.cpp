@@ -78,7 +78,8 @@ int main(int argc, char* argv[]) {
   isam_params.evaluateNonlinearError = true;
 
   // Create a factor graph &  ISAM2
-  NonlinearFactorGraph newgraph, complete_graph;
+  NonlinearFactorGraph newgraph, 
+                       complete_graph; // not needed
   ISAM2 isam(isam_params);
   Values initialEstimate, result; // Create the initial estimate to the solution
 
@@ -137,14 +138,14 @@ int main(int argc, char* argv[]) {
                                X(pose_factor_count),     V(pose_factor_count), 
                                B(pose_factor_count - 1), B(pose_factor_count), accum);
       newgraph.add(imufac);
-      complete_graph.add(imufac);
+      complete_graph.add(imufac); //not needed
 
       // // Adding GPS factor
       Point3 gps_noise(generate_random_point(noise_generator, gps_noise_dist));
       Point3 gps_msmt = scenario.pose(current_time).translation() + gps_noise;
       GPSFactor gps_factor(X(pose_factor_count), gps_msmt, gps_cov);
       newgraph.add(gps_factor);
-      complete_graph.add(gps_factor);
+      complete_graph.add(gps_factor); //not needed
 
       // lidar measurements
       for (int j = 0; j < landmarks.size(); ++j) {
@@ -200,8 +201,34 @@ int main(int argc, char* argv[]) {
   cout<< "the error before is: "<< error_before.value_or(-1)<< endl;
   boost::optional<double> error_after = isam_result.errorAfter;
   cout<< "error after: "<< error_after.value_or(-1)<< endl;
-  double residual = isam.error(isam.getDelta());
-  cout<< "the residual is: "<< residual<< endl;
+  // double residual = isam.error(isam.getDelta());
+  // cout<< "the residual is: "<< residual<< endl;
+
+  // print the error for all the factor 
+  NonlinearFactorGraph factor_graph = isam.getFactorsUnsafe();
+  // factor_graph.printErrors(result);
+  // factor_graph.print();
+  
+  KeyVector key_vector = factor_graph.keyVector();
+  Key key_n1 = key_vector[0];
+  // cout<< "first key: "<< key_n1<< endl;
+
+  // get a factor by key
+  for (int i = 0; i < 10; ++i)
+  {
+    boost::shared_ptr<NonlinearFactor> factor = factor_graph.at(i);
+    cout<< "dimension of factor: "<< factor->dim() << endl;
+    cout<< "size of factor: "<< factor->size() << endl;
+    cout<< "error in factor "<< factor->error(result)<< endl; 
+  }
+  // Vector error_vector = factor_graph.at(0)->unwhitenedError(result);
+  // Vector error_vector = factor->unwhitenedError(result);
+  // cout<< "error in selected factor: "<< factor->error(result)<< endl;
+  // cout<< error_vector<< endl;
+  
+
+
+
 
 
   // save the data TODO: give option to save in different folder
@@ -210,14 +237,19 @@ int main(int argc, char* argv[]) {
            landmarks,
            online_error);
 
-  // print path with python
-  string command = "python ../python_plot.py";
-  system(command.c_str());
+
+  // // print path with python
+  // string command = "python ../python_plot.py";
+  // system(command.c_str());
 
 
   // save factor graph as graphviz dot file
-  // ofstream os("isam_example.dot");
+  // Use this to convert to png image
+  // dot -Tpng -Gdpi=1000 isam_example.dot -o isam_example.png
+  ofstream os("isam_example.dot");
   // complete_graph.saveGraph(os, result);
+  factor_graph.saveGraph(os, result);
+
 
   // GTSAM_PRINT(result);
 
