@@ -92,7 +92,8 @@ Vector6 errorAverage(std::vector<Pose3> poses){
 void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, NonlinearFactorGraph &complete_graph, Values &initial_estimate,
                              const Scenario &scenario) {
   // Add a prior on pose x0. This indirectly specifies where the origin is.
-  noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(0.0), Vector3::Constant(0.0)).finished());
+  noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas(
+        (Vector(6) << Vector3::Constant(0.01), Vector3::Constant(0.1)).finished() );
   PriorFactor<Pose3> pose_prior(X(0), scenario.pose(0), pose_noise);
   new_graph.add(PriorFactor<Pose3>(X(0), scenario.pose(0), pose_noise));
   complete_graph.add(PriorFactor<Pose3>(X(0), scenario.pose(0), pose_noise));
@@ -101,14 +102,16 @@ void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, NonlinearFactorGra
   // add velocity prior to graph and init values
   Vector vel_prior(3); // needs to be a dynamically allocated vector (I don't know why)
   vel_prior= scenario.velocity_n(0);
-  noiseModel::Diagonal::shared_ptr vel_noise = noiseModel::Diagonal::Sigmas( Vector3::Constant(0.0) ); // default 0.01
+  noiseModel::Diagonal::shared_ptr vel_noise = noiseModel::Diagonal::Sigmas( 
+        Vector3::Constant(0.01) ); // default 0.01
   PriorFactor<Vector> vel_prior_factor(V(0), vel_prior, vel_noise);
   new_graph.add(vel_prior_factor);
   complete_graph.add(vel_prior_factor);  
   initial_estimate.insert(V(0), vel_prior);
 
   // Add bias priors to graph and init values
-  noiseModel::Diagonal::shared_ptr bias_noise = noiseModel::Diagonal::Sigmas(Vector6::Constant(0.0)); // default 0.1
+  noiseModel::Diagonal::shared_ptr bias_noise = noiseModel::Diagonal::Sigmas(
+        Vector6::Constant(0.01)); // default 0.1
   PriorFactor<imuBias::ConstantBias> bias_prior_factor(B(0), imuBias::ConstantBias(), bias_noise);
   new_graph.add(bias_prior_factor); 
   complete_graph.add(bias_prior_factor); 

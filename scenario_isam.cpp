@@ -11,7 +11,8 @@
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <typeinfo>
-// #include <fstream>
+#include <boost/math/distributions/chi_squared.hpp>
+
 
 #include <helpers.h>
 #include <RangeBearingFactorMap.h>
@@ -29,7 +30,7 @@ int main(int argc, char* argv[]) {
   if (argc == 2){
     sim_time= atof(argv[1]);
   } else {
-    sim_time= 30; // seconds
+    sim_time= 5; // seconds
   }
 
   // input parameters
@@ -38,7 +39,7 @@ int main(int argc, char* argv[]) {
   double accel_bias_rw_sigma = 0.005; //1e-20; //004905
   double gyro_bias_rw_sigma = 0.000001454441043; //1e-20; //000001454441043
   double gps_noise_sigma = 1.0; // meters
-  double dt_imu = 1.0 / 100, // default 125HZ -- makes for 10 degrees per step (1.0 / 18)
+  double dt_imu = 1.0 / 200, // default 125HZ -- makes for 10 degrees per step (1.0 / 18)
          dt_gps = 1.0, // seconds
          scenario_radius = 30, // meters
          scenario_linear_vel = 50 / 3.6, // m/s
@@ -197,8 +198,8 @@ int main(int argc, char* argv[]) {
   
 
   // check residuals
-  boost::optional<double> error_before = isam_result.errorBefore;
-  cout<< "the error before is: "<< error_before.value_or(-1)<< endl;
+  // boost::optional<double> error_before = isam_result.errorBefore;
+  // cout<< "the error before is: "<< error_before.value_or(-1)<< endl;
   boost::optional<double> error_after = isam_result.errorAfter;
   cout<< "error after: "<< error_after.value_or(-1)<< endl;
   // double residual = isam.error(isam.getDelta());
@@ -206,21 +207,33 @@ int main(int argc, char* argv[]) {
 
   // print the error for all the factor 
   NonlinearFactorGraph factor_graph = isam.getFactorsUnsafe();
-  // factor_graph.printErrors(result);
-  // factor_graph.print();
-  
+  boost::shared_ptr<GaussianFactorGraph> 
+                  lin_graph = factor_graph.linearize(result);
+  pair<Matrix,Vector> hessian = lin_graph->hessian();
+  pair<Matrix,Vector> jacobian = lin_graph->jacobian();
+  Matrix Lambda = hessian.first;
+  Matrix A = jacobian.first;
+  Matrix my_hessian = (A.transpose()) * A;
+  cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
+  cout<< "Hessian matrix, Lambda size = "<< Lambda.rows()<< " x "<< Lambda.cols()<< endl;
+  // cout<< "My hessian is A*A^T = "<< my_hessian<< endl;
+  // cout<< " ----------------------------- "<< endl;
+  // cout<< "Hessian from gtsam, Lambda = "<< Lambda<< endl;
+  if (my_hessian.isApprox(Lambda))
+    cout<< "both matrices are the equal"<< endl;
+
   KeyVector key_vector = factor_graph.keyVector();
   Key key_n1 = key_vector[0];
   // cout<< "first key: "<< key_n1<< endl;
 
-  // get a factor by key
-  for (int i = 0; i < 10; ++i)
-  {
-    boost::shared_ptr<NonlinearFactor> factor = factor_graph.at(i);
-    cout<< "dimension of factor: "<< factor->dim() << endl;
-    cout<< "size of factor: "<< factor->size() << endl;
-    cout<< "error in factor "<< factor->error(result)<< endl; 
-  }
+  // // get a factor by key
+  // for (int i = 0; i < 10; ++i)
+  // {
+  //   boost::shared_ptr<NonlinearFactor> factor = factor_graph.at(i);
+  //   cout<< "dimension of factor: "<< factor->dim() << endl;
+  //   cout<< "size of factor: "<< factor->size() << endl;
+  //   cout<< "error in factor "<< factor->error(result)<< endl; 
+  // }
   // Vector error_vector = factor_graph.at(0)->unwhitenedError(result);
   // Vector error_vector = factor->unwhitenedError(result);
   // cout<< "error in selected factor: "<< factor->error(result)<< endl;
@@ -228,7 +241,8 @@ int main(int argc, char* argv[]) {
   
 
 
-
+  boost::math::chi_squared_distribution<> chi2_dist(4);
+  cout<< "cdf value: "<< boost::math::quantile(chi2_dist, 1-1e-7)<< endl;
 
 
   // save the data TODO: give option to save in different folder
