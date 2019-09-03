@@ -3,7 +3,8 @@
 // - data association for landmarks
 // - different frequencies for GPS and lidar
 // - use sliding window filter
-// - check residuals
+// - Obtain S matrix
+// - Build set of hypotheses
 
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/ImuFactor.h>
@@ -215,12 +216,36 @@ int main(int argc, char* argv[]) {
   Matrix A = jacobian.first;
   Matrix my_hessian = (A.transpose()) * A;
   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
-  cout<< "Hessian matrix, Lambda size = "<< Lambda.rows()<< " x "<< Lambda.cols()<< endl;
-  // cout<< "My hessian is A*A^T = "<< my_hessian<< endl;
-  // cout<< " ----------------------------- "<< endl;
-  // cout<< "Hessian from gtsam, Lambda = "<< Lambda<< endl;
-  if (my_hessian.isApprox(Lambda))
-    cout<< "both matrices are the equal"<< endl;
+  // cout<< "Hessian matrix, Lambda size = "<< Lambda.rows()<< " x "<< Lambda.cols()<< endl;
+  Eigen::IOFormat CleanFmt(3, 0, ", ", "\n", "[", "]");
+  cout<< "Jacobian A = \n"<< A.format(CleanFmt)<< endl;
+
+
+  // remove one factor and show jacobian again
+  lin_graph->erase(lin_graph->begin());
+  pair<Matrix,Vector> jacobian2 = lin_graph->jacobian();
+  Matrix A2 = jacobian2.first;
+  cout<< "jacobian after elimination: \n" << A2.format(CleanFmt)<< endl;
+  // for (int i = 0; i < lin_graph->size(); ++i){
+  //   auto factor = lin_graph->at(i);
+  //   // cout<< ((factor->jacobian()).first) << endl;
+  //   cout<< "factor dim: "<< factor->size()<< endl;
+  // }
+
+  // number of measurements
+  double n = A.rows();
+  // number of states
+  double m = A.cols();
+  Matrix S = Lambda.inverse() * A.transpose();
+  
+
+  Matrix M = (Eigen::MatrixXd::Identity(n, n) - A*S);
+  Eigen::FullPivLU<Matrix> M_lu(M);
+  M_lu.setThreshold(1e-7);
+  cout<< "n = "<< n<< "\n m = "<< m<< endl;
+  cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
+  cout << "rank of M is " << M_lu.rank() << endl;
+  
 
   KeyVector key_vector = factor_graph.keyVector();
   Key key_n1 = key_vector[0];
