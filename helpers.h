@@ -12,6 +12,8 @@
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/nonlinear/ISAM2.h>
 #include <gtsam/navigation/ImuBias.h>
+#include <vector>
+#include <string>
 
 
 using namespace gtsam;
@@ -38,7 +40,7 @@ Vector6 errorAverage(std::vector<Pose3> poses);
 
 // add a noiseless prior factor
 void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
-							 NonlinearFactorGraph &complete_graph, 
+                             std::vector<std::string> &factor_types,
 							 Values &initial_estimate,
                              const Scenario &scenario);
 

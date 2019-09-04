@@ -80,8 +80,7 @@ int main(int argc, char* argv[]) {
   isam_params.evaluateNonlinearError = true;
 
   // Create a factor graph &  ISAM2
-  NonlinearFactorGraph newgraph, 
-                       complete_graph; // not needed
+  NonlinearFactorGraph newgraph;
   ISAM2 isam(isam_params);
   Values initialEstimate, result; // Create the initial estimate to the solution
 
@@ -98,7 +97,11 @@ int main(int argc, char* argv[]) {
   ISAM2Result isam_result;
 
   // solve the graph once
-  addNoiselessPriorFactor(newgraph, complete_graph, initialEstimate, scenario);
+  vector<string> factor_types; // stores the factor types (odom, GPS, lidar)
+  addNoiselessPriorFactor(newgraph,
+                          factor_types,
+                          initialEstimate, 
+                          scenario);
   isam.update(newgraph, initialEstimate);
   result = isam.calculateEstimate();
   newgraph = NonlinearFactorGraph();
@@ -140,14 +143,14 @@ int main(int argc, char* argv[]) {
                                X(pose_factor_count),     V(pose_factor_count), 
                                B(pose_factor_count - 1), B(pose_factor_count), accum);
       newgraph.add(imufac);
-      complete_graph.add(imufac); //not needed
+      factor_types.push_back("odom");
 
       // // Adding GPS factor
       Point3 gps_noise(generate_random_point(noise_generator, gps_noise_dist));
       Point3 gps_msmt = scenario.pose(current_time).translation() + gps_noise;
       GPSFactor gps_factor(X(pose_factor_count), gps_msmt, gps_cov);
       newgraph.add(gps_factor);
-      complete_graph.add(gps_factor); //not needed
+      factor_types.push_back("gps");
 
       // lidar measurements
       for (int j = 0; j < landmarks.size(); ++j) {
@@ -173,6 +176,7 @@ int main(int argc, char* argv[]) {
                                                    landmarks[j], 
                                                    lidar_cov);;
         newgraph.add(range_bearing_factor);
+        factor_types.push_back("lidar");
       }      
       
       // Incremental solution
@@ -193,7 +197,6 @@ int main(int argc, char* argv[]) {
       initialEstimate.clear();
       gps_time_accum = 0.0;
       pose_factor_count++;  // increase the factor count
-
     }
   } // end for loop
   
@@ -218,27 +221,31 @@ int main(int argc, char* argv[]) {
   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
   // cout<< "Hessian matrix, Lambda size = "<< Lambda.rows()<< " x "<< Lambda.cols()<< endl;
   Eigen::IOFormat CleanFmt(3, 0, ", ", "\n", "[", "]");
-  cout<< "Jacobian A = \n"<< A.format(CleanFmt)<< endl;
+  // cout<< "Jacobian A = \n"<< A.format(CleanFmt)<< endl;
+
+  for (vector<string>::iterator it = factor_types.begin(); 
+                                it != factor_types.end(); ++it){
+    cout<< "factor type "<< *it<< endl;
+  }
 
 
   // remove one factor and show jacobian again
   lin_graph->erase(lin_graph->begin());
   pair<Matrix,Vector> jacobian2 = lin_graph->jacobian();
   Matrix A2 = jacobian2.first;
-  cout<< "jacobian after elimination: \n" << A2.format(CleanFmt)<< endl;
+  // cout<< "jacobian after elimination: \n" << A2.format(CleanFmt)<< endl;
   // for (int i = 0; i < lin_graph->size(); ++i){
   //   auto factor = lin_graph->at(i);
   //   // cout<< ((factor->jacobian()).first) << endl;
   //   cout<< "factor dim: "<< factor->size()<< endl;
   // }
 
-  // number of measurements
+  // number of measurements and states
   double n = A.rows();
-  // number of states
   double m = A.cols();
-  Matrix S = Lambda.inverse() * A.transpose();
-  
 
+  // check matrix M
+  Matrix S = Lambda.inverse() * A.transpose();
   Matrix M = (Eigen::MatrixXd::Identity(n, n) - A*S);
   Eigen::FullPivLU<Matrix> M_lu(M);
   M_lu.setThreshold(1e-7);
@@ -252,8 +259,7 @@ int main(int argc, char* argv[]) {
   // cout<< "first key: "<< key_n1<< endl;
 
   // // get a factor by key
-  // for (int i = 0; i < 10; ++i)
-  // {
+  // for (int i = 0; i < 10; ++i) {
   //   boost::shared_ptr<NonlinearFactor> factor = factor_graph.at(i);
   //   cout<< "dimension of factor: "<< factor->dim() << endl;
   //   cout<< "size of factor: "<< factor->size() << endl;
@@ -286,7 +292,6 @@ int main(int argc, char* argv[]) {
   // Use this to convert to png image
   // dot -Tpng -Gdpi=1000 isam_example.dot -o isam_example.png
   ofstream os("isam_example.dot");
-  // complete_graph.saveGraph(os, result);
   factor_graph.saveGraph(os, result);
 
 
