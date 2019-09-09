@@ -158,10 +158,26 @@ void eliminateFactorsByType(
   typedef FastVector<boost::shared_ptr<GaussianFactor>>::iterator 
                               sharedGaussianFactorIterator;
 
-  int i= 0;
-  for (sharedGaussianFactorIterator it = lin_graph->begin();
-              it != lin_graph->end(); ++it, ++i) {
-    if (factor_types[i] == type) {lin_graph->erase(it);}
+  // int i= 0;
+  // for (sharedGaussianFactorIterator it = lin_graph->begin();
+  //             it != lin_graph->end(); ++it, ++i) {
+  //   cout<< "factor "<< i<< " is of type "<< factor_types[i]<< endl;
+  //   if (factor_types[i] == type) {
+  //     lin_graph->erase(it);
+  //     cout<< "erase factor of type "<< type<< endl;
+  //   }
+  // }
+
+
+  sharedGaussianFactorIterator it = lin_graph->begin();
+  int num_elim_factors = 0;
+  for (int i = 0; i < factor_types.size(); ++i){
+    cout<< "factor "<< i<< " is of type "<< factor_types[i]<< endl;
+    if (factor_types[i] == type) {
+      lin_graph->erase(it + i - num_elim_factors);
+      cout<< "erase factor of type "<< type<< endl;
+      ++num_elim_factors;
+    }
   }
 }
 

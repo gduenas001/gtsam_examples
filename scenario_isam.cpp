@@ -4,9 +4,10 @@
 // - different frequencies for GPS and lidar
 // - use sliding window filter
 // - Obtain S matrix
-// - Build set of hypotheses
-//    - each hypothesis is a type of factor to eliminate
-
+// - I'm creating the M matrices for each hypothesis wrong. 
+// must simply remove the rows and columns that correspond to the
+// faulted measurements, DO NOT ELIMINATE FROM THE GRAPH BUT FROM 
+// THE JACOBIAN A DIRECTLY!!
 
 
 #include <gtsam/navigation/CombinedImuFactor.h>
@@ -81,6 +82,12 @@ int main(int argc, char* argv[]) {
   std::vector<Point3> landmarks = createLandmarks(scenario_radius);
   ISAM2Params isam_params;
   isam_params.evaluateNonlinearError = true;
+  vector<string> factor_types_list{"prior_pose",
+                                   "prior_vel",
+                                   "prior_bias",
+                                   "odom", 
+                                   "gps", 
+                                   "lidar"};
 
   // Create a factor graph &  ISAM2
   NonlinearFactorGraph newgraph;
@@ -205,49 +212,60 @@ int main(int argc, char* argv[]) {
   
 
   // check residuals
-  // boost::optional<double> error_before = isam_result.errorBefore;
-  // cout<< "the error before is: "<< error_before.value_or(-1)<< endl;
   boost::optional<double> error_after = isam_result.errorAfter;
   cout<< "error after: "<< error_after.value_or(-1)<< endl;
-  // double residual = isam.error(isam.getDelta());
-  // cout<< "the residual is: "<< residual<< endl;
+  
 
   // print the error for all the factor 
   NonlinearFactorGraph factor_graph = isam.getFactorsUnsafe();
   boost::shared_ptr<GaussianFactorGraph> 
                   lin_graph = factor_graph.linearize(result);
-  pair<Matrix,Vector> hessian = lin_graph->hessian();
-  pair<Matrix,Vector> jacobian = lin_graph->jacobian();
-  Matrix Lambda = hessian.first;
-  Matrix A = jacobian.first;
-  Matrix my_hessian = (A.transpose()) * A;
+  Matrix A = (lin_graph->jacobian()).first;
   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
-  // cout<< "Hessian matrix, Lambda size = "<< Lambda.rows()<< " x "<< Lambda.cols()<< endl;
-  Eigen::IOFormat CleanFmt(3, 0, ", ", "\n", "[", "]");
+  // Eigen::IOFormat CleanFmt(3, 0, ", ", "\n", "[", "]");
   // cout<< "Jacobian A = \n"<< A.format(CleanFmt)<< endl;
-
-  // eliminate all the odometry factors
-  eliminateFactorsByType(lin_graph, factor_types, "odom");
-
-  Matrix A2 = (lin_graph->jacobian()).first;
-  // cout<< "jacobian after elimination: \n" << A2.format(CleanFmt)<< endl;
   
-  // number of measurements and states
-  double n = A.rows();
-  double m = A.cols();
-  double n2 = A2.rows();
-  double m2 = A2.cols();
 
-  // check matrix M
+  cout<< "----------- Hypothesis 0 ----------"<< "\n\n";
+  // number of measurements and states
+  double n = A.rows(); double m = A.cols();
+  cout<< "n = "<< n<< "\n m = "<< m<< endl;
+
+
+  // check matrix M before elimination
+  Matrix Lambda = (lin_graph->hessian()).first;
   Matrix S = Lambda.inverse() * A.transpose();
   Matrix M = (Eigen::MatrixXd::Identity(n, n) - A*S);
   Eigen::FullPivLU<Matrix> M_lu(M);
   M_lu.setThreshold(1e-7);
-  cout<< "n = "<< n<< "\n m = "<< m<< endl;
-  cout<< "n2 = "<< n2<< "\n m2 = "<< m2<< endl;
   cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
   cout << "rank of M is " << M_lu.rank() << endl;
   
+  // loop over hypotheses
+  for (int i = 0; i < factor_types_list.size(); ++i){
+    string type = factor_types_list[i];
+
+    cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
+
+    // eliminate all the odometry factors
+    boost::shared_ptr<GaussianFactorGraph> h_lin_graph = 
+            boost::make_shared<GaussianFactorGraph>(lin_graph->clone());
+    eliminateFactorsByType(h_lin_graph, factor_types, type);
+    Matrix h_A = (h_lin_graph->jacobian()).first;
+
+    // number of measurements and states
+    double h_n = h_A.rows(); double h_m = h_A.cols();
+    cout<< "n = "<< h_n<< "\t m = "<< h_m<< endl;
+
+    // matrix M for the hypothesis
+    Matrix h_Lambda = (h_lin_graph->hessian()).first;
+    Matrix h_S = Lambda.inverse() * h_A.transpose();
+    Matrix h_M = (Eigen::MatrixXd::Identity(h_n, h_n) - h_A * h_S);
+    Eigen::FullPivLU<Matrix> h_M_lu(h_M);
+    M_lu.setThreshold(1e-3);
+    cout<< "size of M = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
+    cout << "rank of M is " << h_M_lu.rank() << endl;
+  }
 
   KeyVector key_vector = factor_graph.keyVector();
   Key key_n1 = key_vector[0];

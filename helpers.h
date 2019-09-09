@@ -59,4 +59,3 @@ void eliminateFactorsByType(
           vector<string> factor_types,
           string type);
 
-
