@@ -5,6 +5,9 @@
 // - use sliding window filter
 // - Obtain S matrix
 // - Build set of hypotheses
+//    - each hypothesis is a type of factor to eliminate
+
+
 
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/ImuFactor.h>
@@ -223,26 +226,17 @@ int main(int argc, char* argv[]) {
   Eigen::IOFormat CleanFmt(3, 0, ", ", "\n", "[", "]");
   // cout<< "Jacobian A = \n"<< A.format(CleanFmt)<< endl;
 
-  for (vector<string>::iterator it = factor_types.begin(); 
-                                it != factor_types.end(); ++it){
-    cout<< "factor type "<< *it<< endl;
-  }
+  // eliminate all the odometry factors
+  eliminateFactorsByType(lin_graph, factor_types, "odom");
 
-
-  // remove one factor and show jacobian again
-  lin_graph->erase(lin_graph->begin());
-  pair<Matrix,Vector> jacobian2 = lin_graph->jacobian();
-  Matrix A2 = jacobian2.first;
+  Matrix A2 = (lin_graph->jacobian()).first;
   // cout<< "jacobian after elimination: \n" << A2.format(CleanFmt)<< endl;
-  // for (int i = 0; i < lin_graph->size(); ++i){
-  //   auto factor = lin_graph->at(i);
-  //   // cout<< ((factor->jacobian()).first) << endl;
-  //   cout<< "factor dim: "<< factor->size()<< endl;
-  // }
-
+  
   // number of measurements and states
   double n = A.rows();
   double m = A.cols();
+  double n2 = A2.rows();
+  double m2 = A2.cols();
 
   // check matrix M
   Matrix S = Lambda.inverse() * A.transpose();
@@ -250,6 +244,7 @@ int main(int argc, char* argv[]) {
   Eigen::FullPivLU<Matrix> M_lu(M);
   M_lu.setThreshold(1e-7);
   cout<< "n = "<< n<< "\n m = "<< m<< endl;
+  cout<< "n2 = "<< n2<< "\n m2 = "<< m2<< endl;
   cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
   cout << "rank of M is " << M_lu.rank() << endl;
   

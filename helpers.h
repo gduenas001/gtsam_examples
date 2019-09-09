@@ -24,6 +24,8 @@ using symbol_shorthand::X;
 using symbol_shorthand::V;
 using symbol_shorthand::B;
 
+
+
 // save data
 void saveData(Values result,
               std::vector<Point3> true_positions,
@@ -50,3 +52,11 @@ ConstantTwistScenario createConstantTwistScenario(double radius = 30, double lin
 
 // creates the map of landmarks and stores them in a vector of 3D points
 std::vector<Point3>  createLandmarks(double radius);
+
+// eliminate all factors of type "type"
+void eliminateFactorsByType(
+          boost::shared_ptr<GaussianFactorGraph> &lin_graph,
+          vector<string> factor_types,
+          string type);
+
+

@@ -149,3 +149,19 @@ std::vector<Point3>  createLandmarks(double radius){
 }
 
 
+// eliminate all factors with this type
+void eliminateFactorsByType(
+          boost::shared_ptr<GaussianFactorGraph> &lin_graph,
+          vector<string> factor_types,
+          string type){
+
+  typedef FastVector<boost::shared_ptr<GaussianFactor>>::iterator 
+                              sharedGaussianFactorIterator;
+
+  int i= 0;
+  for (sharedGaussianFactorIterator it = lin_graph->begin();
+              it != lin_graph->end(); ++it, ++i) {
+    if (factor_types[i] == type) {lin_graph->erase(it);}
+  }
+}
+
