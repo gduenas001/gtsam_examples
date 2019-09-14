@@ -157,12 +157,19 @@ int main(int argc, char* argv[]) {
       newgraph.add(imufac);
       factor_types.push_back("odom");
       if ( !(A_rows_per_type["odom"]).empty() ){
+        cout<< "odom A_rows_per_type is NOT empty"<< endl;
         (A_rows_per_type["odom"]).insert( A_rows_per_type["odom"].end(),
                 returnIncrVector(A_rows_per_type["odom"].size(), 15).begin(),
                 returnIncrVector(A_rows_per_type["odom"].size(), 15).end() );
       }else{
+        cout<< "odom A_rows_per_type IS empty"<< endl;
         A_rows_per_type.insert(pair<string, vector<int>> 
-                        ("odom", returnIncrVector(0, 15)));
+                        ("odom", returnIncrVector(A_rows_count, 15)));
+        // cout<< "the rows indeces for the odom factors"<<endl;
+        cout<< "number of odom factors "<< A_rows_per_type["odom"].size()<< endl;
+        // for (int i = 0; i < A_rows_per_type["odom"].size(); ++i){
+        //   cout<< (A_rows_per_type["odom"])[i]<< endl;
+        // }
       }
       A_rows_count += 15;
 
@@ -264,24 +271,28 @@ int main(int argc, char* argv[]) {
 
     cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
 
-    // eliminate all the odometry factors
-    boost::shared_ptr<GaussianFactorGraph> h_lin_graph = 
-            boost::make_shared<GaussianFactorGraph>( lin_graph->clone() );
-    Matrix h_A = eliminateFactorsByType(A, A_rows_per_type, type);
+    // eliminate factors per type
+    Matrix h_M = eliminateFactorsByType(M, A_rows_per_type, type);
+
+    // 
+    Eigen::FullPivLU<Matrix> h_M_lu(h_M);
+    h_M_lu.setThreshold(1e-3);
+    cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
+    cout << "rank of M is " << h_M_lu.rank() << endl;
 
     // number of measurements and states
-    double h_n = h_A.rows(); double h_m = h_A.cols();
-    cout<< "n = "<< h_n<< "\t m = "<< h_m<< endl;
+    // double h_n = h_A.rows(); double h_m = h_A.cols();
+    // cout<< "n = "<< h_n<< "\t m = "<< h_m<< endl;
 
-    // matrix M for the hypothesis
-    Matrix h_Lambda = h_A.transpose() * h_A;
-    Matrix h_S = Lambda.inverse() * h_A.transpose();
-    Matrix h_M = (Eigen::MatrixXd::Identity(h_n, h_n) - h_A * h_S);
-    Eigen::FullPivLU<Matrix> h_M_lu(h_M);
-    M_lu.setThreshold(1e-3);
-    cout<< "size of M = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
-    cout << "rank of M is " << h_M_lu.rank() << endl;
+    // // matrix M for the hypothesis
+    // Matrix h_Lambda = h_A.transpose() * h_A;
+    // if (h_Lambda.determinant() != 0){
+      
+    // } 
+    
+    
   }
+
 
   // show the rows correspondence
   // std::vector<int> v = A_rows_per_type["lidar"];

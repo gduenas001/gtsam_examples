@@ -196,19 +196,24 @@ void eliminateFactorsByType_old(
 
 
 // extract the matrix corresponding to the measurements of this type
-Matrix eliminateFactorsByType(Matrix A,
+Matrix eliminateFactorsByType(Matrix &M,
               map<string, vector<int>> &A_rows_per_type,
               string type){
   
-  // list of row indexes for the msmt type in a list
-  list<int> row_ind( A_rows_per_type[type].begin(),
-                     A_rows_per_type[type].end() );
-  vector<int> col_ind_vector = returnIncrVector(0, A.cols());
-  list<int> col_ind( col_ind_vector.begin(),
-                     col_ind_vector.end() );
-                     
-  return A(row_ind, col_ind);
-  // return A(row_ind, Eigen::all);
+  return extractJacobianRows(M, A_rows_per_type[type]);
 }
+
+
+// extracte rows from Jacobians
+Matrix extractJacobianRows(Matrix &M, vector<int> row_inds){
+  Matrix h_M( row_inds.size(), row_inds.size() );
+  for (int i = 0; i < row_inds.size(); ++i){
+    for (int j = 0; j < row_inds.size(); ++j){
+      h_M(i,j) = M(row_inds[i], row_inds[j]);
+    }
+  }
+  return h_M;
+}
+
 
 
