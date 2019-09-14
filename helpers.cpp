@@ -174,24 +174,13 @@ std::vector<int> returnIncrVector(int start, int num_elem){
 }
 
 // eliminate all factors with this type
-void eliminateFactorsByType(
+void eliminateFactorsByType_old(
           boost::shared_ptr<GaussianFactorGraph> &lin_graph,
           vector<string> factor_types,
           string type){
 
   typedef FastVector<boost::shared_ptr<GaussianFactor>>::iterator 
                               sharedGaussianFactorIterator;
-
-  // int i= 0;
-  // for (sharedGaussianFactorIterator it = lin_graph->begin();
-  //             it != lin_graph->end(); ++it, ++i) {
-  //   cout<< "factor "<< i<< " is of type "<< factor_types[i]<< endl;
-  //   if (factor_types[i] == type) {
-  //     lin_graph->erase(it);
-  //     cout<< "erase factor of type "<< type<< endl;
-  //   }
-  // }
-
 
   sharedGaussianFactorIterator it = lin_graph->begin();
   int num_elim_factors = 0;
@@ -204,4 +193,22 @@ void eliminateFactorsByType(
     }
   }
 }
+
+
+// extract the matrix corresponding to the measurements of this type
+Matrix eliminateFactorsByType(Matrix A,
+              map<string, vector<int>> &A_rows_per_type,
+              string type){
+  
+  // list of row indexes for the msmt type in a list
+  list<int> row_ind( A_rows_per_type[type].begin(),
+                     A_rows_per_type[type].end() );
+  vector<int> col_ind_vector = returnIncrVector(0, A.cols());
+  list<int> col_ind( col_ind_vector.begin(),
+                     col_ind_vector.end() );
+                     
+  return A(row_ind, col_ind);
+  // return A(row_ind, Eigen::all);
+}
+
 

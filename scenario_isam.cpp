@@ -134,7 +134,7 @@ int main(int argc, char* argv[]) {
     Vector3 measuredOmega = scenario.omega_b(current_time); // + gyro_noise.vector();
     accum.integrateMeasurement(measuredAcc, measuredOmega, dt_imu);
 
-    // GPS update 
+    // GPS update
     if (gps_time_accum > dt_gps) {
 
       // save the current position
@@ -156,15 +156,17 @@ int main(int argc, char* argv[]) {
                                B(pose_factor_count - 1), B(pose_factor_count), accum);
       newgraph.add(imufac);
       factor_types.push_back("odom");
-      // check if it's empty first!!
-      (A_rows_per_type["odom"]).insert(A_rows_per_type.end(), 
-      			 				returnIncrVector(A_rows_count, 15).begin(),
-      			 				returnIncrVector(A_rows_count, 15).end());
-      // A_rows_per_type.insert(pair<string, vector<int>> 
-      				// ("odom", returnIncrVector(A_rows_count, 15)));
+      if ( !(A_rows_per_type["odom"]).empty() ){
+        (A_rows_per_type["odom"]).insert( A_rows_per_type["odom"].end(),
+                returnIncrVector(A_rows_per_type["odom"].size(), 15).begin(),
+                returnIncrVector(A_rows_per_type["odom"].size(), 15).end() );
+      }else{
+        A_rows_per_type.insert(pair<string, vector<int>> 
+                        ("odom", returnIncrVector(0, 15)));
+      }
       A_rows_count += 15;
 
-      // // Adding GPS factor
+      // Adding GPS factor
       Point3 gps_noise(generate_random_point(noise_generator, gps_noise_dist));
       Point3 gps_msmt = scenario.pose(current_time).translation() + gps_noise;
       GPSFactor gps_factor(X(pose_factor_count), gps_msmt, gps_cov);
@@ -247,7 +249,6 @@ int main(int argc, char* argv[]) {
   double n = A.rows(); double m = A.cols();
   cout<< "n = "<< n<< "\n m = "<< m<< endl;
 
-
   // check matrix M before elimination
   Matrix Lambda = (lin_graph->hessian()).first;
   Matrix S = Lambda.inverse() * A.transpose();
@@ -256,38 +257,31 @@ int main(int argc, char* argv[]) {
   M_lu.setThreshold(1e-7);
   cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
   cout << "rank of M is " << M_lu.rank() << endl;
-  
 
+  // loop over hypotheses
+  for (int i = 0; i < factor_types_list.size(); ++i){
+    string type = factor_types_list[i];
 
+    cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
 
+    // eliminate all the odometry factors
+    boost::shared_ptr<GaussianFactorGraph> h_lin_graph = 
+            boost::make_shared<GaussianFactorGraph>( lin_graph->clone() );
+    Matrix h_A = eliminateFactorsByType(A, A_rows_per_type, type);
 
+    // number of measurements and states
+    double h_n = h_A.rows(); double h_m = h_A.cols();
+    cout<< "n = "<< h_n<< "\t m = "<< h_m<< endl;
 
-
-  // // loop over hypotheses
-  // for (int i = 0; i < factor_types_list.size(); ++i){
-  //   string type = factor_types_list[i];
-
-  //   cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
-
-  //   // eliminate all the odometry factors
-  //   boost::shared_ptr<GaussianFactorGraph> h_lin_graph = 
-  //           boost::make_shared<GaussianFactorGraph>(lin_graph->clone());
-  //   eliminateFactorsByType(h_lin_graph, factor_types, type);
-  //   Matrix h_A = (h_lin_graph->jacobian()).first;
-
-  //   // number of measurements and states
-  //   double h_n = h_A.rows(); double h_m = h_A.cols();
-  //   cout<< "n = "<< h_n<< "\t m = "<< h_m<< endl;
-
-  //   // matrix M for the hypothesis
-  //   Matrix h_Lambda = (h_lin_graph->hessian()).first;
-  //   Matrix h_S = Lambda.inverse() * h_A.transpose();
-  //   Matrix h_M = (Eigen::MatrixXd::Identity(h_n, h_n) - h_A * h_S);
-  //   Eigen::FullPivLU<Matrix> h_M_lu(h_M);
-  //   M_lu.setThreshold(1e-3);
-  //   cout<< "size of M = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
-  //   cout << "rank of M is " << h_M_lu.rank() << endl;
-  // }
+    // matrix M for the hypothesis
+    Matrix h_Lambda = h_A.transpose() * h_A;
+    Matrix h_S = Lambda.inverse() * h_A.transpose();
+    Matrix h_M = (Eigen::MatrixXd::Identity(h_n, h_n) - h_A * h_S);
+    Eigen::FullPivLU<Matrix> h_M_lu(h_M);
+    M_lu.setThreshold(1e-3);
+    cout<< "size of M = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
+    cout << "rank of M is " << h_M_lu.rank() << endl;
+  }
 
   // show the rows correspondence
   // std::vector<int> v = A_rows_per_type["lidar"];

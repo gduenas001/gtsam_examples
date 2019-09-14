@@ -60,8 +60,11 @@ ConstantTwistScenario createConstantTwistScenario(double radius = 30, double lin
 std::vector<Point3>  createLandmarks(double radius);
 
 // eliminate all factors of type "type"
-void eliminateFactorsByType(
+void eliminateFactorsByType_old(
           boost::shared_ptr<GaussianFactorGraph> &lin_graph,
           vector<string> factor_types,
           string type);
 
+Matrix eliminateFactorsByType(Matrix A,
+              map<string, vector<int>> &A_rows_per_type,
+              string type);
