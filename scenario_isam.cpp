@@ -105,17 +105,19 @@ int main(int argc, char* argv[]) {
   std::vector<Pose3> online_error; // error when computed online
   true_positions.push_back( scenario.pose(0).translation() );
   ISAM2Result isam_result;
+  map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
 
   // solve the graph once
   vector<string> factor_types; // stores the factor types (odom, GPS, lidar)
-  addNoiselessPriorFactor(newgraph,
-                          factor_types,
-                          initialEstimate, 
-                          scenario);
+  int A_rows_count = addNoiselessPriorFactor(newgraph,
+                 		          factor_types,
+                        		  initialEstimate, 
+                          		  scenario,
+                          		  A_rows_per_type);
   isam.update(newgraph, initialEstimate);
   result = isam.calculateEstimate();
   newgraph = NonlinearFactorGraph();
-  initialEstimate.clear();  
+  initialEstimate.clear();
 
   // Simulate poses and imu measurements, adding them to the factor graph
   for (size_t i = 1; i < num_imu_epochs; ++i) {
@@ -154,6 +156,13 @@ int main(int argc, char* argv[]) {
                                B(pose_factor_count - 1), B(pose_factor_count), accum);
       newgraph.add(imufac);
       factor_types.push_back("odom");
+      // check if it's empty first!!
+      (A_rows_per_type["odom"]).insert(A_rows_per_type.end(), 
+      			 				returnIncrVector(A_rows_count, 15).begin(),
+      			 				returnIncrVector(A_rows_count, 15).end());
+      // A_rows_per_type.insert(pair<string, vector<int>> 
+      				// ("odom", returnIncrVector(A_rows_count, 15)));
+      A_rows_count += 15;
 
       // // Adding GPS factor
       Point3 gps_noise(generate_random_point(noise_generator, gps_noise_dist));
@@ -161,6 +170,10 @@ int main(int argc, char* argv[]) {
       GPSFactor gps_factor(X(pose_factor_count), gps_msmt, gps_cov);
       newgraph.add(gps_factor);
       factor_types.push_back("gps");
+      // A_rows_per_type["gps"].push_back(returnIncrVector(A_rows_count, 3));
+      // A_rows_per_type.insert(pair<string, vector<int>> 
+      				// ("gps", returnIncrVector(A_rows_count, 3)));
+      A_rows_count += 3;
 
       // lidar measurements
       for (int j = 0; j < landmarks.size(); ++j) {
@@ -187,6 +200,9 @@ int main(int argc, char* argv[]) {
                                                    lidar_cov);;
         newgraph.add(range_bearing_factor);
         factor_types.push_back("lidar");
+        A_rows_per_type.insert(pair<string, vector<int>> 
+      				("lidar", returnIncrVector(A_rows_count, 3)));
+      	A_rows_count += 3;
       }      
       
       // Incremental solution
@@ -241,34 +257,44 @@ int main(int argc, char* argv[]) {
   cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
   cout << "rank of M is " << M_lu.rank() << endl;
   
-  // loop over hypotheses
-  for (int i = 0; i < factor_types_list.size(); ++i){
-    string type = factor_types_list[i];
 
-    cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
 
-    // eliminate all the odometry factors
-    boost::shared_ptr<GaussianFactorGraph> h_lin_graph = 
-            boost::make_shared<GaussianFactorGraph>(lin_graph->clone());
-    eliminateFactorsByType(h_lin_graph, factor_types, type);
-    Matrix h_A = (h_lin_graph->jacobian()).first;
 
-    // number of measurements and states
-    double h_n = h_A.rows(); double h_m = h_A.cols();
-    cout<< "n = "<< h_n<< "\t m = "<< h_m<< endl;
 
-    // matrix M for the hypothesis
-    Matrix h_Lambda = (h_lin_graph->hessian()).first;
-    Matrix h_S = Lambda.inverse() * h_A.transpose();
-    Matrix h_M = (Eigen::MatrixXd::Identity(h_n, h_n) - h_A * h_S);
-    Eigen::FullPivLU<Matrix> h_M_lu(h_M);
-    M_lu.setThreshold(1e-3);
-    cout<< "size of M = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
-    cout << "rank of M is " << h_M_lu.rank() << endl;
-  }
 
-  KeyVector key_vector = factor_graph.keyVector();
-  Key key_n1 = key_vector[0];
+
+  // // loop over hypotheses
+  // for (int i = 0; i < factor_types_list.size(); ++i){
+  //   string type = factor_types_list[i];
+
+  //   cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
+
+  //   // eliminate all the odometry factors
+  //   boost::shared_ptr<GaussianFactorGraph> h_lin_graph = 
+  //           boost::make_shared<GaussianFactorGraph>(lin_graph->clone());
+  //   eliminateFactorsByType(h_lin_graph, factor_types, type);
+  //   Matrix h_A = (h_lin_graph->jacobian()).first;
+
+  //   // number of measurements and states
+  //   double h_n = h_A.rows(); double h_m = h_A.cols();
+  //   cout<< "n = "<< h_n<< "\t m = "<< h_m<< endl;
+
+  //   // matrix M for the hypothesis
+  //   Matrix h_Lambda = (h_lin_graph->hessian()).first;
+  //   Matrix h_S = Lambda.inverse() * h_A.transpose();
+  //   Matrix h_M = (Eigen::MatrixXd::Identity(h_n, h_n) - h_A * h_S);
+  //   Eigen::FullPivLU<Matrix> h_M_lu(h_M);
+  //   M_lu.setThreshold(1e-3);
+  //   cout<< "size of M = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
+  //   cout << "rank of M is " << h_M_lu.rank() << endl;
+  // }
+
+  // show the rows correspondence
+  // std::vector<int> v = A_rows_per_type["lidar"];
+  // cout<< "size of vector "<< v.size()<< endl;
+
+  // KeyVector key_vector = factor_graph.keyVector();
+  // Key key_n1 = key_vector[0];
   // cout<< "first key: "<< key_n1<< endl;
 
   // // get a factor by key

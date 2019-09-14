@@ -41,10 +41,16 @@ Point3 generate_random_point(std::default_random_engine &generator,
 Vector6 errorAverage(std::vector<Pose3> poses);
 
 // add a noiseless prior factor
-void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
+int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
                              std::vector<std::string> &factor_types,
 							 Values &initial_estimate,
-                             const Scenario &scenario);
+                             const Scenario &scenario,
+                             map<string, vector<int>> &A_rows_per_type);
+
+
+// return int vector with increasing value
+std::vector<int> returnIncrVector(int start, int num_elem);
+
 
 // creates the ground truth from where we simulate the measurements and measure the error
 ConstantTwistScenario createConstantTwistScenario(double radius = 30, double linear_velocity = 25);

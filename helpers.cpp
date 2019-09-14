@@ -89,10 +89,14 @@ Vector6 errorAverage(std::vector<Pose3> poses){
 
 
 // add a noiseless prior factor
-void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
+int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
                              vector<string> &factor_types,
                              Values &initial_estimate,
-                             const Scenario &scenario) {
+                             const Scenario &scenario,
+                             map<string, vector<int>> &A_rows_per_type) {
+  // initialize the count on the rows of A
+  int A_rows_count = 0;
+
   // Add a prior on pose x0. This indirectly specifies where the origin is.
   noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas(
         (Vector(6) << Vector3::Constant(0.01), Vector3::Constant(0.1)).finished() );
@@ -100,7 +104,10 @@ void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph,
   new_graph.add(PriorFactor<Pose3>(X(0), scenario.pose(0), pose_noise));
   initial_estimate.insert(X(0), scenario.pose(0));
   factor_types.push_back("prior_pose");
-
+  A_rows_per_type.insert(pair<string, vector<int>> 
+          ("prior_pose", returnIncrVector(0,6)));
+  A_rows_count += 6;
+  
   // add velocity prior to graph and init values
   Vector vel_prior(3); // needs to be a dynamically allocated vector (I don't know why)
   vel_prior= scenario.velocity_n(0);
@@ -110,6 +117,9 @@ void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph,
   new_graph.add(vel_prior_factor);
   initial_estimate.insert(V(0), vel_prior);
   factor_types.push_back("prior_vel");
+  A_rows_per_type.insert(pair<string, vector<int>> 
+          ("prior_vel", returnIncrVector(A_rows_count,3)));
+  A_rows_count += 3;
 
   // Add bias priors to graph and init values
   noiseModel::Diagonal::shared_ptr bias_noise = noiseModel::Diagonal::Sigmas(
@@ -118,6 +128,12 @@ void addNoiselessPriorFactor(NonlinearFactorGraph &new_graph,
   new_graph.add(bias_prior_factor); 
   initial_estimate.insert(B(0), imuBias::ConstantBias());
   factor_types.push_back("prior_bias");
+  A_rows_per_type.insert(pair<string, vector<int>> 
+          ("prior_bias", returnIncrVector(A_rows_count,6)));
+  A_rows_count += 6;
+
+  // return the count of the rows of A
+  return A_rows_count;
 }
 
 
@@ -148,6 +164,14 @@ std::vector<Point3>  createLandmarks(double radius){
   return landmarks;
 }
 
+
+// return int vector with increasing values
+std::vector<int> returnIncrVector(int start, int num_elem){
+  vector<int> v(num_elem);
+  iota (begin(v), end(v), start);
+
+  return v;
+}
 
 // eliminate all factors with this type
 void eliminateFactorsByType(
