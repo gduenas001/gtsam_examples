@@ -106,6 +106,8 @@ int main(int argc, char* argv[]) {
   true_positions.push_back( scenario.pose(0).translation() );
   ISAM2Result isam_result;
   map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
+  A_rows_per_type.insert( pair<string, vector<int>> ("lidar", {}) );
+  A_rows_per_type.insert( pair<string, vector<int>> ("odom", {}) );
 
   // solve the graph once
   vector<string> factor_types; // stores the factor types (odom, GPS, lidar)
@@ -156,21 +158,10 @@ int main(int argc, char* argv[]) {
                                B(pose_factor_count - 1), B(pose_factor_count), accum);
       newgraph.add(imufac);
       factor_types.push_back("odom");
-      if ( !(A_rows_per_type["odom"]).empty() ){
-        cout<< "odom A_rows_per_type is NOT empty"<< endl;
-        (A_rows_per_type["odom"]).insert( A_rows_per_type["odom"].end(),
-                returnIncrVector(A_rows_per_type["odom"].size(), 15).begin(),
-                returnIncrVector(A_rows_per_type["odom"].size(), 15).end() );
-      }else{
-        cout<< "odom A_rows_per_type IS empty"<< endl;
-        A_rows_per_type.insert(pair<string, vector<int>> 
-                        ("odom", returnIncrVector(A_rows_count, 15)));
-        // cout<< "the rows indeces for the odom factors"<<endl;
-        cout<< "number of odom factors "<< A_rows_per_type["odom"].size()<< endl;
-        // for (int i = 0; i < A_rows_per_type["odom"].size(); ++i){
-        //   cout<< (A_rows_per_type["odom"])[i]<< endl;
-        // }
-      }
+      cout<< "odom A_rows_per_type is NOT empty"<< endl;
+      vector<int> odom_rows=  returnIncrVector(A_rows_per_type["odom"].size(), 15);
+      (A_rows_per_type["odom"]).insert( A_rows_per_type["odom"].end(),
+              odom_rows.begin(), odom_rows.end() );
       A_rows_count += 15;
 
       // Adding GPS factor
@@ -179,9 +170,8 @@ int main(int argc, char* argv[]) {
       GPSFactor gps_factor(X(pose_factor_count), gps_msmt, gps_cov);
       newgraph.add(gps_factor);
       factor_types.push_back("gps");
-      // A_rows_per_type["gps"].push_back(returnIncrVector(A_rows_count, 3));
-      // A_rows_per_type.insert(pair<string, vector<int>> 
-      				// ("gps", returnIncrVector(A_rows_count, 3)));
+      A_rows_per_type.insert(pair<string, vector<int>> 
+      				("gps", returnIncrVector(A_rows_count, 3)));
       A_rows_count += 3;
 
       // lidar measurements
@@ -209,16 +199,16 @@ int main(int argc, char* argv[]) {
                                                    lidar_cov);;
         newgraph.add(range_bearing_factor);
         factor_types.push_back("lidar");
-        A_rows_per_type.insert(pair<string, vector<int>> 
-      				("lidar", returnIncrVector(A_rows_count, 3)));
-      	A_rows_count += 3;
+        vector<int> lidar_rows= returnIncrVector(A_rows_count, 3);
+        A_rows_per_type["lidar"].insert( A_rows_per_type["lidar"].end(),
+                lidar_rows.begin(), lidar_rows.end() );
+        A_rows_count += 3;
       }      
       
       // Incremental solution
       isam_result = isam.update(newgraph, initialEstimate);
       result = isam.calculateEstimate();
 
-      
       // compute error
       Rot3 rotation_error = scenario.pose(current_time).rotation() *
       	   Rot3( result.at<Pose3>(X(pose_factor_count)).rotation().transpose() );
@@ -254,7 +244,7 @@ int main(int argc, char* argv[]) {
   cout<< "----------- Hypothesis 0 ----------"<< "\n\n";
   // number of measurements and states
   double n = A.rows(); double m = A.cols();
-  cout<< "n = "<< n<< "\n m = "<< m<< endl;
+  cout<< "n = "<< n<< "\nm = "<< m<< endl;
 
   // check matrix M before elimination
   Matrix Lambda = (lin_graph->hessian()).first;
@@ -272,7 +262,10 @@ int main(int argc, char* argv[]) {
     cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
 
     // eliminate factors per type
-    Matrix h_M = eliminateFactorsByType(M, A_rows_per_type, type);
+    cout<< "Rows to be extracted: "<< endl; 
+    printIntVector( A_rows_per_type[type] );
+
+    Matrix h_M = extractJacobianRows(M, A_rows_per_type[type]);
 
     // 
     Eigen::FullPivLU<Matrix> h_M_lu(h_M);
@@ -292,7 +285,6 @@ int main(int argc, char* argv[]) {
     
     
   }
-
 
   // show the rows correspondence
   // std::vector<int> v = A_rows_per_type["lidar"];

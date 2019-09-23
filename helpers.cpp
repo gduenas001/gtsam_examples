@@ -199,7 +199,7 @@ void eliminateFactorsByType_old(
 Matrix eliminateFactorsByType(Matrix &M,
               map<string, vector<int>> &A_rows_per_type,
               string type){
-  
+
   return extractJacobianRows(M, A_rows_per_type[type]);
 }
 
@@ -213,6 +213,14 @@ Matrix extractJacobianRows(Matrix &M, vector<int> row_inds){
     }
   }
   return h_M;
+}
+
+
+// Print vector of ints
+void printIntVector(vector<int> v){
+  for (auto i = v.begin(); i != v.end(); ++i)
+    cout << *i << ' ';
+  cout<< '\n';
 }
 
 
