@@ -6,7 +6,6 @@
 // - Obtain S matrix
 // - odom M matrix is rank 6 because of the actual number of measurements
 // - use a parser for the options
-// - remove factor_types_list and use the keys from A_rows_per_type
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -74,15 +73,10 @@ int main(int argc, char* argv[]) {
   noiseModel::Diagonal::shared_ptr gps_cov = noiseModel::Isotropic::Sigma(3, gps_noise_sigma); // GPS covariance is constant
   ConstantTwistScenario scenario = createConstantTwistScenario(scenario_radius, scenario_linear_vel);
   noiseModel::Diagonal::shared_ptr lidar_cov = noiseModel::Diagonal::Sigmas( (Vector(3) << bearing_noise_sigma, bearing_noise_sigma, range_noise_sigma).finished() );
-  std::vector<Point3> landmarks = createLandmarks(scenario_radius);
+  vector<Point3> landmarks = createLandmarks(scenario_radius);
   ISAM2Params isam_params;
   isam_params.evaluateNonlinearError = true;
-  vector<string> factor_types_list{"prior_pose",
-                                   "prior_vel",
-                                   "prior_bias",
-                                   "odom", 
-                                   "gps", 
-                                   "lidar"};
+ 
 
   // Create a factor graph &  ISAM2
   NonlinearFactorGraph newgraph;
@@ -96,8 +90,8 @@ int main(int argc, char* argv[]) {
   int pose_factor_count = 1;
   NavState prev_state, predict_state;
   imuBias::ConstantBias prev_bias;
-  std::vector<Point3> true_positions;
-  std::vector<Pose3> online_error; // error when computed online
+  vector<Point3> true_positions;
+  vector<Pose3> online_error; // error when computed online
   true_positions.push_back( scenario.pose(0).translation() );
   ISAM2Result isam_result;
   map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
@@ -247,22 +241,25 @@ int main(int argc, char* argv[]) {
   cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
   cout << "rank of M is " << M_lu.rank() << endl;
 
+
   // loop over hypotheses
-  for (int i = 0; i < factor_types_list.size(); ++i){
-    string type = factor_types_list[i];
+  for (map<string, vector<int>>::iterator it= A_rows_per_type.begin(); 
+       it != A_rows_per_type.end(); 
+       ++it){
+    string type = it->first;
 
     cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
 
-    // eliminate factors per type
     cout<< "Rows to be extracted: "<< endl; 
-    printIntVector( A_rows_per_type[type] );
+    printIntVector( it->second );
 
-    Matrix h_M = extractJacobianRows(M, A_rows_per_type[type]);
+    Matrix h_M = extractJacobianRows(M, it->second);
     Eigen::FullPivLU<Matrix> h_M_lu(h_M);
     h_M_lu.setThreshold(1e-5);
     cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
     cout << "rank of M is " << h_M_lu.rank() << endl; 
   }
+ 
 
 
 
