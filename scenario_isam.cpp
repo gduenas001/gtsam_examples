@@ -4,15 +4,10 @@
 // - different frequencies for GPS and lidar
 // - use sliding window filter
 // - Obtain S matrix
-// - I'm creating the M matrices for each hypothesis wrong. 
-// must simply remove the rows and columns that correspond to the
-// faulted measurements, DO NOT ELIMINATE FROM THE GRAPH BUT FROM 
-// THE JACOBIAN A DIRECTLY!!
+// - odom M matrix is rank 6 because of the actual number of measurements
+// - use a parser for the options
+// - remove factor_types_list and use the keys from A_rows_per_type
 
-
-#include <gtsam/navigation/CombinedImuFactor.h>
-#include <gtsam/navigation/ImuFactor.h>
-#include <gtsam/navigation/GPSFactor.h>
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <typeinfo>
@@ -20,7 +15,7 @@
 
 
 #include <helpers.h>
-#include <RangeBearingFactorMap.h>
+
 
 using namespace std;
 using namespace gtsam;
@@ -108,6 +103,7 @@ int main(int argc, char* argv[]) {
   map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
   A_rows_per_type.insert( pair<string, vector<int>> ("lidar", {}) );
   A_rows_per_type.insert( pair<string, vector<int>> ("odom", {}) );
+  A_rows_per_type.insert( pair<string, vector<int>> ("gps", {}) );
 
   // solve the graph once
   vector<string> factor_types; // stores the factor types (odom, GPS, lidar)
@@ -156,23 +152,21 @@ int main(int argc, char* argv[]) {
       CombinedImuFactor imufac(X(pose_factor_count - 1), V(pose_factor_count - 1), 
                                X(pose_factor_count),     V(pose_factor_count), 
                                B(pose_factor_count - 1), B(pose_factor_count), accum);
-      newgraph.add(imufac);
-      factor_types.push_back("odom");
-      cout<< "odom A_rows_per_type is NOT empty"<< endl;
-      vector<int> odom_rows=  returnIncrVector(A_rows_per_type["odom"].size(), 15);
-      (A_rows_per_type["odom"]).insert( A_rows_per_type["odom"].end(),
-              odom_rows.begin(), odom_rows.end() );
-      A_rows_count += 15;
-
+      addOdomFactor(newgraph,
+                    imufac,
+                    factor_types, 
+                    A_rows_per_type, 
+                    A_rows_count);
+   
       // Adding GPS factor
       Point3 gps_noise(generate_random_point(noise_generator, gps_noise_dist));
       Point3 gps_msmt = scenario.pose(current_time).translation() + gps_noise;
       GPSFactor gps_factor(X(pose_factor_count), gps_msmt, gps_cov);
-      newgraph.add(gps_factor);
-      factor_types.push_back("gps");
-      A_rows_per_type.insert(pair<string, vector<int>> 
-      				("gps", returnIncrVector(A_rows_count, 3)));
-      A_rows_count += 3;
+      addGPSFactor(newgraph,
+                   gps_factor,
+                   factor_types,
+                   A_rows_per_type,
+                   A_rows_count);
 
       // lidar measurements
       for (int j = 0; j < landmarks.size(); ++j) {
@@ -196,25 +190,23 @@ int main(int argc, char* argv[]) {
                                                    range,
                                                    bearing,
                                                    landmarks[j], 
-                                                   lidar_cov);;
-        newgraph.add(range_bearing_factor);
-        factor_types.push_back("lidar");
-        vector<int> lidar_rows= returnIncrVector(A_rows_count, 3);
-        A_rows_per_type["lidar"].insert( A_rows_per_type["lidar"].end(),
-                lidar_rows.begin(), lidar_rows.end() );
-        A_rows_count += 3;
+                                                   lidar_cov);
+
+        addLidarFactor(newgraph,
+                       range_bearing_factor,
+                       factor_types, 
+                       A_rows_per_type, 
+                       A_rows_count);
       }      
       
       // Incremental solution
       isam_result = isam.update(newgraph, initialEstimate);
       result = isam.calculateEstimate();
 
+
       // compute error
-      Rot3 rotation_error = scenario.pose(current_time).rotation() *
-      	   Rot3( result.at<Pose3>(X(pose_factor_count)).rotation().transpose() );
-      Point3 translation_error = scenario.pose(current_time).translation() - 
-      							 result.at<Pose3>(X(pose_factor_count)).translation();
-      online_error.push_back( Pose3( rotation_error, translation_error ));
+      online_error.push_back(compute_error(scenario.pose(current_time),
+                            result.at<Pose3>(X(pose_factor_count)) ));
 
 	    // reset variables
       newgraph = NonlinearFactorGraph();
@@ -225,6 +217,8 @@ int main(int argc, char* argv[]) {
     }
   } // end for loop
   
+
+
 
   // check residuals
   boost::optional<double> error_after = isam_result.errorAfter;
@@ -237,9 +231,7 @@ int main(int argc, char* argv[]) {
                   lin_graph = factor_graph.linearize(result);
   Matrix A = (lin_graph->jacobian()).first;
   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
-  // Eigen::IOFormat CleanFmt(3, 0, ", ", "\n", "[", "]");
-  // cout<< "Jacobian A = \n"<< A.format(CleanFmt)<< endl;
-  
+
 
   cout<< "----------- Hypothesis 0 ----------"<< "\n\n";
   // number of measurements and states
@@ -251,7 +243,7 @@ int main(int argc, char* argv[]) {
   Matrix S = Lambda.inverse() * A.transpose();
   Matrix M = (Eigen::MatrixXd::Identity(n, n) - A*S);
   Eigen::FullPivLU<Matrix> M_lu(M);
-  M_lu.setThreshold(1e-7);
+  M_lu.setThreshold(1e-5);
   cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
   cout << "rank of M is " << M_lu.rank() << endl;
 
@@ -266,41 +258,15 @@ int main(int argc, char* argv[]) {
     printIntVector( A_rows_per_type[type] );
 
     Matrix h_M = extractJacobianRows(M, A_rows_per_type[type]);
-
-    // 
     Eigen::FullPivLU<Matrix> h_M_lu(h_M);
-    h_M_lu.setThreshold(1e-3);
+    h_M_lu.setThreshold(1e-5);
     cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
-    cout << "rank of M is " << h_M_lu.rank() << endl;
-
-    // number of measurements and states
-    // double h_n = h_A.rows(); double h_m = h_A.cols();
-    // cout<< "n = "<< h_n<< "\t m = "<< h_m<< endl;
-
-    // // matrix M for the hypothesis
-    // Matrix h_Lambda = h_A.transpose() * h_A;
-    // if (h_Lambda.determinant() != 0){
-      
-    // } 
-    
-    
+    cout << "rank of M is " << h_M_lu.rank() << endl; 
   }
 
-  // show the rows correspondence
-  // std::vector<int> v = A_rows_per_type["lidar"];
-  // cout<< "size of vector "<< v.size()<< endl;
 
-  // KeyVector key_vector = factor_graph.keyVector();
-  // Key key_n1 = key_vector[0];
-  // cout<< "first key: "<< key_n1<< endl;
 
-  // // get a factor by key
-  // for (int i = 0; i < 10; ++i) {
-  //   boost::shared_ptr<NonlinearFactor> factor = factor_graph.at(i);
-  //   cout<< "dimension of factor: "<< factor->dim() << endl;
-  //   cout<< "size of factor: "<< factor->size() << endl;
-  //   cout<< "error in factor "<< factor->error(result)<< endl; 
-  // }
+
   // Vector error_vector = factor_graph.at(0)->unwhitenedError(result);
   // Vector error_vector = factor->unwhitenedError(result);
   // cout<< "error in selected factor: "<< factor->error(result)<< endl;

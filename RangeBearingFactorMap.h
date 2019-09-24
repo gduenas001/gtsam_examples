@@ -1,5 +1,7 @@
 
-#include <helpers.h>
+#include <gtsam/geometry/SimpleCamera.h>
+#include <gtsam/nonlinear/NonlinearFactor.h>
+
 
 using namespace gtsam;
 using namespace std;

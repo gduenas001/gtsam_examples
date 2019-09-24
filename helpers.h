@@ -9,11 +9,16 @@
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/navigation/Scenario.h>
 #include <gtsam/slam/PriorFactor.h>
+#include <gtsam/navigation/GPSFactor.h>
+#include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/nonlinear/ISAM2.h>
 #include <gtsam/navigation/ImuBias.h>
 #include <vector>
 #include <string>
+
+
+#include <RangeBearingFactorMap.h>
 
 
 using namespace gtsam;
@@ -72,3 +77,26 @@ Matrix eliminateFactorsByType(Matrix &A,
 Matrix extractJacobianRows(Matrix &A, vector<int> row_inds);
 
 void printIntVector(vector<int> v);
+
+void addLidarFactor(NonlinearFactorGraph &newgraph,
+                    RangeBearingFactorMap &range_bearing_factor,
+                    vector<string> &factor_types, 
+                    map<string, vector<int>> &A_rows_per_type, 
+                    int &A_rows_count);
+
+void addGPSFactor(NonlinearFactorGraph &newgraph,
+                  GPSFactor &gps_factor,
+                  vector<string> &factor_types, 
+                  map<string, vector<int>> &A_rows_per_type, 
+                  int &A_rows_count);
+
+void addOdomFactor(NonlinearFactorGraph &newgraph,
+                   CombinedImuFactor &imufac,
+                   vector<string> &factor_types, 
+                   map<string, vector<int>> &A_rows_per_type, 
+                   int &A_rows_count);
+
+void printMatrix(gtsam::Matrix A);
+
+
+Pose3 compute_error(Pose3 true_pose, Pose3 estimated_pose);

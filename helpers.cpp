@@ -224,4 +224,70 @@ void printIntVector(vector<int> v){
 }
 
 
+// add lidar factor
+void addLidarFactor(NonlinearFactorGraph &newgraph,
+					RangeBearingFactorMap &range_bearing_factor,
+					vector<string> &factor_types, 
+					map<string, vector<int>> &A_rows_per_type, 
+					int &A_rows_count){
+
+	newgraph.add(range_bearing_factor);
+    factor_types.push_back("lidar");
+    vector<int> lidar_rows= returnIncrVector(A_rows_count, 3);
+    A_rows_per_type["lidar"].insert( A_rows_per_type["lidar"].end(),
+          	  lidar_rows.begin(), lidar_rows.end() );
+    A_rows_count += 3;
+}
+
+// add GPS factor
+void addGPSFactor(NonlinearFactorGraph &newgraph,
+			     GPSFactor &gps_factor,
+				 vector<string> &factor_types, 
+				 map<string, vector<int>> &A_rows_per_type, 
+				 int &A_rows_count){
+	newgraph.add(gps_factor);
+	factor_types.push_back("gps");
+	vector<int> gps_rows=  returnIncrVector(A_rows_count, 3);
+	A_rows_per_type["gps"].insert( A_rows_per_type["gps"].end(),
+				gps_rows.begin(), gps_rows.end() );
+	A_rows_count += 3;
+}
+
+
+// add odometry factor
+void addOdomFactor(NonlinearFactorGraph &newgraph,
+		      CombinedImuFactor &imufac,
+		  	  vector<string> &factor_types, 
+			  map<string, vector<int>> &A_rows_per_type, 
+			  int &A_rows_count){
+	newgraph.add(imufac);
+	factor_types.push_back("odom");
+	vector<int> odom_rows=  returnIncrVector(A_rows_count, 15);
+	A_rows_per_type["odom"].insert( A_rows_per_type["odom"].end(),
+	     	    odom_rows.begin(), odom_rows.end() );
+	A_rows_count += 15;
+}
+
+
+// print matrix
+void printMatrix(Matrix A){
+  Eigen::IOFormat CleanFmt(3, 0, ", ", "\n", "[", "]");
+  cout<< A.format(CleanFmt)<< endl;
+}
+
+
+// compute error
+Pose3 compute_error(Pose3 true_pose,
+					Pose3 estimated_pose){
+	Rot3 rotation_error = true_pose.rotation() *
+	  	   Rot3( estimated_pose.rotation().transpose() );
+	Point3 translation_error = true_pose.translation() - 
+							estimated_pose.translation();
+	return Pose3( rotation_error, translation_error );
+}
+
+
+
+
+
 
