@@ -4,6 +4,9 @@
 // - different frequencies for GPS and lidar
 // - use sliding window filter
 // - odom M matrix is rank 6 because of the actual number of measurements
+// - move as much as possible of the constractio outside main
+// - record the covariance after solving
+// - create function to generate lidar measurements
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -18,8 +21,6 @@ using namespace std;
 using namespace gtsam;
 
 const double kGravity = 9.81;
-
-
 
 
 

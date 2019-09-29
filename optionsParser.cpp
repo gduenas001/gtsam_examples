@@ -106,7 +106,7 @@ int optionsParser (int argc, char **argv, Params &params){
   return (0);
 }
 
-
+// --------------- for DEBUG purposes ---------------
 // int main(int argc, char **argv){
 //   Params params;
 //   optionsParser(argc, argv, params);

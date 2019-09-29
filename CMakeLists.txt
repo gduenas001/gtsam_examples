@@ -47,8 +47,3 @@ add_executable(scenario_isam scenario_isam.cpp
 			   postProcess.cpp
 			   optionsParser.cpp)
 target_link_libraries(scenario_isam PRIVATE gtsam)
-
-
-#add_executable(optionsParser optionsParser.cpp)
-#target_link_libraries(optionsParser PRIVATE gtsam)
-
