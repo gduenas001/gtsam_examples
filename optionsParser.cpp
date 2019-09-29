@@ -2,6 +2,7 @@
 #include "optionsParser.h"
 
 using namespace std;
+using namespace gtsam;
 
 struct option long_opt[] =
 {
@@ -19,7 +20,7 @@ struct option long_opt[] =
   {"sim_time", required_argument, NULL, 'l'},
   {NULL,   0,                 NULL, 0  }
 };
-  
+
 
 
 int optionsParser (int argc, char **argv, Params &params){
@@ -105,6 +106,48 @@ int optionsParser (int argc, char **argv, Params &params){
 
   return (0);
 }
+
+
+
+
+
+// create varibles from parameters
+void build_variables(Params &params){
+  
+  // create parameters
+  params.lidar_cov = noiseModel::Diagonal::Sigmas( (Vector(3) 
+            << params.bearing_noise_sigma, params.bearing_noise_sigma, params.range_noise_sigma).finished() );
+  params.gps_cov = noiseModel::Isotropic::Sigma(3, params.gps_noise_sigma); // GPS covariance is constant
+  params.measured_acc_cov = I_3x3 * pow(params.accel_noise_sigma,2);
+  params.measured_omega_cov = I_3x3 * pow(params.gyro_noise_sigma,2);
+  params.bias_acc_cov = I_3x3 * pow(params.accel_bias_rw_sigma,2);
+  params.bias_omega_cov = I_3x3 * pow(params.gyro_bias_rw_sigma,2);
+  params.integration_error_cov = I_3x3 * 1e-20; // error committed in integrating position from velocities, 8 
+  params.bias_acc_omega_int = Matrix::Identity(6,6) * 1e-20; // error in the bias used for preintegration, 5
+
+
+  params.imu_params= PreintegratedCombinedMeasurements::Params::MakeSharedU(params.k_gravity);
+  params.imu_params->setAccelerometerCovariance(params.measured_acc_cov);
+  params.imu_params->setGyroscopeCovariance(params.measured_omega_cov);
+  params.imu_params->biasAccCovariance = params.bias_acc_cov; // acc bias in continuous
+  params.imu_params->biasOmegaCovariance = params.bias_omega_cov; // gyro bias in continuous
+  params.imu_params->biasAccOmegaInt = params.bias_acc_omega_int;
+  params.imu_params->setIntegrationCovariance(params.integration_error_cov);
+  params.imu_params->setUse2ndOrderCoriolis(false);
+  params.imu_params->setOmegaCoriolis(Vector3(0, 0, 0));
+  PreintegratedCombinedMeasurements accum_temp(params.imu_params); // TODO: clean this
+  params.accum= accum_temp;
+
+
+  params.noise_dist["acc"]= std::normal_distribution<double>(0, params.accel_noise_sigma);
+  params.noise_dist["gyro"]= std::normal_distribution<double>(0, params.gyro_noise_sigma);
+  params.noise_dist["range"]= std::normal_distribution<double>(0, params.range_noise_sigma);
+  params.noise_dist["bearing"]= std::normal_distribution<double>(0, params.bearing_noise_sigma);
+  params.noise_dist["gps"]= std::normal_distribution<double>(0, params.gps_noise_sigma);
+  
+}
+
+
 
 // --------------- for DEBUG purposes ---------------
 // int main(int argc, char **argv){

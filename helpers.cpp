@@ -290,4 +290,3 @@ Pose3 compute_error(Pose3 true_pose,
 
 
 
-
