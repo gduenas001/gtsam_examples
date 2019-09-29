@@ -44,5 +44,11 @@ install(TARGETS ${CONVENIENCE_LIB_NAME} LIBRARY DESTINATION lib ARCHIVE DESTINAT
 add_executable(scenario_isam scenario_isam.cpp 
 			   helpers.cpp 
 			   RangeBearingFactorMap.cpp
-			   postProcess.cpp)
+			   postProcess.cpp
+			   optionsParser.cpp)
 target_link_libraries(scenario_isam PRIVATE gtsam)
+
+
+#add_executable(optionsParser optionsParser.cpp)
+#target_link_libraries(optionsParser PRIVATE gtsam)
+

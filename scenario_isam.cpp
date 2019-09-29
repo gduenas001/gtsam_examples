@@ -3,53 +3,38 @@
 // - data association for landmarks
 // - different frequencies for GPS and lidar
 // - use sliding window filter
-// - Obtain S matrix
 // - odom M matrix is rank 6 because of the actual number of measurements
-// - use a parser for the options
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <typeinfo>
 #include <boost/math/distributions/chi_squared.hpp>
 
-
 #include <helpers.h>
 #include <postProcess.h>
+#include <optionsParser.h>
 
 using namespace std;
 using namespace gtsam;
 
 const double kGravity = 9.81;
 
+
+
+
+
 /* ************************************************************************* */
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv) {
 
-  // run time options
-  float sim_time;
-  if (argc == 2){
-    sim_time= atof(argv[1]);
-  } else {
-    sim_time= 5; // seconds
-  }
-
-  // input parameters
-  double accel_noise_sigma = 0.1; // what units?? 0003924
-  double gyro_noise_sigma = 0.1; //000205689024915
-  double accel_bias_rw_sigma = 0.005; //1e-20; //004905
-  double gyro_bias_rw_sigma = 0.000001454441043; //1e-20; //000001454441043
-  double gps_noise_sigma = 1.0; // meters
-  double dt_imu = 1.0 / 200, // default 125HZ -- makes for 10 degrees per step (1.0 / 18)
-         dt_gps = 1.0, // seconds
-         scenario_radius = 30, // meters
-         scenario_linear_vel = 50 / 3.6, // m/s
-         range_noise_sigma = 0.50, // range standard deviation
-         bearing_noise_sigma = 5 * M_PI / 180; // bearing standard dev
+  // parse the options
+  Params params;
+  optionsParser(argc, argv, params);
 
   // create parameters
-  Matrix33 measured_acc_cov = I_3x3 * pow(accel_noise_sigma,2);
-  Matrix33 measured_omega_cov = I_3x3 * pow(gyro_noise_sigma,2);
-  Matrix33 bias_acc_cov = I_3x3 * pow(accel_bias_rw_sigma,2);
-  Matrix33 bias_omega_cov = I_3x3 * pow(gyro_bias_rw_sigma,2);
+  Matrix33 measured_acc_cov = I_3x3 * pow(params.accel_noise_sigma,2);
+  Matrix33 measured_omega_cov = I_3x3 * pow(params.gyro_noise_sigma,2);
+  Matrix33 bias_acc_cov = I_3x3 * pow(params.accel_bias_rw_sigma,2);
+  Matrix33 bias_omega_cov = I_3x3 * pow(params.gyro_bias_rw_sigma,2);
   Matrix33 integration_error_cov = I_3x3 * 1e-20; // error committed in integrating position from velocities, 8 
   Matrix66 bias_acc_omega_int = Matrix::Identity(6,6) * 1e-20; // error in the bias used for preintegration, 5
 
@@ -65,15 +50,16 @@ int main(int argc, char* argv[]) {
   imu_params->setOmegaCoriolis(Vector3(0, 0, 0));
   PreintegratedCombinedMeasurements accum(imu_params);
   std::default_random_engine noise_generator;    // noise generator
-  std::normal_distribution<double> accel_noise_dist(0, accel_noise_sigma);
-  std::normal_distribution<double> gyro_noise_dist(0, gyro_noise_sigma);
-  std::normal_distribution<double> range_noise_dist(0, range_noise_sigma);
-  std::normal_distribution<double> bearing_noise_dist(0, bearing_noise_sigma);
-  std::normal_distribution<double> gps_noise_dist(0, gps_noise_sigma);
-  noiseModel::Diagonal::shared_ptr gps_cov = noiseModel::Isotropic::Sigma(3, gps_noise_sigma); // GPS covariance is constant
-  ConstantTwistScenario scenario = createConstantTwistScenario(scenario_radius, scenario_linear_vel);
-  noiseModel::Diagonal::shared_ptr lidar_cov = noiseModel::Diagonal::Sigmas( (Vector(3) << bearing_noise_sigma, bearing_noise_sigma, range_noise_sigma).finished() );
-  vector<Point3> landmarks = createLandmarks(scenario_radius);
+  std::normal_distribution<double> accel_noise_dist(0, params.accel_noise_sigma);
+  std::normal_distribution<double> gyro_noise_dist(0, params.gyro_noise_sigma);
+  std::normal_distribution<double> range_noise_dist(0, params.range_noise_sigma);
+  std::normal_distribution<double> bearing_noise_dist(0, params.bearing_noise_sigma);
+  std::normal_distribution<double> gps_noise_dist(0, params.gps_noise_sigma);
+  noiseModel::Diagonal::shared_ptr gps_cov = noiseModel::Isotropic::Sigma(3, params.gps_noise_sigma); // GPS covariance is constant
+  ConstantTwistScenario scenario = createConstantTwistScenario(params.scenario_radius, params.scenario_linear_vel);
+  noiseModel::Diagonal::shared_ptr lidar_cov = noiseModel::Diagonal::Sigmas( (Vector(3) 
+            << params.bearing_noise_sigma, params.bearing_noise_sigma, params.range_noise_sigma).finished() );
+  vector<Point3> landmarks = createLandmarks(params.scenario_radius);
   ISAM2Params isam_params;
   isam_params.evaluateNonlinearError = true;
  
@@ -86,7 +72,7 @@ int main(int argc, char* argv[]) {
   // initialize variables
   double gps_time_accum = 0.0,
          current_time = 0.0,
-         num_imu_epochs = sim_time / dt_imu;
+         num_imu_epochs = params.sim_time / params.dt_imu;
   int pose_factor_count = 1;
   NavState prev_state, predict_state;
   imuBias::ConstantBias prev_bias;
@@ -114,8 +100,8 @@ int main(int argc, char* argv[]) {
   // Simulate poses and imu measurements, adding them to the factor graph
   for (size_t i = 1; i < num_imu_epochs; ++i) {
 
-    current_time = i * dt_imu;
-    gps_time_accum += dt_imu;
+    current_time = i * params.dt_imu;
+    gps_time_accum += params.dt_imu;
       
     // Predict acceleration and gyro measurements in (actual) body frame
     Point3 acc_noise = generate_random_point( noise_generator, accel_noise_dist );
@@ -124,10 +110,10 @@ int main(int argc, char* argv[]) {
                           // acc_noise.vector();
     Point3 gyro_noise = generate_random_point( noise_generator, gyro_noise_dist );                      
     Vector3 measuredOmega = scenario.omega_b(current_time); // + gyro_noise.vector();
-    accum.integrateMeasurement(measuredAcc, measuredOmega, dt_imu);
+    accum.integrateMeasurement(measuredAcc, measuredOmega, params.dt_imu);
 
     // GPS update
-    if (gps_time_accum > dt_gps) {
+    if (gps_time_accum > params.dt_gps) {
 
       // save the current position
       true_positions.push_back( scenario.pose(current_time).translation() );
@@ -225,4 +211,3 @@ saveData(result,
 
   return 0;
 }
-/* ************************************************************************* */
