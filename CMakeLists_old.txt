@@ -8,7 +8,7 @@
 ###################################################################################
 # To create your own project, replace "example" with the actual name of your project
 cmake_minimum_required(VERSION 3.0)
-project(guillermo CXX C)
+project(gtsam_sim CXX C)
 
 # Include GTSAM CMake tools
 find_package(GTSAMCMakeTools)
@@ -17,7 +17,7 @@ include(GtsamBuildTypes) # Load build type flags and default to Debug mode
 # include(GtsamMatlabWrap) # Automatic MATLAB wrapper generation
 
 # Ensure that local folder is searched before library folders
-include_directories(BEFORE "${PROJECT_SOURCE_DIR}")
+# include_directories(BEFORE "${PROJECT_SOURCE_DIR}")
 
 ###################################################################################
 # Find GTSAM components
@@ -34,19 +34,19 @@ find_package(GTSAM REQUIRED) # Uses installed package
 #target_link_libraries(${CONVENIENCE_LIB_NAME} gtsam)
 
 # Install library
-install(TARGETS ${CONVENIENCE_LIB_NAME} LIBRARY DESTINATION lib ARCHIVE DESTINATION lib RUNTIME DESTINATION bin)
+#install(TARGETS ${CONVENIENCE_LIB_NAME} LIBRARY DESTINATION lib ARCHIVE DESTINATION lib RUNTIME DESTINATION bin)
 
 ###################################################################################
 # Build scripts (CMake tracks the dependecy to link with GTSAM through our project's static library)
 # gtsamAddExamplesGlob("*.cpp" "" "${CONVENIENCE_LIB_NAME}")
 
 
-add_executable(scenario_isam 
+add_executable(main 
 			   scenario_isam.cpp 
 			   helpers.cpp 
 			   RangeBearingFactorMap.cpp
 			   postProcess.cpp
 			   optionsParser.cpp)
-target_link_libraries(scenario_isam PRIVATE gtsam)
+target_link_libraries(main PRIVATE gtsam)
 
 

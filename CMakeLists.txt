@@ -2,7 +2,11 @@
 ###################################################################################
 # To create your own project, replace "example" with the actual name of your project
 cmake_minimum_required(VERSION 3.0)
-project(gtsam_sim CXX)
+project(gtsam_sim CXX C)
+
+
+find_package(GTSAMCMakeTools)
+include(GtsamBuildTypes) # Load build type flags and default to Debug mode
 
 # Find GTSAM, either from a local build, or from a Debian/Ubuntu package.
 find_package(GTSAM REQUIRED)

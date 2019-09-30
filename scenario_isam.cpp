@@ -16,7 +16,6 @@
 #include "helpers.h"
 #include "postProcess.h"
 #include "optionsParser.h"
-#include "string"
 
 using namespace std;
 using namespace gtsam;
