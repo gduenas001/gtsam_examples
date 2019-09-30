@@ -18,7 +18,7 @@
 #include <string>
 
 
-#include <RangeBearingFactorMap.h>
+#include "RangeBearingFactorMap.h"
 
 
 using namespace gtsam;
