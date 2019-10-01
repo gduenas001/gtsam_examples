@@ -96,6 +96,11 @@ int optionsParser (int argc, char **argv, Params &params){
          params.sim_time= atof(optarg);
        break;
 
+       case 'm':
+         printf("you entered \"%s\" for the variable 'evaluateNonlinearError'\n", optarg);
+         params.evaluate_nonlinear_error= optarg;
+       break;
+
 
        // default error
        default:
@@ -144,6 +149,8 @@ void build_variables(Params &params){
   params.noise_dist["range"]= std::normal_distribution<double>(0, params.range_noise_sigma);
   params.noise_dist["bearing"]= std::normal_distribution<double>(0, params.bearing_noise_sigma);
   params.noise_dist["gps"]= std::normal_distribution<double>(0, params.gps_noise_sigma);
+
+  params.isam_params.evaluateNonlinearError= params.evaluate_nonlinear_error; // for the residuals
   
 }
 

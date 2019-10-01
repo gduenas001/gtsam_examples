@@ -1,4 +1,7 @@
 
+#pragma once
+
+
 #include <iostream>
 #include <getopt.h>
 #include <cmath>
@@ -6,6 +9,7 @@
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <random>
+#include <gtsam/nonlinear/ISAM2.h>
 
 
 using namespace gtsam;
@@ -28,6 +32,7 @@ struct Params{
   boost::shared_ptr<PreintegratedCombinedMeasurements::Params> imu_params;
   gtsam::PreintegratedCombinedMeasurements accum;
   std::map<string, std::normal_distribution<double>> noise_dist;
+  ISAM2Params isam_params;
 
 
   // options -- can be changed at run time
@@ -43,6 +48,9 @@ struct Params{
   double range_noise_sigma = 0.50; // range standard deviation
   double bearing_noise_sigma = 5 * M_PI / 180; // bearing standard dev
   double sim_time= 2; // seconds -- time to run the simulation
+  bool evaluate_nonlinear_error= true; // for the residuals
+  
+
 };
 
 int optionsParser (int argc, char **argv, Params &params);

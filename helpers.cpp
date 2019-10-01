@@ -286,7 +286,28 @@ Pose3 compute_error(Pose3 true_pose,
 	return Pose3( rotation_error, translation_error );
 }
 
+// generate lidar msmts
+RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
+                    Point3 &landmark,
+                    double time,
+                    Params &params,
+                    std::default_random_engine noise_generator){
+  
+  // range
+  double range = scenario.pose(time).range(landmark);
+  double range_noise = params.noise_dist["range"](noise_generator);
+  range = range + range_noise;
 
+  // bearing
+  Unit3 bearing = scenario.pose(time).bearing(landmark);
+  Rot3 bearing_noise = Rot3::RzRyRx(params.noise_dist["bearing"](noise_generator),
+                                    params.noise_dist["bearing"](noise_generator),
+                                    params.noise_dist["bearing"](noise_generator));
+  bearing = bearing_noise.rotate(bearing);
 
+  RangeBearingMeasurement msmt(range, bearing);
+
+  return msmt;
+}
 
 

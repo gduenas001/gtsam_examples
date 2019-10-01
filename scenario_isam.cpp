@@ -35,15 +35,13 @@ int main(int argc, char** argv) {
 
   std::default_random_engine noise_generator;    // noise generator
   vector<Point3> landmarks = createLandmarks(params.scenario_radius);
-  ISAM2Params isam_params;
-  isam_params.evaluateNonlinearError = true;
- 
- // 
+
+  // scenario to simulate measurements and ground truth
   ConstantTwistScenario scenario = createConstantTwistScenario(params.scenario_radius, params.scenario_linear_vel);
 
   // Create a factor graph &  ISAM2
   NonlinearFactorGraph newgraph;
-  ISAM2 isam(isam_params);
+  ISAM2 isam(params.isam_params);
   Values initialEstimate, result; // Create the initial estimate to the solution
 
   // initialize variables
@@ -128,25 +126,18 @@ int main(int argc, char** argv) {
 
       // lidar measurements
       for (int j = 0; j < landmarks.size(); ++j) {
-        Eigen::MatrixXd range_jacobian;
-        Eigen::MatrixXd bearing_jacobian;
         
-        // range
-        double range = scenario.pose(current_time).range(landmarks[j], range_jacobian);
-        double range_noise = params.noise_dist["range"](noise_generator);
-        range = range + range_noise;
-
-        // bearing
-        Unit3 bearing = scenario.pose(current_time).bearing(landmarks[j], bearing_jacobian);
-        Rot3 bearing_noise = Rot3::RzRyRx(params.noise_dist["bearing"](noise_generator),
-                                          params.noise_dist["bearing"](noise_generator),
-                                          params.noise_dist["bearing"](noise_generator));
-        bearing = bearing_noise.rotate(bearing);
+        RangeBearingMeasurement range_bearing_msmt= sim_lidar_msmt(scenario,
+                                           landmarks[j],
+                                           current_time,
+                                           params,
+                                           noise_generator);
+        
 
         // range-bearing factor
         RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
-                                                   range,
-                                                   bearing,
+                                                   range_bearing_msmt.range,
+                                                   range_bearing_msmt.bearing,
                                                    landmarks[j], 
                                                    params.lidar_cov);
 
@@ -174,6 +165,7 @@ int main(int argc, char** argv) {
       pose_factor_count++;  // increase the factor count
     }
   } // end for loop  
+
 
 // post process data showing each hypothesis
 postProcess(result,

@@ -19,7 +19,8 @@
 
 
 #include "RangeBearingFactorMap.h"
-
+#include "optionsParser.h"
+#include "RangeBearingMeasurement.h"
 
 using namespace gtsam;
 using namespace std;
@@ -28,6 +29,7 @@ using namespace std;
 using symbol_shorthand::X;
 using symbol_shorthand::V;
 using symbol_shorthand::B;
+
 
 
 
@@ -100,3 +102,12 @@ void printMatrix(gtsam::Matrix A);
 
 
 Pose3 compute_error(Pose3 true_pose, Pose3 estimated_pose);
+
+
+RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
+                    Point3 &landmark,
+                    double time,
+                    Params &params,
+                    std::default_random_engine noise_generator);
+
+
