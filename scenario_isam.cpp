@@ -6,7 +6,7 @@
 // - odom M matrix is rank 6 because of the actual number of measurements
 // - move as much as possible of the constractio outside main
 // - record the covariance after solving
-// - create function to generate lidar measurements
+// - add the noise to all measurements and check results with python
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
                                            current_time,
                                            params,
                                            noise_generator);
-        
+
 
         // range-bearing factor
         RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
