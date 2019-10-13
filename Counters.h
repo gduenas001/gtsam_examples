@@ -3,7 +3,7 @@
 
 class Counters{
 public:
-	Counters(Params &params){
+	Counters(Params const &params){
 		this->current_time= 0;
 		this->gps_time_accum= 0;
 		// this->num_imu_epochs= params.sim_time / params.dt_imu;

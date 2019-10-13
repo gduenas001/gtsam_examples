@@ -7,7 +7,8 @@
 // - move as much as possible of the constraction outside main
 // - record the covariance after solving
 // - substitute boost::optional. I don't think this is the use
-// - compare errorAfter with the sum of all errors (iterate over factor graph)
+// - access whitened and unwhitened errors from NonLinearFactor when iterating over graph
+// - check my notes to implement simple last version of RAIM
 
 
 #include <gtsam/slam/dataset.h>
@@ -22,8 +23,6 @@
 
 using namespace std;
 using namespace gtsam;
-
-
 
 
 /* ************************************************************************* */

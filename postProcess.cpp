@@ -12,6 +12,28 @@ void postProcess(Values result,
                   lin_graph = factor_graph.linearize(result);
   Matrix A = (lin_graph->jacobian()).first;
 
+
+
+
+  // -----------------------------------
+  double sum= 0, dim= 0;
+  for (auto factor : factor_graph){
+    double factor_error= factor->error(result);
+    double factor_dim= factor->dim();
+    cout<< "dim: "<< factor_dim<< "\t"
+        << "error: "<< factor_error<< endl;
+    sum += factor_error;
+    dim += factor_dim;
+
+    // factor->print();
+    // Vector whitened_error= factor->whitened_error(result);
+  }
+  cout<< "sum of errors: "<< sum<< endl;
+  cout<< "sum of dimensions: "<< dim<< endl;
+  // -----------------------------------
+
+
+
   // check residuals
   boost::optional<double> error_after = isam_result.errorAfter;
   cout<< "error after: "<< error_after.value_or(-1)<< endl;
@@ -50,12 +72,12 @@ void postProcess(Values result,
     cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
     cout << "rank of M is " << h_M_lu.rank() << endl; 
   }
- 
+
+
   // Vector error_vector = factor_graph.at(0)->unwhitenedError(result);
   // Vector error_vector = factor->unwhitenedError(result);
   // cout<< "error in selected factor: "<< factor->error(result)<< endl;
   // cout<< error_vector<< endl;
-  
 
 
   // boost::math::chi_squared_distribution<> chi2_dist(4);
