@@ -4,11 +4,15 @@
 using namespace std;
 using namespace gtsam;
 
-// save data
+// -------------------------------------------------------
 void saveData(Values result,
               std::vector<Point3> true_positions,
               std::vector<Point3> landmarks,
               std::vector<Pose3> online_error){
+  /* 
+  save data
+  */
+
   // initialize variables
   string filename = "";
   fstream stream;
@@ -42,7 +46,7 @@ void saveData(Values result,
   }
   stream.close();
 
-// write errors into a file
+  // write errors into a file
   filename = "../results/errors.csv";
   stream.open(filename.c_str(), fstream::out);
   stream << "--------------- Errors ---------------"<< endl;
@@ -68,14 +72,21 @@ void saveData(Values result,
 }
 
 
-// generate a random 3D point
+// -------------------------------------------------------
 Point3 generate_random_point(std::default_random_engine &generator, std::normal_distribution<double> &distribution) {
+  /*
+  generate a random 3D point
+  */
   return Point3(distribution(generator),distribution(generator),distribution(generator));
 }
 
 
-// compute average of vector of poses
+// -------------------------------------------------------
 Vector6 errorAverage(std::vector<Pose3> poses){
+  /*
+  compute average of vector of poses
+  */
+
   Vector3 ave_translation, ave_rotation; // deault constructor -> zero translation
   for (std::vector<Pose3>::iterator it = poses.begin() ; it != poses.end(); ++it) {
     ave_translation += abs( it->translation() );
@@ -88,12 +99,15 @@ Vector6 errorAverage(std::vector<Pose3> poses){
 }
 
 
-// add a noiseless prior factor
+// -------------------------------------------------------
 int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
-                             vector<string> &factor_types,
                              Values &initial_estimate,
                              const Scenario &scenario,
                              map<string, vector<int>> &A_rows_per_type) {
+  /*
+  add a noiseless prior factor
+  */
+
   // initialize the count on the rows of A
   int A_rows_count = 0;
 
@@ -103,7 +117,6 @@ int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph,
   PriorFactor<Pose3> pose_prior(X(0), scenario.pose(0), pose_noise);
   new_graph.add(PriorFactor<Pose3>(X(0), scenario.pose(0), pose_noise));
   initial_estimate.insert(X(0), scenario.pose(0));
-  factor_types.push_back("prior_pose");
   A_rows_per_type.insert(pair<string, vector<int>> 
           ("prior_pose", returnIncrVector(0,6)));
   A_rows_count += 6;
@@ -116,7 +129,6 @@ int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph,
   PriorFactor<Vector> vel_prior_factor(V(0), vel_prior, vel_noise);
   new_graph.add(vel_prior_factor);
   initial_estimate.insert(V(0), vel_prior);
-  factor_types.push_back("prior_vel");
   A_rows_per_type.insert(pair<string, vector<int>> 
           ("prior_vel", returnIncrVector(A_rows_count,3)));
   A_rows_count += 3;
@@ -127,7 +139,6 @@ int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph,
   PriorFactor<imuBias::ConstantBias> bias_prior_factor(B(0), imuBias::ConstantBias(), bias_noise);
   new_graph.add(bias_prior_factor); 
   initial_estimate.insert(B(0), imuBias::ConstantBias());
-  factor_types.push_back("prior_bias");
   A_rows_per_type.insert(pair<string, vector<int>> 
           ("prior_bias", returnIncrVector(A_rows_count,6)));
   A_rows_count += 6;
@@ -136,9 +147,12 @@ int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph,
   return A_rows_count;
 }
 
-
-// creates the ground truth from where we simulate the measurements and measure the error
+// -------------------------------------------------------
 ConstantTwistScenario createConstantTwistScenario(double radius, double linear_velocity) {
+  /*
+  creates the ground truth from where we simulate the measurements and measure the error
+  */
+
   // Start with a camera on x-axis looking at origin (only use pose_0 from here to generate the scenario)
   const Point3 up(0, 0, 1), target(0, 0, 0);
   const Point3 position(radius, 0, 0);
@@ -149,11 +163,17 @@ ConstantTwistScenario createConstantTwistScenario(double radius, double linear_v
   double angular_velocity = linear_velocity / radius;  // rad/sec
   Vector3 angular_velocity_vector(0, -angular_velocity, 0);
   Vector3 linear_velocity_vector(linear_velocity, 0, 0);
+
   return ConstantTwistScenario(angular_velocity_vector, linear_velocity_vector, pose_0);
 }
 
-// creates the map of landmarks and stores them in a vector of 3D points
+
+// -------------------------------------------------------
 std::vector<Point3>  createLandmarks(double radius){
+  /*
+  creates the map of landmarks and stores them in a vector of 3D points
+  */
+
   double distance = radius + radius/10;
   std::vector<Point3> landmarks;
   landmarks.push_back( Point3(distance, 0, 0) );  
@@ -165,19 +185,26 @@ std::vector<Point3>  createLandmarks(double radius){
 }
 
 
-// return int vector with increasing values
+// -------------------------------------------------------
 std::vector<int> returnIncrVector(int start, int num_elem){
+  /*
+  return int vector with increasing values
+  */
+
   vector<int> v(num_elem);
   iota (begin(v), end(v), start);
 
   return v;
 }
 
-// eliminate all factors with this type
+// -------------------------------------------------------
 void eliminateFactorsByType_old(
           boost::shared_ptr<GaussianFactorGraph> &lin_graph,
           vector<string> factor_types,
           string type){
+  /*
+  eliminate all factors with this type
+  */
 
   typedef FastVector<boost::shared_ptr<GaussianFactor>>::iterator 
                               sharedGaussianFactorIterator;
@@ -195,17 +222,23 @@ void eliminateFactorsByType_old(
 }
 
 
-// extract the matrix corresponding to the measurements of this type
+// -------------------------------------------------------
 Matrix eliminateFactorsByType(Matrix &M,
               map<string, vector<int>> &A_rows_per_type,
               string type){
-
+  /*
+  extract the matrix corresponding to the measurements of this type
+  */
   return extractJacobianRows(M, A_rows_per_type[type]);
 }
 
 
-// extracte rows from Jacobians
+// -------------------------------------------------------
 Matrix extractJacobianRows(Matrix &M, vector<int> row_inds){
+  /*
+  extracte rows from Jacobians
+  */
+
   Matrix h_M( row_inds.size(), row_inds.size() );
   for (int i = 0; i < row_inds.size(); ++i){
     for (int j = 0; j < row_inds.size(); ++j){
@@ -216,37 +249,45 @@ Matrix extractJacobianRows(Matrix &M, vector<int> row_inds){
 }
 
 
-// Print vector of ints
+// -------------------------------------------------------
 void printIntVector(vector<int> v){
+  /*
+  Print vector of ints
+  */
+
   for (auto i = v.begin(); i != v.end(); ++i)
     cout << *i << ' ';
   cout<< '\n';
 }
 
 
-// add lidar factor
+// -------------------------------------------------------
 void addLidarFactor(NonlinearFactorGraph &newgraph,
 					RangeBearingFactorMap &range_bearing_factor,
-					vector<string> &factor_types, 
 					map<string, vector<int>> &A_rows_per_type, 
 					int &A_rows_count){
+  /*
+  add lidar factor
+  */
 
-	newgraph.add(range_bearing_factor);
-    factor_types.push_back("lidar");
-    vector<int> lidar_rows= returnIncrVector(A_rows_count, 3);
-    A_rows_per_type["lidar"].insert( A_rows_per_type["lidar"].end(),
-          	  lidar_rows.begin(), lidar_rows.end() );
-    A_rows_count += 3;
+  newgraph.add(range_bearing_factor);
+  vector<int> lidar_rows= returnIncrVector(A_rows_count, 3);
+  A_rows_per_type["lidar"].insert( A_rows_per_type["lidar"].end(),
+        	  lidar_rows.begin(), lidar_rows.end() );
+  A_rows_count += 3;
 }
 
-// add GPS factor
+
+// -------------------------------------------------------
 void addGPSFactor(NonlinearFactorGraph &newgraph,
-			     GPSFactor &gps_factor,
-				 vector<string> &factor_types, 
+			   GPSFactor &gps_factor,
 				 map<string, vector<int>> &A_rows_per_type, 
-				 int &A_rows_count){
+				 int &A_rows_count) {
+  /*
+  add GPS factor
+  */
+
 	newgraph.add(gps_factor);
-	factor_types.push_back("gps");
 	vector<int> gps_rows=  returnIncrVector(A_rows_count, 3);
 	A_rows_per_type["gps"].insert( A_rows_per_type["gps"].end(),
 				gps_rows.begin(), gps_rows.end() );
@@ -254,14 +295,16 @@ void addGPSFactor(NonlinearFactorGraph &newgraph,
 }
 
 
-// add odometry factor
+// -------------------------------------------------------
 void addOdomFactor(NonlinearFactorGraph &newgraph,
-		      CombinedImuFactor &imufac,
-		  	  vector<string> &factor_types, 
+		    CombinedImuFactor &imufac,
 			  map<string, vector<int>> &A_rows_per_type, 
-			  int &A_rows_count){
+			  int &A_rows_count) {
+  /*
+  add odometry factor
+  */
+
 	newgraph.add(imufac);
-	factor_types.push_back("odom");
 	vector<int> odom_rows=  returnIncrVector(A_rows_count, 15);
 	A_rows_per_type["odom"].insert( A_rows_per_type["odom"].end(),
 	     	    odom_rows.begin(), odom_rows.end() );
@@ -269,16 +312,22 @@ void addOdomFactor(NonlinearFactorGraph &newgraph,
 }
 
 
-// print matrix
+// -------------------------------------------------------
 void printMatrix(Matrix A){
+  /*
+  print matrix
+  */
   Eigen::IOFormat CleanFmt(3, 0, ", ", "\n", "[", "]");
   cout<< A.format(CleanFmt)<< endl;
 }
 
 
-// compute error
+// -------------------------------------------------------
 Pose3 compute_error(Pose3 true_pose,
 					Pose3 estimated_pose){
+  /*
+  compute error
+  */
 	Rot3 rotation_error = true_pose.rotation() *
 	  	   Rot3( estimated_pose.rotation().transpose() );
 	Point3 translation_error = true_pose.translation() - 
@@ -286,12 +335,16 @@ Pose3 compute_error(Pose3 true_pose,
 	return Pose3( rotation_error, translation_error );
 }
 
-// generate lidar msmts
+
+// -------------------------------------------------------
 RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
                     Point3 &landmark,
                     double time,
                     Params &params,
                     std::default_random_engine noise_generator){
+  /*
+  generate lidar msmts
+  */
   
   // range
   double range = scenario.pose(time).range(landmark);

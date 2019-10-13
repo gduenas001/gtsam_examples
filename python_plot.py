@@ -14,7 +14,7 @@ ax= plt.subplot(111, projection='3d')
 estimated_positions_x= []
 estimated_positions_y= []
 estimated_positions_z= []
-with open('estimated_positions.csv', 'rb') as csvfile:
+with open('../results/estimated_positions.csv', 'rb') as csvfile:
      estimated_positions = csv.reader(csvfile, delimiter=',')
      for position in estimated_positions:
           try:
@@ -28,7 +28,7 @@ with open('estimated_positions.csv', 'rb') as csvfile:
 true_positions_x= []
 true_positions_y= []
 true_positions_z= []
-with open('true_positions.csv', 'rb') as csvfile:
+with open('../results/true_positions.csv', 'rb') as csvfile:
      true_positions = csv.reader(csvfile, delimiter=',')
      for position in true_positions:
           try:
@@ -42,7 +42,7 @@ with open('true_positions.csv', 'rb') as csvfile:
 landmarks_x= []
 landmarks_y= []
 landmarks_z= []
-with open('landmarks.csv', 'rb') as csvfile:
+with open('../results/landmarks.csv', 'rb') as csvfile:
      true_positions = csv.reader(csvfile, delimiter=',')
      for position in true_positions:
           landmarks_x.append( float(position[0]) )

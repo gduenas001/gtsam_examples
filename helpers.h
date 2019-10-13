@@ -49,8 +49,7 @@ Vector6 errorAverage(std::vector<Pose3> poses);
 
 // add a noiseless prior factor
 int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
-                             std::vector<std::string> &factor_types,
-							 Values &initial_estimate,
+							               Values &initial_estimate,
                              const Scenario &scenario,
                              map<string, vector<int>> &A_rows_per_type);
 
@@ -82,19 +81,16 @@ void printIntVector(vector<int> v);
 
 void addLidarFactor(NonlinearFactorGraph &newgraph,
                     RangeBearingFactorMap &range_bearing_factor,
-                    vector<string> &factor_types, 
                     map<string, vector<int>> &A_rows_per_type, 
                     int &A_rows_count);
 
 void addGPSFactor(NonlinearFactorGraph &newgraph,
                   GPSFactor &gps_factor,
-                  vector<string> &factor_types, 
                   map<string, vector<int>> &A_rows_per_type, 
                   int &A_rows_count);
 
 void addOdomFactor(NonlinearFactorGraph &newgraph,
                    CombinedImuFactor &imufac,
-                   vector<string> &factor_types, 
                    map<string, vector<int>> &A_rows_per_type, 
                    int &A_rows_count);
 

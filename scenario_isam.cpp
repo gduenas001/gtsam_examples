@@ -3,10 +3,12 @@
 // - data association for landmarks
 // - different frequencies for GPS and lidar
 // - use sliding window filter
-// - odom M matrix is rank 6 because of the actual number of measurements
-// - move as much as possible of the constractio outside main
+// - Why? Odom M matrix is rank 6 because of the actual number of measurements
+// - move as much as possible of the constraction outside main
 // - record the covariance after solving
-// - add the noise to all measurements and check results with python
+// - substitute boost::optional. I don't think this is the use
+// - compare errorAfter with the sum of all errors (iterate over factor graph)
+
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -16,6 +18,7 @@
 #include "helpers.h"
 #include "postProcess.h"
 #include "optionsParser.h"
+#include "Counters.h"
 
 using namespace std;
 using namespace gtsam;
@@ -37,7 +40,9 @@ int main(int argc, char** argv) {
   vector<Point3> landmarks = createLandmarks(params.scenario_radius);
 
   // scenario to simulate measurements and ground truth
-  ConstantTwistScenario scenario = createConstantTwistScenario(params.scenario_radius, params.scenario_linear_vel);
+  ConstantTwistScenario scenario = createConstantTwistScenario(
+                                      params.scenario_radius,
+                                      params.scenario_linear_vel);
 
   // Create a factor graph &  ISAM2
   NonlinearFactorGraph newgraph;
@@ -45,10 +50,7 @@ int main(int argc, char** argv) {
   Values initialEstimate, result; // Create the initial estimate to the solution
 
   // initialize variables
-  double gps_time_accum = 0.0,
-         current_time = 0.0,
-         num_imu_epochs = params.sim_time / params.dt_imu;
-  int pose_factor_count = 1;
+  Counters counters(params);
   NavState prev_state, predict_state;
   imuBias::ConstantBias prev_bias;
   vector<Point3> true_positions;
@@ -61,9 +63,7 @@ int main(int argc, char** argv) {
   A_rows_per_type.insert( pair<string, vector<int>> ("gps", {}) );
 
   // solve the graph once
-  vector<string> factor_types; // stores the factor types (odom, GPS, lidar)
   int A_rows_count = addNoiselessPriorFactor(newgraph,
-                 		          factor_types,
                         		  initialEstimate, 
                           		scenario,
                           		A_rows_per_type);
@@ -73,77 +73,73 @@ int main(int argc, char** argv) {
   initialEstimate.clear();
 
   // Simulate poses and imu measurements, adding them to the factor graph
-  for (size_t i = 1; i < num_imu_epochs; ++i) {
-
-    current_time = i * params.dt_imu;
-    gps_time_accum += params.dt_imu;
+  while (counters.current_time < params.sim_time){
+    counters.increase_time();
       
     // Predict acceleration and gyro measurements in (actual) body frame
     Point3 acc_noise = generate_random_point( noise_generator, params.noise_dist["acc"] );
-    Vector3 measuredAcc = scenario.acceleration_b(current_time) -
-                          scenario.rotation(current_time).transpose() * params.imu_params->n_gravity;
-                          // acc_noise.vector();
+    Vector3 measuredAcc = scenario.acceleration_b(counters.current_time) -
+                          scenario.rotation(counters.current_time).transpose() * params.imu_params->n_gravity +
+                          acc_noise.vector();
     Point3 gyro_noise = generate_random_point( noise_generator, params.noise_dist["gyro"] );                      
-    Vector3 measuredOmega = scenario.omega_b(current_time); // + gyro_noise.vector();
+    Vector3 measuredOmega = scenario.omega_b(counters.current_time) + gyro_noise.vector();
     params.accum.integrateMeasurement(measuredAcc, measuredOmega, params.dt_imu);
 
     // GPS update
-    if (gps_time_accum > params.dt_gps) {
+    if (counters.gps_time_accum > params.dt_gps) {
 
       // save the current position
-      true_positions.push_back( scenario.pose(current_time).translation() );
+      true_positions.push_back( scenario.pose(counters.current_time).translation() );
 
       // predict from IMU accumulated msmts
-      prev_state = NavState(result.at<Pose3>(X(pose_factor_count-1)), result.at<Vector3>(V(pose_factor_count-1)));
-      prev_bias = result.at<imuBias::ConstantBias>(B(pose_factor_count-1));
+      prev_state = NavState(result.at<Pose3>(X(counters.current_factor-1)), result.at<Vector3>(V(counters.current_factor-1)));
+      prev_bias = result.at<imuBias::ConstantBias>(B(counters.current_factor-1));
       predict_state = params.accum.predict(prev_state, prev_bias);
 
       // predicted init values
-      initialEstimate.insert(X(pose_factor_count), predict_state.pose());
-      initialEstimate.insert(V(pose_factor_count), predict_state.velocity());
-      initialEstimate.insert(B(pose_factor_count), imuBias::ConstantBias());  
+      initialEstimate.insert(X(counters.current_factor), predict_state.pose());
+      initialEstimate.insert(V(counters.current_factor), predict_state.velocity());
+      initialEstimate.insert(B(counters.current_factor), imuBias::ConstantBias());  
 
       // Add Imu Factor
-      CombinedImuFactor imufac(X(pose_factor_count - 1), V(pose_factor_count - 1), 
-                               X(pose_factor_count),     V(pose_factor_count), 
-                               B(pose_factor_count - 1), B(pose_factor_count), 
+      CombinedImuFactor imufac(X(counters.current_factor - 1), V(counters.current_factor - 1), 
+                               X(counters.current_factor),     V(counters.current_factor), 
+                               B(counters.current_factor - 1), B(counters.current_factor), 
                                params.accum);
       addOdomFactor(newgraph,
                     imufac,
-                    factor_types, 
                     A_rows_per_type, 
                     A_rows_count);
    
       // Adding GPS factor TODO: generate gps msmt with function
       Point3 gps_noise(generate_random_point(noise_generator, params.noise_dist["gps"]));
-      Point3 gps_msmt = scenario.pose(current_time).translation() + gps_noise;
-      GPSFactor gps_factor(X(pose_factor_count), gps_msmt, params.gps_cov);
+      Point3 gps_msmt = scenario.pose(counters.current_time).translation() + gps_noise;
+      GPSFactor gps_factor(X(counters.current_factor), gps_msmt, params.gps_cov);
       addGPSFactor(newgraph,
                    gps_factor,
-                   factor_types,
                    A_rows_per_type,
                    A_rows_count);
 
       // lidar measurements
       for (int j = 0; j < landmarks.size(); ++j) {
         
-        RangeBearingMeasurement range_bearing_msmt= sim_lidar_msmt(scenario,
+        RangeBearingMeasurement 
+        range_bearing_msmt= sim_lidar_msmt(scenario,
                                            landmarks[j],
-                                           current_time,
+                                           counters.current_time,
                                            params,
                                            noise_generator);
 
-
         // range-bearing factor
-        RangeBearingFactorMap range_bearing_factor(X(pose_factor_count), 
-                                                   range_bearing_msmt.range,
-                                                   range_bearing_msmt.bearing,
-                                                   landmarks[j], 
-                                                   params.lidar_cov);
+        RangeBearingFactorMap 
+        range_bearing_factor(X(counters.current_factor), 
+                             range_bearing_msmt.range,
+                             range_bearing_msmt.bearing,
+                             landmarks[j], 
+                             params.lidar_cov);
 
         addLidarFactor(newgraph,
                        range_bearing_factor,
-                       factor_types, 
                        A_rows_per_type, 
                        A_rows_count);
       }      
@@ -152,20 +148,23 @@ int main(int argc, char** argv) {
       isam_result = isam.update(newgraph, initialEstimate);
       result = isam.calculateEstimate();
 
-
       // compute error
-      online_error.push_back(compute_error(scenario.pose(current_time),
-                            result.at<Pose3>(X(pose_factor_count)) ));
+      online_error.push_back(compute_error(scenario.pose(counters.current_time),
+                            result.at<Pose3>(X(counters.current_factor)) ));
 
 	    // reset variables
       newgraph = NonlinearFactorGraph();
       params.accum.resetIntegration();
       initialEstimate.clear();
-      gps_time_accum = 0.0;
-      pose_factor_count++;  // increase the factor count
+      counters.reset_timer();
+      counters.increase_factors_count();
     }
   } // end for loop  
 
+
+Matrix cov= isam.marginalCovariance(X(counters.current_factor-1));
+cout<< "covariance: "<< endl;
+cout<< cov<< endl;
 
 // post process data showing each hypothesis
 postProcess(result,

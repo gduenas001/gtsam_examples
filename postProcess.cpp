@@ -6,22 +6,21 @@ void postProcess(Values result,
 				  ISAM2 isam,
 				  map<string, vector<int>> A_rows_per_type){
 
-  // check residuals
-  boost::optional<double> error_after = isam_result.errorAfter;
-  cout<< "error after: "<< error_after.value_or(-1)<< endl;
-  
-
-  // print the error for all the factor 
+  // get the factor graph & Jacobian from isam
   NonlinearFactorGraph factor_graph = isam.getFactorsUnsafe();
   boost::shared_ptr<GaussianFactorGraph> 
                   lin_graph = factor_graph.linearize(result);
   Matrix A = (lin_graph->jacobian()).first;
-  cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
 
+  // check residuals
+  boost::optional<double> error_after = isam_result.errorAfter;
+  cout<< "error after: "<< error_after.value_or(-1)<< endl;
+  // cout<< "error from error() fn: "<< factor_graph.error(result)<< endl;
 
   cout<< "----------- Hypothesis 0 ----------"<< "\n\n";
   // number of measurements and states
   double n = A.rows(); double m = A.cols();
+  cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
   cout<< "n = "<< n<< "\nm = "<< m<< endl;
 
   // check matrix M before elimination
@@ -62,9 +61,9 @@ void postProcess(Values result,
   // boost::math::chi_squared_distribution<> chi2_dist(4);
   // cout<< "cdf value: "<< boost::math::quantile(chi2_dist, 1-1e-7)<< endl;
 
- // // print path with python
-  // string command = "python ../python_plot.py";
-  // system(command.c_str());
+  // print path with python
+  string command = "python ../python_plot.py";
+  system(command.c_str());
 
 
   // save factor graph as graphviz dot file
