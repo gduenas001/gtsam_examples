@@ -10,10 +10,9 @@ void postProcess(Values result,
   NonlinearFactorGraph factor_graph = isam.getFactorsUnsafe();
   boost::shared_ptr<GaussianFactorGraph> 
                   lin_graph = factor_graph.linearize(result);
-  Matrix A = (lin_graph->jacobian()).first;
-
-
-
+  Matrix A= (lin_graph->jacobian()).first;
+  Matrix Lambda = (lin_graph->hessian()).first;
+  Matrix S = Lambda.inverse() * A.transpose();
 
   // -----------------------------------
   double sum= 0, dim= 0;
@@ -46,8 +45,6 @@ void postProcess(Values result,
   cout<< "n = "<< n<< "\nm = "<< m<< endl;
 
   // check matrix M before elimination
-  Matrix Lambda = (lin_graph->hessian()).first;
-  Matrix S = Lambda.inverse() * A.transpose();
   Matrix M = (Eigen::MatrixXd::Identity(n, n) - A*S);
   Eigen::FullPivLU<Matrix> M_lu(M);
   M_lu.setThreshold(1e-5);
@@ -62,6 +59,7 @@ void postProcess(Values result,
     string type = it->first;
 
     cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
+    if (type == "odom"){continue;}
 
     cout<< "Rows to be extracted: "<< endl; 
     printIntVector( it->second );
@@ -69,15 +67,57 @@ void postProcess(Values result,
     Matrix h_M = extractJacobianRows(M, it->second);
     Eigen::FullPivLU<Matrix> h_M_lu(h_M);
     h_M_lu.setThreshold(1e-5);
+    double h_M_rank= h_M_lu.rank();
     cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
-    cout << "rank of M is " << h_M_lu.rank() << endl; 
+    cout << "rank of M is " << h_M_rank << endl; 
+
+    Eigen::JacobiSVD<Matrix> svd(h_M, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Matrix U= svd.matrixU();
+    Matrix D= svd.singularValues().asDiagonal() ;
+    Matrix V= svd.matrixV();
+    cout<< "matrix U size = "<< U.rows()<< " x "<< U.cols()<< endl;
+    cout<< "matrix D size = "<< D.rows()<< " x "<< D.cols()<< endl;    
+    cout<< "matrix V size = "<< V.rows()<< " x "<< V.cols()<< endl;
+
+    Matrix h_M2= U * D * V.transpose();
+
+
+  Eigen::SelfAdjointEigenSolver<Matrix> saes(h_M);
+  Matrix h_M_inv_sqrt= saes.operatorInverseSqrt();
+  // cout << "The inverse square root of M is: " << endl;
+  // cout << saes.operatorInverseSqrt() << endl;
+  // cout << "We can also compute it with operatorSqrt() and inverse(). That yields: " << endl;
+  // cout << saes.operatorSqrt().inverse() << endl;
+
+    // if (Eigen::isSymmetric(h_M)){
+    //   cout<< "M is symmetric"<< endl;
+    // }else{
+    //   cout<< "M is NOT symmetric"<< endl;
+    // }
+
+    cout<< h_M<< endl;
+    if (U.isApprox(V.transpose(), 0.01)){
+      cout<< "U and V are equal"<< endl;
+    }else{
+      cout<< "U and V are NOT equal"<< endl;
+    }
+
+
+    if (h_M.isApprox(h_M2, 0.01)){
+      cout<< "M is equal"<< endl;
+    }else{
+      cout<< "M is NOT equal"<< endl;
+    }
   }
 
 
-  // Vector error_vector = factor_graph.at(0)->unwhitenedError(result);
-  // Vector error_vector = factor->unwhitenedError(result);
-  // cout<< "error in selected factor: "<< factor->error(result)<< endl;
-  // cout<< error_vector<< endl;
+  // // check whitened error
+  // Vector whitened_error = factor_graph.at(0)->whitenedError(result);
+  // double error= whitened_error.squaredNorm() * 0.5;
+  // cout<< "error in selected factor: "<<
+  //         factor_graph.at(0)->error(result)<< 
+  //         " or from error function: "<<
+  //         error << endl;
 
 
   // boost::math::chi_squared_distribution<> chi2_dist(4);
