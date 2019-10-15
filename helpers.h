@@ -75,7 +75,9 @@ Matrix eliminateFactorsByType(Matrix &A,
               map<string, vector<int>> &A_rows_per_type,
               string type);
 
-Matrix extractJacobianRows(Matrix &A, vector<int> row_inds);
+Matrix extractJacobianRows(Matrix &A, vector<int> &row_inds);
+
+Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds);
 
 void printIntVector(vector<int> v);
 

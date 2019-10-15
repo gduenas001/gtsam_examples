@@ -161,9 +161,9 @@ int main(int argc, char** argv) {
   } // end for loop  
 
 
-Matrix cov= isam.marginalCovariance(X(counters.current_factor-1));
-cout<< "covariance: "<< endl;
-cout<< cov<< endl;
+// Matrix cov= isam.marginalCovariance(X(counters.current_factor-1));
+// cout<< "covariance: "<< endl;
+// cout<< cov<< endl;
 
 // post process data showing each hypothesis
 postProcess(result,

@@ -14,6 +14,11 @@ void postProcess(Values result,
   Matrix Lambda = (lin_graph->hessian()).first;
   Matrix S = Lambda.inverse() * A.transpose();
 
+  Eigen::FullPivLU<Matrix> A_lu(A);
+  A_lu.setThreshold(1e-7);
+  double A_rank= A_lu.rank();
+  cout<< "rank of A: "<< A_rank<< endl;
+  
   // -----------------------------------
   double sum= 0, dim= 0;
   for (auto factor : factor_graph){
@@ -32,7 +37,6 @@ void postProcess(Values result,
   // -----------------------------------
 
 
-
   // check residuals
   boost::optional<double> error_after = isam_result.errorAfter;
   cout<< "error after: "<< error_after.value_or(-1)<< endl;
@@ -47,7 +51,7 @@ void postProcess(Values result,
   // check matrix M before elimination
   Matrix M = (Eigen::MatrixXd::Identity(n, n) - A*S);
   Eigen::FullPivLU<Matrix> M_lu(M);
-  M_lu.setThreshold(1e-5);
+  M_lu.setThreshold(1e-7);
   cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
   cout << "rank of M is " << M_lu.rank() << endl;
 
@@ -59,14 +63,14 @@ void postProcess(Values result,
     string type = it->first;
 
     cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
-    if (type == "odom"){continue;}
+    // if (type == "odom"){continue;}
 
     cout<< "Rows to be extracted: "<< endl; 
     printIntVector( it->second );
 
     Matrix h_M = extractJacobianRows(M, it->second);
     Eigen::FullPivLU<Matrix> h_M_lu(h_M);
-    h_M_lu.setThreshold(1e-5);
+    h_M_lu.setThreshold(1e-7);
     double h_M_rank= h_M_lu.rank();
     cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
     cout << "rank of M is " << h_M_rank << endl; 
@@ -74,33 +78,32 @@ void postProcess(Values result,
     Eigen::JacobiSVD<Matrix> svd(h_M, Eigen::ComputeThinU | Eigen::ComputeThinV);
     Matrix U= svd.matrixU();
     Matrix D= svd.singularValues().asDiagonal() ;
-    Matrix V= svd.matrixV();
     cout<< "matrix U size = "<< U.rows()<< " x "<< U.cols()<< endl;
     cout<< "matrix D size = "<< D.rows()<< " x "<< D.cols()<< endl;    
-    cout<< "matrix V size = "<< V.rows()<< " x "<< V.cols()<< endl;
 
-    Matrix h_M2= U * D * V.transpose();
+    Matrix h_M2= U * D * U.transpose();
 
+    // Eigen::SelfAdjointEigenSolver<Matrix> saes(h_M);
+    // Matrix h_M_inv_sqrt= saes.operatorInverseSqrt();
+    // cout << "The inverse square root of M is: " << endl;
+    // cout << saes.operatorInverseSqrt() << endl;
+    // cout << "We can also compute it with operatorSqrt() and inverse(). That yields: " << endl;
+    // cout << saes.operatorSqrt().inverse() << endl;
 
-  Eigen::SelfAdjointEigenSolver<Matrix> saes(h_M);
-  Matrix h_M_inv_sqrt= saes.operatorInverseSqrt();
-  // cout << "The inverse square root of M is: " << endl;
-  // cout << saes.operatorInverseSqrt() << endl;
-  // cout << "We can also compute it with operatorSqrt() and inverse(). That yields: " << endl;
-  // cout << saes.operatorSqrt().inverse() << endl;
+    // cout<< h_M<< endl;
+    // cout<< "Matrix U: \n";
+    // cout<< U<< endl;
+    // cout<< "Matrix V: \n";
+    // cout<< V<< endl;
+    // cout<< "Matrix D: \n";
+    // cout<< D<< endl;
 
-    // if (Eigen::isSymmetric(h_M)){
-    //   cout<< "M is symmetric"<< endl;
-    // }else{
-    //   cout<< "M is NOT symmetric"<< endl;
-    // }
-
-    cout<< h_M<< endl;
-    if (U.isApprox(V.transpose(), 0.01)){
-      cout<< "U and V are equal"<< endl;
-    }else{
-      cout<< "U and V are NOT equal"<< endl;
-    }
+    // A*S = A* P * A', rank of E*A
+    Matrix h_A= extractMatrixRows(A, it->second);
+    Eigen::FullPivLU<Matrix> h_A_lu(h_A);
+    h_A_lu.setThreshold(1e-7);
+    double h_A_rank= h_A_lu.rank();
+    cout<< "rank of E*A: "<< h_A_rank<< endl;
 
 
     if (h_M.isApprox(h_M2, 0.01)){
@@ -124,8 +127,8 @@ void postProcess(Values result,
   // cout<< "cdf value: "<< boost::math::quantile(chi2_dist, 1-1e-7)<< endl;
 
   // print path with python
-  string command = "python ../python_plot.py";
-  system(command.c_str());
+  // string command = "python ../python_plot.py";
+  // system(command.c_str());
 
 
   // save factor graph as graphviz dot file

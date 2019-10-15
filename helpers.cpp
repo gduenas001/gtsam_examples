@@ -234,7 +234,7 @@ Matrix eliminateFactorsByType(Matrix &M,
 
 
 // -------------------------------------------------------
-Matrix extractJacobianRows(Matrix &M, vector<int> row_inds){
+Matrix extractJacobianRows(Matrix &M, vector<int> &row_inds){
   /*
   extracte rows from Jacobians
   */
@@ -246,6 +246,22 @@ Matrix extractJacobianRows(Matrix &M, vector<int> row_inds){
     }
   }
   return h_M;
+}
+
+
+// -------------------------------------------------------
+Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds){
+  /*
+  extracts the rows from the matrix
+  */
+
+  Matrix B(row_inds.size(), A.cols());
+  for (int i = 0; i < row_inds.size(); ++i){
+    for (int j = 0; j < B.cols(); ++j){
+      B(i,j)= A(row_inds[i],j);      
+    }
+  }
+  return B;
 }
 
 
