@@ -12,7 +12,8 @@ void postProcess(Values result,
                   lin_graph = factor_graph.linearize(result);
   Matrix A= (lin_graph->jacobian()).first;
   Matrix Lambda = (lin_graph->hessian()).first;
-  Matrix S = Lambda.inverse() * A.transpose();
+  Matrix P= Lambda.inverse();
+  Matrix S = P * A.transpose();
 
   Eigen::FullPivLU<Matrix> A_lu(A);
   A_lu.setThreshold(1e-7);
@@ -20,18 +21,24 @@ void postProcess(Values result,
   cout<< "rank of A: "<< A_rank<< endl;
   
   // -----------------------------------
-  double sum= 0, dim= 0;
+  double sum= 0, dim= 0, whitened_sum= 0;
+  vector<Vector> whitened_errors;
   for (auto factor : factor_graph){
     double factor_error= factor->error(result);
     double factor_dim= factor->dim();
+    boost::shared_ptr<NoiseModelFactor> noise_factor=
+             boost::dynamic_pointer_cast<NoiseModelFactor>(factor);
     cout<< "dim: "<< factor_dim<< "\t"
         << "error: "<< factor_error<< endl;
     sum += factor_error;
     dim += factor_dim;
 
-    // factor->print();
-    // Vector whitened_error= factor->whitened_error(result);
+    cout<< "type of noise factor: "<< typeid(noise_factor).name()<< endl;
+    Vector whitened_error= noise_factor->whitenedError(result);
+    whitened_errors.push_back(whitened_error);
+    whitened_sum += whitened_error.squaredNorm() * 0.5;
   }
+  cout<< "sum of whitened errors: "<< whitened_sum<< endl;
   cout<< "sum of errors: "<< sum<< endl;
   cout<< "sum of dimensions: "<< dim<< endl;
   // -----------------------------------
@@ -99,18 +106,29 @@ void postProcess(Values result,
     // cout<< D<< endl;
 
     // A*S = A* P * A', rank of E*A
-    Matrix h_A= extractMatrixRows(A, it->second);
-    Eigen::FullPivLU<Matrix> h_A_lu(h_A);
-    h_A_lu.setThreshold(1e-7);
-    double h_A_rank= h_A_lu.rank();
-    cout<< "rank of E*A: "<< h_A_rank<< endl;
+    Matrix AS= A*S;
+    Matrix h_AS= extractMatrixRows(AS, it->second);
+    h_AS= extractMatrixColumns(h_AS, it->second);
+    Eigen::FullPivLU<Matrix> h_AS_lu(h_AS);
+    h_AS_lu.setThreshold(1e-7);
+    double h_AS_rank= h_AS_lu.rank();
+    cout<< "size of E*A*S*E: "<< h_AS.rows()<< " x "<< h_AS.cols()<< endl;
+    cout<< "rank of E*A*S*E: "<< h_AS_rank<< endl;
+    // cout<< "matrix E*A*S*E: "<< h_AS<< endl;
+    Matrix M2= Matrix::Identity(h_AS.rows(), h_AS.cols()) - h_AS;
+    // cout<< "matrix (I - E*A*S*E): "<< M2<< endl;
+    Eigen::FullPivLU<Matrix> M2_lu(M2);
+    M2_lu.setThreshold(1e-7);
+    double M2_rank= M2_lu.rank();
+    cout<< "size of (I - E*A*S*E): "<< M2.rows()<< " x "<< M2.cols()<< endl;
+    cout<< "rank of (I - E*A*S*E): "<< M2_rank<< endl;
 
 
-    if (h_M.isApprox(h_M2, 0.01)){
-      cout<< "M is equal"<< endl;
-    }else{
-      cout<< "M is NOT equal"<< endl;
-    }
+    // if (AS.isApprox(A*P*A.transpose(), 0.01)){
+    //   cout<< "AS is equal"<< endl;
+    // }else{
+    //   cout<< "AS is NOT equal"<< endl;
+    // }
   }
 
 

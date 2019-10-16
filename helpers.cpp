@@ -258,12 +258,27 @@ Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds){
   Matrix B(row_inds.size(), A.cols());
   for (int i = 0; i < row_inds.size(); ++i){
     for (int j = 0; j < B.cols(); ++j){
-      B(i,j)= A(row_inds[i],j);      
+      B(i,j)= A(row_inds[i], j);      
     }
   }
   return B;
 }
 
+
+// -------------------------------------------------------
+Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds){
+  /*
+  extracts the rows from the matrix
+  */
+
+  Matrix B(A.rows(), col_inds.size());
+  for (int j = 0; j < col_inds.size(); ++j){
+    for (int i = 0; i < B.rows(); ++i){
+      B(i,j)= A(i, col_inds[j]);      
+    }
+  }
+  return B;
+}
 
 // -------------------------------------------------------
 void printIntVector(vector<int> v){

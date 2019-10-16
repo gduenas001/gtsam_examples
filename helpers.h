@@ -79,6 +79,8 @@ Matrix extractJacobianRows(Matrix &A, vector<int> &row_inds);
 
 Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds);
 
+Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds);
+
 void printIntVector(vector<int> v);
 
 void addLidarFactor(NonlinearFactorGraph &newgraph,
