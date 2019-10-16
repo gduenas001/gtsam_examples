@@ -43,9 +43,9 @@ void postProcess(Values result,
           var["x"]<< ", "<< 
           var["y"]<< ", "<< 
           var["z"]<< ")"<< endl;
-  Vector t_vector_x= Vector::Zero(m);
-  cout<< "number of factors in the graph: "<< counters.current_factor<< endl;
-  // t_vector_x(m)= 1;
+  
+  // builds a map for vector t for each coordinate TODO: change to lat, long, vert (needs rotations)
+  map<string, Vector> t_vector= buildt_vector(m);
   
   // upper bound lambda
   double effective_n= getDOFfromGraph(A_rows_per_type);
@@ -115,7 +115,7 @@ void postProcess(Values result,
       // build vector D
       Eigen::SelfAdjointEigenSolver<Matrix> adj(h_M);
       Matrix h_M_inv_sqrt= adj.operatorInverseSqrt();
-      Vector D= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector_x;
+      Vector D= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["x"];
 
       // get k and mu
       double k= D.squaredNorm() / var["x"];

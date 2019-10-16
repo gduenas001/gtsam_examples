@@ -118,4 +118,4 @@ double getDOFfromFactor(int dim, string type);
 
 double getDOFfromGraph(map<string, vector<int>> &A_rows_per_type);
 
-
+std::map<std::string, gtsam::Vector> buildt_vector(int size);

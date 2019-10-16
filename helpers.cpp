@@ -439,4 +439,19 @@ double getDOFfromGraph(map<string, vector<int>> &A_rows_per_type){
 	return dof;
 }
 
+// -------------------------------------------------------
+map<string, Vector> buildt_vector(int size){
+
+	map<string, Vector> t_vector;
+	t_vector["x"]= Vector::Zero(size);
+	t_vector["y"]= Vector::Zero(size);
+	t_vector["z"]= Vector::Zero(size);
+	t_vector["x"](size-10)= 1;
+	t_vector["y"](size-9)= 1;
+	t_vector["z"](size-8)= 1;
+
+	return t_vector;
+}
+
+
 
