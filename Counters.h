@@ -1,4 +1,6 @@
 
+#pragma once
+
 #include "optionsParser.h"
 
 class Counters{
@@ -7,8 +9,8 @@ public:
 		this->current_time= 0;
 		this->gps_time_accum= 0;
 		// this->num_imu_epochs= params.sim_time / params.dt_imu;
-		this->current_factor= 1;
-		this->prev_factor= 0;
+		this->current_factor= 0;
+		this->prev_factor= -1;
 
 		this->dt_imu= params.dt_imu;
 		this->dt_gps= params.dt_gps;

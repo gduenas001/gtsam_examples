@@ -8,6 +8,9 @@
 // - record the covariance after solving
 // - substitute boost::optional. I don't think this is the use
 // - check my notes to implement simple last version of RAIM
+// - check quantily vs complement in the inv cdf function
+// - build the t vector, it's zero at the moment. For that I need to know how the states are indexed.
+// Looks like there are 45 states for 2 epochs (3 epoch with priors) so 15 states per epoch.
 
 
 #include <gtsam/slam/dataset.h>
@@ -86,6 +89,8 @@ int main(int argc, char** argv) {
     // GPS update
     if (counters.gps_time_accum > params.dt_gps) {
 
+      counters.increase_factors_count();
+
       // save the current position
       true_positions.push_back( scenario.pose(counters.current_time).translation() );
 
@@ -155,20 +160,18 @@ int main(int argc, char** argv) {
       params.accum.resetIntegration();
       initialEstimate.clear();
       counters.reset_timer();
-      counters.increase_factors_count();
     }
   } // end for loop  
 
 
-// Matrix cov= isam.marginalCovariance(X(counters.current_factor-1));
-// cout<< "covariance: "<< endl;
-// cout<< cov<< endl;
 
 // post process data showing each hypothesis
 postProcess(result,
            isam_result,
            isam,
-           A_rows_per_type);
+           A_rows_per_type,
+           counters,
+           params);
 
   // save the data TODO: give option to save in different folder
 saveData(result,

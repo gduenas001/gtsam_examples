@@ -49,6 +49,8 @@ struct Params{
   double bearing_noise_sigma = 5 * M_PI / 180; // bearing standard dev
   double sim_time= 2; // seconds -- time to run the simulation
   bool evaluate_nonlinear_error= true; // for the residuals
+  double P_lambda= 1e-5; // prob allocation for the upper bound of lambda
+  double AL_x= 1; // alert limit in x-coord
   
 
 };

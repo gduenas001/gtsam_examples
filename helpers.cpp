@@ -223,6 +223,7 @@ void eliminateFactorsByType_old(
 
 
 // -------------------------------------------------------
+// OLD
 Matrix eliminateFactorsByType(Matrix &M,
               map<string, vector<int>> &A_rows_per_type,
               string type){
@@ -234,6 +235,7 @@ Matrix eliminateFactorsByType(Matrix &M,
 
 
 // -------------------------------------------------------
+// OLD
 Matrix extractJacobianRows(Matrix &M, vector<int> &row_inds){
   /*
   extracte rows from Jacobians
@@ -279,6 +281,25 @@ Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds){
   }
   return B;
 }
+
+
+// -------------------------------------------------------
+Matrix extractMatrixRowsAndColumns(Matrix &A, 
+								   vector<int> &row_inds, 
+								   vector<int> &col_inds){
+  /*
+  extracte rows and columns
+  */
+
+  Matrix B( row_inds.size(), col_inds.size() );
+  for (int i = 0; i < row_inds.size(); ++i){
+    for (int j = 0; j < col_inds.size(); ++j){
+      B(i,j) = A(row_inds[i], col_inds[j]);
+    }
+  }
+  return B;
+}
+
 
 // -------------------------------------------------------
 void printIntVector(vector<int> v){
@@ -392,6 +413,30 @@ RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
   RangeBearingMeasurement msmt(range, bearing);
 
   return msmt;
+}
+
+
+// -------------------------------------------------------
+double getDOFfromFactor(int n, string type){
+	if (type == "odom"){
+    	return n - 9;
+    }else{
+    	return n;
+    }
+}
+
+// -------------------------------------------------------
+double getDOFfromGraph(map<string, vector<int>> &A_rows_per_type){
+
+	double dof= 0;
+	for (map<string, vector<int>>::iterator it= A_rows_per_type.begin(); 
+	   it != A_rows_per_type.end(); 
+	   ++it){
+		string factor_type = it->first;
+		double factor_n= (it->second).size();
+		dof += getDOFfromFactor(factor_n, factor_type);
+	}
+	return dof;
 }
 
 

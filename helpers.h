@@ -81,6 +81,10 @@ Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds);
 
 Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds);
 
+Matrix extractMatrixRowsAndColumns(Matrix &A, 
+                   vector<int> &row_inds, 
+                   vector<int> &col_inds);
+
 void printIntVector(vector<int> v);
 
 void addLidarFactor(NonlinearFactorGraph &newgraph,
@@ -109,5 +113,9 @@ RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
                     double time,
                     Params &params,
                     std::default_random_engine noise_generator);
+
+double getDOFfromFactor(int dim, string type);
+
+double getDOFfromGraph(map<string, vector<int>> &A_rows_per_type);
 
 

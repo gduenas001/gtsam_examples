@@ -101,6 +101,16 @@ int optionsParser (int argc, char **argv, Params &params){
          params.evaluate_nonlinear_error= optarg;
        break;
 
+       case 'n':
+         printf("you entered \"%s\" for the variable 'P_lambda'\n", optarg);
+         params.P_lambda= atof(optarg);
+       break;
+
+       case 'o':
+         printf("you entered \"%s\" for the variable 'AL_x'\n", optarg);
+         params.P_lambda= atof(optarg);
+       break;
+
 
        // default error
        default:
