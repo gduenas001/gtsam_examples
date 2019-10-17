@@ -4,13 +4,8 @@
 // - different frequencies for GPS and lidar
 // - use sliding window filter
 // - Why? Odom M matrix is rank 6 because of the actual number of measurements
-// - move as much as possible of the constraction outside main
-// - record the covariance after solving
 // - substitute boost::optional. I don't think this is the use
-// - check my notes to implement simple last version of RAIM
 // - check quantily vs complement in the inv cdf function
-// - build the t vector, it's zero at the moment. For that I need to know how the states are indexed.
-// Looks like there are 45 states for 2 epochs (3 epoch with priors) so 15 states per epoch.
 
 
 #include <gtsam/slam/dataset.h>
@@ -95,8 +90,9 @@ int main(int argc, char** argv) {
       true_positions.push_back( scenario.pose(counters.current_time).translation() );
 
       // predict from IMU accumulated msmts
-      prev_state = NavState(result.at<Pose3>(X(counters.current_factor-1)), result.at<Vector3>(V(counters.current_factor-1)));
-      prev_bias = result.at<imuBias::ConstantBias>(B(counters.current_factor-1));
+      prev_state = NavState(result.at<Pose3>  (X(counters.prev_factor)), 
+                            result.at<Vector3>(V(counters.prev_factor)));
+      prev_bias = result.at<imuBias::ConstantBias>(B(counters.prev_factor));
       predict_state = params.accum.predict(prev_state, prev_bias);
 
       // predicted init values
@@ -105,12 +101,12 @@ int main(int argc, char** argv) {
       initialEstimate.insert(B(counters.current_factor), imuBias::ConstantBias());  
 
       // Add Imu Factor
-      CombinedImuFactor imufac(X(counters.current_factor - 1), V(counters.current_factor - 1), 
-                               X(counters.current_factor),     V(counters.current_factor), 
-                               B(counters.current_factor - 1), B(counters.current_factor), 
+      CombinedImuFactor imu_factor(X(counters.prev_factor),     V(counters.prev_factor), 
+                               X(counters.current_factor),  V(counters.current_factor), 
+                               B(counters.prev_factor),     B(counters.current_factor), 
                                params.accum);
       addOdomFactor(newgraph,
-                    imufac,
+                    imu_factor,
                     A_rows_per_type, 
                     A_rows_count);
    

@@ -32,17 +32,12 @@ void postProcess(Values result,
   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
   cout<< "n = "<< n<< "\nm = "<< m<< endl;
 
-  // get variances
-  map<string,double> var;
-  Matrix P_x= isam.marginalCovariance(X(counters.current_factor));
-  var["x"]= P_x(3,3);
-  var["y"]= P_x(4,4);
-  var["z"]= P_x(5,5);
-
-  cout<< "variances (x,y,z): "<< "("<< 
-          var["x"]<< ", "<< 
-          var["y"]<< ", "<< 
-          var["z"]<< ")"<< endl;
+  // get variances for the last state
+  map<string,double> var= getVariancesForLastPose(isam, counters);
+  cout<< "std dev. (x,y,z): "<< "("<< 
+          sqrt(var["x"])<< ", "<< 
+          sqrt(var["y"])<< ", "<< 
+          sqrt(var["z"])<< ")"<< endl;
   
   // builds a map for vector t for each coordinate TODO: change to lat, long, vert (needs rotations)
   map<string, Vector> t_vector= buildt_vector(m);
@@ -51,8 +46,8 @@ void postProcess(Values result,
   double effective_n= getDOFfromGraph(A_rows_per_type);
   double chi_squared_dof= effective_n - m;
   double r= 2 * factor_graph.error(result);
-  boost::math::chi_squared_distribution<> chi2_dist(chi_squared_dof);
-  double lambda= pow( sqrt(r) + sqrt(boost::math::quantile(chi2_dist, 1-1e-5)), 2 );
+  boost::math::chi_squared_distribution<> chi2_dist_lambda(chi_squared_dof);
+  double lambda= pow( sqrt(r) + sqrt(boost::math::quantile(chi2_dist_lambda, 1-1e-5)), 2 );
   cout<< "effective number of measurements: "<< effective_n<< endl;
   cout<< "DOF of the chi-squared: "<< chi_squared_dof<< endl;
   cout<< "r: "<< r<< endl;
@@ -60,8 +55,8 @@ void postProcess(Values result,
 
 
   // check residuals
-  // boost::optional<double> error_after = isam_result.errorAfter;
-  // cout<< "error after: "<< error_after.value_or(-1)<< endl;
+  boost::optional<double> error_after = isam_result.errorAfter;
+  cout<< "error after: "<< error_after.value_or(-1)<< endl;
   // cout<< "error from error() fn: "<< factor_graph.error(result)<< endl;
 
   cout<< "----------- Hypothesis 0 ----------"<< "\n\n";
@@ -73,6 +68,21 @@ void postProcess(Values result,
   cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
   cout << "rank of M is " << M_lu.rank() << endl;
 
+  // compute integrity
+  boost::math::chi_squared_distribution<> chi2_dist_raim(1);
+  map<string, double> h_LIR;
+
+  h_LIR["x"]= 1 - boost::math::cdf(chi2_dist_raim, 
+                      pow(params.AL_x / sqrt(var["x"]), 2) );
+  h_LIR["y"]= 1 - boost::math::cdf(chi2_dist_raim, 
+                      pow(params.AL_y / sqrt(var["y"]), 2) );
+  h_LIR["z"]= 1 - boost::math::cdf(chi2_dist_raim, 
+                      pow(params.AL_z / sqrt(var["z"]), 2) );
+
+
+  cout<< "LIR for h in x: "<< h_LIR["x"]<< endl;
+  cout<< "LIR for h in y: "<< h_LIR["y"]<< endl;
+  cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
 
   // loop over hypotheses
   for (map<string, vector<int>>::iterator it= A_rows_per_type.begin(); 
@@ -81,11 +91,10 @@ void postProcess(Values result,
     string type = it->first;
 
     cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
-    // if (type == "odom"){continue;}
     vector<int> row_inds= it->second;
     int h_n= row_inds.size();
 
-    cout<< "Rows to be extracted: "<< endl; 
+    cout<< "Rows to be extracted: "; 
     printIntVector( row_inds );
 
     Matrix h_M = extractJacobianRows(M, row_inds);
@@ -115,16 +124,40 @@ void postProcess(Values result,
       // build vector D
       Eigen::SelfAdjointEigenSolver<Matrix> adj(h_M);
       Matrix h_M_inv_sqrt= adj.operatorInverseSqrt();
-      Vector D= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["x"];
 
-      // get k and mu
-      double k= D.squaredNorm() / var["x"];
-      double mu= k * lambda;
+      // vector D
+      map<string, Vector> D;
+      D["x"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["x"];
+      D["y"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["y"];
+      D["z"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["z"];
+
+      // get kappa
+      map<string, double> k;
+      k["x"]= D["x"].squaredNorm() / var["x"];
+      k["y"]= D["y"].squaredNorm() / var["y"];
+      k["z"]= D["z"].squaredNorm() / var["z"];
+
+      // non-centrality parameter
+      map<string, double> mu;
+      mu["x"]= k["x"] * lambda;
+      mu["y"]= k["y"] * lambda;
+      mu["z"]= k["z"] * lambda;
 
       // compute integrity
-      boost::math::non_central_chi_squared_distribution<> nc_chi2_dist(1, mu);
-      double h_LIR= 1 - boost::math::cdf(nc_chi2_dist, pow(params.AL_x / sqrt(var["x"]), 2) );
-      cout<< "LIR for h: "<< h_LIR<< endl;
+      h_LIR["x"]= 1 - boost::math::cdf(
+                          boost::math::non_central_chi_squared(1, mu["x"]),
+                          pow(params.AL_x / sqrt(var["x"]), 2) );
+      h_LIR["y"]= 1 - boost::math::cdf(
+                          boost::math::non_central_chi_squared(1, mu["y"]), 
+                          pow(params.AL_y / sqrt(var["y"]), 2) );
+      h_LIR["z"]= 1 - boost::math::cdf(
+                          boost::math::non_central_chi_squared(1, mu["z"]), 
+                          pow(params.AL_z / sqrt(var["z"]), 2) );
+      
+
+      cout<< "LIR for h in x: "<< h_LIR["x"]<< endl;
+      cout<< "LIR for h in y: "<< h_LIR["y"]<< endl;
+      cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
     }
 
 

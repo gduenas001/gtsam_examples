@@ -21,6 +21,7 @@
 #include "RangeBearingFactorMap.h"
 #include "optionsParser.h"
 #include "RangeBearingMeasurement.h"
+#include "Counters.h"
 
 using namespace gtsam;
 using namespace std;
@@ -108,14 +109,23 @@ void printMatrix(gtsam::Matrix A);
 Pose3 compute_error(Pose3 true_pose, Pose3 estimated_pose);
 
 
-RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
-                    Point3 &landmark,
-                    double time,
-                    Params &params,
-                    std::default_random_engine noise_generator);
+RangeBearingMeasurement 
+sim_lidar_msmt(ConstantTwistScenario &scenario,
+               Point3 &landmark,
+               double time,
+               Params &params,
+               std::default_random_engine noise_generator);
 
-double getDOFfromFactor(int dim, string type);
+double getDOFfromFactorType(int dim, string type);
 
 double getDOFfromGraph(map<string, vector<int>> &A_rows_per_type);
 
-std::map<std::string, gtsam::Vector> buildt_vector(int size);
+std::map<std::string, gtsam::Vector> 
+buildt_vector(int size);
+
+std::map<std::string, double> 
+getVariancesForLastPose(gtsam::ISAM2 &isam,
+                        Counters &counters);
+
+
+

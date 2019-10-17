@@ -108,8 +108,20 @@ int optionsParser (int argc, char **argv, Params &params){
 
        case 'o':
          printf("you entered \"%s\" for the variable 'AL_x'\n", optarg);
-         params.P_lambda= atof(optarg);
+         params.AL_x= atof(optarg);
        break;
+
+       case 'p':
+         printf("you entered \"%s\" for the variable 'AL_y'\n", optarg);
+         params.AL_y= atof(optarg);
+       break;
+
+       case 'q':
+         printf("you entered \"%s\" for the variable 'AL_z'\n", optarg);
+         params.AL_z= atof(optarg);
+       break;
+
+
 
 
        // default error

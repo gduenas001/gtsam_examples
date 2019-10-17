@@ -417,9 +417,10 @@ RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
 
 
 // -------------------------------------------------------
-double getDOFfromFactor(int n, string type){
+double getDOFfromFactorType(int n, string type){
 	if (type == "odom"){
-    	return n - 9;
+		int num_odom_factors= n / 15;
+    	return n - (num_odom_factors * 9);
     }else{
     	return n;
     }
@@ -430,11 +431,12 @@ double getDOFfromGraph(map<string, vector<int>> &A_rows_per_type){
 
 	double dof= 0;
 	for (map<string, vector<int>>::iterator it= A_rows_per_type.begin(); 
-	   it != A_rows_per_type.end(); 
-	   ++it){
+	     it != A_rows_per_type.end(); 
+	     ++it){
+
 		string factor_type = it->first;
 		double factor_n= (it->second).size();
-		dof += getDOFfromFactor(factor_n, factor_type);
+		dof += getDOFfromFactorType(factor_n, factor_type);
 	}
 	return dof;
 }
@@ -452,6 +454,20 @@ map<string, Vector> buildt_vector(int size){
 
 	return t_vector;
 }
+
+// -------------------------------------------------------
+map<string,double> getVariancesForLastPose(ISAM2 &isam,
+										   Counters &counters){
+	map<string,double> var;
+	Matrix P_x= isam.marginalCovariance(X(counters.current_factor));
+	var["x"]= P_x(3,3);
+	var["y"]= P_x(4,4);
+	var["z"]= P_x(5,5);
+
+	return var;
+}
+
+
 
 
 
