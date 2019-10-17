@@ -420,7 +420,7 @@ RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
 double getDOFfromFactorType(int n, string type){
 	if (type == "odom"){
 		int num_odom_factors= n / 15;
-    	return n - (num_odom_factors * 9);
+    	return n - (num_odom_factors * 3);
     }else{
     	return n;
     }
@@ -460,6 +460,9 @@ map<string,double> getVariancesForLastPose(ISAM2 &isam,
 										   Counters &counters){
 	map<string,double> var;
 	Matrix P_x= isam.marginalCovariance(X(counters.current_factor));
+	var["roll"]= P_x(0,0);
+	var["pitch"]= P_x(1,1);
+	var["yaw"]= P_x(2,2);
 	var["x"]= P_x(3,3);
 	var["y"]= P_x(4,4);
 	var["z"]= P_x(5,5);

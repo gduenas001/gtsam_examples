@@ -142,9 +142,17 @@ int optionsParser (int argc, char **argv, Params &params){
 void build_variables(Params &params){
   
   // create parameters
-  params.lidar_cov = noiseModel::Diagonal::Sigmas( (Vector(3) 
-            << params.bearing_noise_sigma, params.bearing_noise_sigma, params.range_noise_sigma).finished() );
-  params.gps_cov = noiseModel::Isotropic::Sigma(3, params.gps_noise_sigma); // GPS covariance is constant
+  params.lidar_cov= noiseModel::Diagonal::Sigmas( (Vector(3)<< 
+               params.bearing_noise_sigma, 
+               params.bearing_noise_sigma, 
+               params.range_noise_sigma).finished() );
+
+  params.gps_cov=   noiseModel::Diagonal::Sigmas( (Vector(3)<<
+               params.gps_noise_sigma,
+               params.gps_noise_sigma,
+               params.gps_noise_sigma).finished() );
+  // params.gps_cov = noiseModel::Isotropic::Sigma(3, params.gps_noise_sigma); // GPS covariance is constant
+
   params.measured_acc_cov = I_3x3 * pow(params.accel_noise_sigma,2);
   params.measured_omega_cov = I_3x3 * pow(params.gyro_noise_sigma,2);
   params.bias_acc_cov = I_3x3 * pow(params.accel_bias_rw_sigma,2);

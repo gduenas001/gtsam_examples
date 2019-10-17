@@ -6,6 +6,7 @@
 // - Why? Odom M matrix is rank 6 because of the actual number of measurements
 // - substitute boost::optional. I don't think this is the use
 // - check quantily vs complement in the inv cdf function
+// - seems that dof of a odom factor is 12, not 6, but M is still rank 6...
 
 
 #include <gtsam/slam/dataset.h>
@@ -105,6 +106,7 @@ int main(int argc, char** argv) {
                                X(counters.current_factor),  V(counters.current_factor), 
                                B(counters.prev_factor),     B(counters.current_factor), 
                                params.accum);
+
       addOdomFactor(newgraph,
                     imu_factor,
                     A_rows_per_type, 
@@ -112,7 +114,7 @@ int main(int argc, char** argv) {
    
       // Adding GPS factor TODO: generate gps msmt with function
       Point3 gps_noise(generate_random_point(noise_generator, params.noise_dist["gps"]));
-      Point3 gps_msmt = scenario.pose(counters.current_time).translation() + gps_noise;
+      Point3 gps_msmt = scenario.pose(counters.current_time).translation();// + gps_noise;
       GPSFactor gps_factor(X(counters.current_factor), gps_msmt, params.gps_cov);
       addGPSFactor(newgraph,
                    gps_factor,

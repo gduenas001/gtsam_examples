@@ -34,7 +34,10 @@ void postProcess(Values result,
 
   // get variances for the last state
   map<string,double> var= getVariancesForLastPose(isam, counters);
-  cout<< "std dev. (x,y,z): "<< "("<< 
+  cout<< "std dev. (roll, pitch, yaw, x, y, z): "<< "("<< 
+          sqrt(var["roll"])<< ", "<< 
+          sqrt(var["pitch"])<< ", "<< 
+          sqrt(var["yaw"])<< ", "<< 
           sqrt(var["x"])<< ", "<< 
           sqrt(var["y"])<< ", "<< 
           sqrt(var["z"])<< ")"<< endl;
@@ -94,8 +97,8 @@ void postProcess(Values result,
     vector<int> row_inds= it->second;
     int h_n= row_inds.size();
 
-    cout<< "Rows to be extracted: "; 
-    printIntVector( row_inds );
+    // cout<< "Rows to be extracted: "; 
+    // printIntVector( row_inds );
 
     Matrix h_M = extractJacobianRows(M, row_inds);
     Eigen::FullPivLU<Matrix> h_M_lu(h_M);
@@ -188,39 +191,28 @@ void postProcess(Values result,
   } // end for loop on h-hypotheses
 
 
-  // // -----------------------------------
-  // double sum= 0, dim= 0, whitened_sum= 0;
-  // vector<Vector> whitened_errors;
-  // for (auto factor : factor_graph){
-  //   double factor_error= factor->error(result);
-  //   double factor_dim= factor->dim();
+  // -----------------------------------
+  double sum= 0, dim= 0, whitened_sum= 0;
+  for (auto factor : factor_graph){
+    double factor_error= factor->error(result);
+    double factor_dim= factor->dim();
 
-  //   // cast nonlinearfactor to noisemodelfactor
-  //   boost::shared_ptr<NoiseModelFactor> noise_factor=
-  //            boost::dynamic_pointer_cast<NoiseModelFactor>(factor);
-  //   Vector whitened_error= noise_factor->whitenedError(result);
-  //   whitened_errors.push_back(whitened_error);
-  //   whitened_sum += whitened_error.squaredNorm() * 0.5;
+    // cast nonlinearfactor to noisemodelfactor
+    boost::shared_ptr<NoiseModelFactor> noise_factor=
+             boost::dynamic_pointer_cast<NoiseModelFactor>(factor);
+    Vector whitened_error= noise_factor->whitenedError(result);
+    whitened_sum += whitened_error.squaredNorm() * 0.5;
 
-  //   cout<< "dim: "<< factor_dim<< "\t"
-  //       << "error: "<< factor_error<< endl;
-  //   sum += factor_error;
-  //   dim += factor_dim;
-  // }
-  // cout<< "sum of whitened errors: "<< whitened_sum<< endl;
-  // cout<< "sum of errors: "<< sum<< endl;
-  // cout<< "sum of dimensions: "<< dim<< endl;
-  // // -----------------------------------
-
-
-
-  // // check whitened error
-  // Vector whitened_error = factor_graph.at(0)->whitenedError(result);
-  // double error= whitened_error.squaredNorm() * 0.5;
-  // cout<< "error in selected factor: "<<
-  //         factor_graph.at(0)->error(result)<< 
-  //         " or from error function: "<<
-  //         error << endl;
+    factor->printKeys();
+    cout<< "dim: "<< factor_dim<< "\t"
+        << "error: "<< factor_error<< endl;
+    sum += factor_error;
+    dim += factor_dim;
+  }
+  cout<< "sum of whitened errors (*0.5): "<< whitened_sum<< endl;
+  cout<< "sum of errors: "<< sum<< endl;
+  cout<< "sum of dimensions: "<< dim<< endl;
+  // -----------------------------------
 
 
   // print path with python
