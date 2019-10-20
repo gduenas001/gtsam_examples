@@ -18,6 +18,15 @@ struct option long_opt[] =
   {"range_noise_sigma", required_argument, NULL, 'j'},
   {"bearing_noise_sigma", required_argument, NULL, 'k'},
   {"sim_time", required_argument, NULL, 'l'},
+  {"evaluateNonlinearError", required_argument, NULL, 'm'},
+  {"P_lambda", required_argument, NULL, 'n'},
+  {"AL_x", required_argument, NULL, 'o'},
+  {"AL_y", required_argument, NULL, 'p'},
+  {"AL_z", required_argument, NULL, 'q'},
+  {"is_noisy_gps", required_argument, NULL, 'r'},
+  {"is_noisy_lidar", required_argument, NULL, 's'},
+  {"is_noisy_imu", required_argument, NULL, 't'},
+
   {NULL,   0,                 NULL, 0  }
 };
 
@@ -121,7 +130,20 @@ int optionsParser (int argc, char **argv, Params &params){
          params.AL_z= atof(optarg);
        break;
 
+       case 'r':
+         printf("you entered \"%s\" for the variable 'is_noisy_gps'\n", optarg);
+         params.is_noisy_gps= atof(optarg);
+       break;
 
+       case 's':
+         printf("you entered \"%s\" for the variable 'is_noisy_lidar'\n", optarg);
+         params.is_noisy_lidar= atof(optarg);
+       break;
+
+       case 't':
+         printf("you entered \"%s\" for the variable 'is_noisy_imu'\n", optarg);
+         params.is_noisy_imu= atof(optarg);
+       break;
 
 
        // default error
@@ -181,6 +203,10 @@ void build_variables(Params &params){
   params.noise_dist["gps"]= std::normal_distribution<double>(0, params.gps_noise_sigma);
 
   params.isam_params.evaluateNonlinearError= params.evaluate_nonlinear_error; // for the residuals
+
+  params.is_noisy["gps"]= params.is_noisy_gps;
+  params.is_noisy["lidar"]= params.is_noisy_lidar;
+  params.is_noisy["imu"]= params.is_noisy_imu;
   
 }
 

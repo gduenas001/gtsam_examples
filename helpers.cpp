@@ -393,25 +393,30 @@ RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
                     Point3 &landmark,
                     double time,
                     Params &params,
-                    std::default_random_engine noise_generator){
+                    std::default_random_engine noise_generator,
+                    bool is_noisy){
   /*
   generate lidar msmts
   */
   
   // range
   double range = scenario.pose(time).range(landmark);
-  double range_noise = params.noise_dist["range"](noise_generator);
-  range = range + range_noise;
+  if (is_noisy){
+    double range_noise= params.noise_dist["range"](noise_generator);
+    range= range + range_noise;
+  }
 
   // bearing
   Unit3 bearing = scenario.pose(time).bearing(landmark);
-  Rot3 bearing_noise = Rot3::RzRyRx(params.noise_dist["bearing"](noise_generator),
+  if (is_noisy){
+    Rot3 bearing_noise = Rot3::RzRyRx(params.noise_dist["bearing"](noise_generator),
                                     params.noise_dist["bearing"](noise_generator),
                                     params.noise_dist["bearing"](noise_generator));
-  bearing = bearing_noise.rotate(bearing);
-
+    bearing = bearing_noise.rotate(bearing);
+  }
+  
+  // create measurement object
   RangeBearingMeasurement msmt(range, bearing);
-
   return msmt;
 }
 
@@ -470,7 +475,19 @@ map<string,double> getVariancesForLastPose(ISAM2 &isam,
 	return var;
 }
 
+// -------------------------------------------------------
+gtsam::Point3
+sim_gps_msmt(const Point3 &true_position,
+             std::default_random_engine &noise_generator, 
+             std::normal_distribution<double> &gps_distribution,
+             bool is_noisy){
 
-
+  if (is_noisy){
+    Point3 gps_noise(generate_random_point(noise_generator, gps_distribution));
+    return true_position + gps_noise;
+  }else{
+    return true_position;
+  }
+}
 
 

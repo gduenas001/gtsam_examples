@@ -114,7 +114,8 @@ sim_lidar_msmt(ConstantTwistScenario &scenario,
                Point3 &landmark,
                double time,
                Params &params,
-               std::default_random_engine noise_generator);
+               std::default_random_engine noise_generator,
+               bool is_noisy);
 
 double getDOFfromFactorType(int dim, string type);
 
@@ -127,5 +128,9 @@ std::map<std::string, double>
 getVariancesForLastPose(gtsam::ISAM2 &isam,
                         Counters &counters);
 
-
+gtsam::Point3 
+sim_gps_msmt(const gtsam::Point3 &true_position,
+             std::default_random_engine &noise_generator, 
+             std::normal_distribution<double> &gps_distribution,
+             bool is_noisy);
 

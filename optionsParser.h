@@ -33,6 +33,7 @@ struct Params{
   gtsam::PreintegratedCombinedMeasurements accum;
   std::map<string, std::normal_distribution<double>> noise_dist;
   ISAM2Params isam_params;
+  std::map<std::string, bool> is_noisy;
 
 
   // options -- can be changed at run time
@@ -45,16 +46,18 @@ struct Params{
   double dt_gps = 1.0; // seconds
   double scenario_radius = 30; // meters
   double scenario_linear_vel = 50 / 3.6; // m/s
-  double range_noise_sigma = 0.10; // range standard deviation
-  double bearing_noise_sigma = 2 * M_PI / 180; // bearing standard dev
+  double range_noise_sigma = 0.20; // range standard deviation
+  double bearing_noise_sigma = 3 * M_PI / 180; // bearing standard dev
   double sim_time= 2; // seconds -- time to run the simulation
   bool   evaluate_nonlinear_error= true; // for the residuals
   double P_lambda= 1e-5; // prob allocation for the upper bound of lambda
   double AL_x= 1; // alert limit in x-coord
   double AL_y= 1; // alert limit in y-coord
   double AL_z= 1; // alert limit in z-coord
+  bool is_noisy_gps= true; // if the GPS measurements are noisy
+  bool is_noisy_lidar= true; // if the GPS measurements are noisy
+  bool is_noisy_imu= true; // if the GPS measurements are noisy
   
-
 };
 
 int optionsParser (int argc, char **argv, Params &params);

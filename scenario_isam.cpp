@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
   A_rows_per_type.insert( pair<string, vector<int>> ("gps", {}) );
 
   // solve the graph once
-  int A_rows_count = addNoiselessPriorFactor(newgraph,
+  int A_rows_count= addNoiselessPriorFactor(newgraph,
                         		  initialEstimate, 
                           		scenario,
                           		A_rows_per_type);
@@ -74,13 +74,15 @@ int main(int argc, char** argv) {
     counters.increase_time();
       
     // Predict acceleration and gyro measurements in (actual) body frame
+
+    
     Point3 acc_noise = generate_random_point( noise_generator, params.noise_dist["acc"] );
-    Vector3 measuredAcc = scenario.acceleration_b(counters.current_time) -
+    Vector3 msmt_acc = scenario.acceleration_b(counters.current_time) -
                           scenario.rotation(counters.current_time).transpose() * params.imu_params->n_gravity +
                           acc_noise.vector();
     Point3 gyro_noise = generate_random_point( noise_generator, params.noise_dist["gyro"] );                      
-    Vector3 measuredOmega = scenario.omega_b(counters.current_time) + gyro_noise.vector();
-    params.accum.integrateMeasurement(measuredAcc, measuredOmega, params.dt_imu);
+    Vector3 msmt_w = scenario.omega_b(counters.current_time) + gyro_noise.vector();
+    params.accum.integrateMeasurement(msmt_acc, msmt_w, params.dt_imu);
 
     // GPS update
     if (counters.gps_time_accum > params.dt_gps) {
@@ -102,19 +104,22 @@ int main(int argc, char** argv) {
       initialEstimate.insert(B(counters.current_factor), imuBias::ConstantBias());  
 
       // Add Imu Factor
-      CombinedImuFactor imu_factor(X(counters.prev_factor),     V(counters.prev_factor), 
-                               X(counters.current_factor),  V(counters.current_factor), 
-                               B(counters.prev_factor),     B(counters.current_factor), 
-                               params.accum);
+      CombinedImuFactor imu_factor(X(counters.prev_factor),    V(counters.prev_factor), 
+                                   X(counters.current_factor), V(counters.current_factor), 
+                                   B(counters.prev_factor),    B(counters.current_factor), 
+                                   params.accum);
 
       addOdomFactor(newgraph,
                     imu_factor,
                     A_rows_per_type, 
                     A_rows_count);
    
-      // Adding GPS factor TODO: generate gps msmt with function
-      Point3 gps_noise(generate_random_point(noise_generator, params.noise_dist["gps"]));
-      Point3 gps_msmt = scenario.pose(counters.current_time).translation();// + gps_noise;
+      // Adding GPS factor
+      Point3 gps_msmt= sim_gps_msmt(scenario.pose(counters.current_time).translation(),
+                     noise_generator, 
+                     params.noise_dist["range"],
+                     params.is_noisy["gps"]);
+
       GPSFactor gps_factor(X(counters.current_factor), gps_msmt, params.gps_cov);
       addGPSFactor(newgraph,
                    gps_factor,
@@ -129,7 +134,8 @@ int main(int argc, char** argv) {
                                            landmarks[j],
                                            counters.current_time,
                                            params,
-                                           noise_generator);
+                                           noise_generator,
+                                           params.is_noisy["lidar"]);
 
         // range-bearing factor
         RangeBearingFactorMap 
