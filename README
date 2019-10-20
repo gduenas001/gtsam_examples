@@ -1,13 +1,54 @@
-** GENERAL EXPLANATION
-The example "scenario_isam" shows how to integrate GPS and IMU in an increamental factor graph solution with ISAM2. The solution is only computed at the GPS updates.
+********* GENERAL EXPLANATION *********
+The example "scenario_isam" shows how to integrate GPS, lidar and IMU in an increamental factor graph solution with ISAM2. The solution is only computed at the GPS/lidar updates, which occur simultaneously.
+
+After the simulatin concludes, Localization Integrity Risk (LIR) is calculated for 4 hypotheses:
+- fault-free hypothesis
+- GPS fault hypothesis, i.e. all GPS measurements are faulty
+- IMU fault hypothesis, i.e. all IMU measurements (accelerometer & gyros) are faulty
+- lidar fault hypothesis, i.e. all lidar measurements are faulty (range & bearing).
+At the moment I'm not extracting the lateral, longitudinal or vertical componenets, but only computing integrity for the x, y and z coordinates regardless of the robot orientation.
+
+Note that at the moment I'm using iSAM2 with a infinitely increasing window, i.e. all the states are estimated, from the initial to the current state. In the near future I'll change this to a sliding window filter that only estimates a constant number of poses. If you don't want to fire up your computer use a fairly low "--sim_time" (maybe less than 10-20 seconds) of the post process function will take quite long. Once the sliding window filter is working, this can be increased.
 
 
-** TODO
-I don't know how the IMU noise is specified. Reading the documentation, it says that you must input the covariance in continuous time. However, it does not me too much sense to me as that would required other parameters such as autocorrelation.
 
 
-** USAGE
+********* USAGE *********
 mkdir build
 cd build
 cmake ..
-make scenario_isam [simulation_time=30]
+make scenario_isam
+./main --<option_name> <option_value>
+
+For example, to run the simulation for 5 seconds (instead of 2, which is the default value): 
+./main --sim_time 5
+
+
+********* RELATED LITERATURE *********
+
+
+- GTSAM webpage:
+https://gtsam.org/
+
+- GTSAM github:
+https://github.com/borglab/gtsam
+
+- Check out the examples in
+https://github.com/borglab/gtsam/tree/develop/examples
+
+- Compiling with CMake, check out the example project:
+https://github.com/borglab/gtsam/tree/develop/cmake/example_project
+
+- The IMU preintegrated factor:
+Christian Forster, Luca Carlone, Frank Dellaert, and Davide Scaramuzza, “IMU Preintegration on Manifold for Efficient Visual-Inertial Maximum-a-Posteriori Estimation”, Robotics: Science and Systems (RSS), 2015.
+
+- The new IMU factor (I don't know if this is the one actually implemented in GTSAM):
+https://github.com/borglab/gtsam/blob/develop/doc/ImuFactor.pdf
+
+- Overview of iSAM2:
+Dellaert, Frank, and Michael Kaess. "Factor graphs for robot perception." Foundations and Trends® in Robotics 6.1-2 (2017): 1-139.
+
+
+
+
+
