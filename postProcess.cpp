@@ -216,8 +216,8 @@ void postProcess(Values result,
 
 
   // print path with python
-  // string command = "python ../python_plot.py";
-  // system(command.c_str());
+  string command = "python ../python_plot.py";
+  system(command.c_str());
 
 
   // save factor graph as graphviz dot file

@@ -9,9 +9,6 @@ void saveData(Values result,
               std::vector<Point3> true_positions,
               std::vector<Point3> landmarks,
               std::vector<Pose3> online_error){
-  /* 
-  save data
-  */
 
   // initialize variables
   string filename = "";
@@ -65,28 +62,25 @@ void saveData(Values result,
   filename = "../results/average_errors.csv";
   stream.open(filename.c_str(), fstream::out);
   stream << "--------------- Average Error ---------------"<< endl;
-  Vector6 ave_error = errorAverage(online_error);
-  stream << ave_error[0] <<","<< ave_error[1] <<","<< ave_error[2]<<","
-         << ave_error[3] * 180/M_PI <<","<< ave_error[4] * 180/M_PI <<","<< ave_error[5] * 180/M_PI<< endl;
+  Vector6 ave_error = error_average(online_error);
+  stream << ave_error[0] * 180/M_PI <<","<< ave_error[1] * 180/M_PI <<","<< ave_error[2] * 180/M_PI<<","
+         << ave_error[3] <<","<< ave_error[4] <<","<< ave_error[5]<< endl;
+         
   stream.close();
 }
 
 
 // -------------------------------------------------------
 Point3 generate_random_point(std::default_random_engine &generator, std::normal_distribution<double> &distribution) {
-  /*
-  generate a random 3D point
-  */
-  return Point3(distribution(generator),distribution(generator),distribution(generator));
+  return Point3(distribution(generator),
+                distribution(generator),
+                distribution(generator));
 }
 
 
 // -------------------------------------------------------
-Vector6 errorAverage(std::vector<Pose3> poses){
-  /*
-  compute average of vector of poses
-  */
-
+Vector6 error_average(std::vector<Pose3> poses){
+ 
   Vector3 ave_translation, ave_rotation; // deault constructor -> zero translation
   for (std::vector<Pose3>::iterator it = poses.begin() ; it != poses.end(); ++it) {
     ave_translation += abs( it->translation() );
@@ -94,8 +88,8 @@ Vector6 errorAverage(std::vector<Pose3> poses){
                                  it->rotation().pitch(),
                                  it->rotation().yaw() ));
   }
-  return (Vector(6) << ave_translation / poses.size(), 
-                       ave_rotation / poses.size() ).finished();
+  return (Vector(6) << ave_rotation / poses.size(),
+                       ave_translation / poses.size() ).finished();
 }
 
 
@@ -489,5 +483,41 @@ sim_gps_msmt(const Point3 &true_position,
     return true_position;
   }
 }
+
+// -------------------------------------------------------
+Vector3 sim_imu_acc(ConstantTwistScenario &scenario,
+             std::default_random_engine &noise_generator, 
+             std::normal_distribution<double> &imu_acc_dist,
+             gtsam::Vector3 g,
+             double time,
+             bool is_noisy){
+
+  Vector3 msmt_acc = scenario.acceleration_b(time) -
+                     scenario.rotation(time).transpose() * g;
+  if (is_noisy){
+    Point3 acc_noise = generate_random_point( noise_generator, imu_acc_dist );
+    msmt_acc= msmt_acc + acc_noise.vector();
+  }
+
+  return msmt_acc;
+}
+
+// -------------------------------------------------------
+Vector3 sim_imu_w(Vector3 true_imu_w,
+             std::default_random_engine &noise_generator, 
+             std::normal_distribution<double> &imu_gyro_dist,
+             bool is_noisy){
+
+  if (is_noisy){
+    Point3 gyro_noise = generate_random_point( noise_generator, imu_gyro_dist );                      
+    return true_imu_w + gyro_noise.vector();
+  }else{
+    return true_imu_w;
+  }
+}
+
+
+
+
 
 

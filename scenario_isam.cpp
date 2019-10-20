@@ -3,9 +3,8 @@
 // - data association for landmarks
 // - different frequencies for GPS and lidar
 // - use sliding window filter
-// - Why? Odom M matrix is rank 6 because of the actual number of measurements
 // - substitute boost::optional. I don't think this is the use
-// - check quantily vs complement in the inv cdf function
+// - Why? Odom M matrix is rank 6 because of the actual number of measurements
 // - seems that dof of a odom factor is 12, not 6, but M is still rank 6...
 
 
@@ -44,7 +43,7 @@ int main(int argc, char** argv) {
   // Create a factor graph &  ISAM2
   NonlinearFactorGraph newgraph;
   ISAM2 isam(params.isam_params);
-  Values initialEstimate, result; // Create the initial estimate to the solution
+  Values initial_estimate, result; // Create the initial estimate to the solution
 
   // initialize variables
   Counters counters(params);
@@ -61,27 +60,32 @@ int main(int argc, char** argv) {
 
   // solve the graph once
   int A_rows_count= addNoiselessPriorFactor(newgraph,
-                        		  initialEstimate, 
+                        		  initial_estimate, 
                           		scenario,
                           		A_rows_per_type);
-  isam.update(newgraph, initialEstimate);
+  isam.update(newgraph, initial_estimate);
   result = isam.calculateEstimate();
   newgraph = NonlinearFactorGraph();
-  initialEstimate.clear();
+  initial_estimate.clear();
 
   // Simulate poses and imu measurements, adding them to the factor graph
   while (counters.current_time < params.sim_time){
     counters.increase_time();
       
-    // Predict acceleration and gyro measurements in (actual) body frame
+    // Simulate acceleration and gyro measurements in (actual) body frame
+    Vector3 msmt_acc= sim_imu_acc(scenario,
+                          noise_generator,
+                          params.noise_dist["acc"],
+                          params.imu_params->n_gravity,
+                          counters.current_time,
+                          params.is_noisy["imu"]);
 
-    
-    Point3 acc_noise = generate_random_point( noise_generator, params.noise_dist["acc"] );
-    Vector3 msmt_acc = scenario.acceleration_b(counters.current_time) -
-                          scenario.rotation(counters.current_time).transpose() * params.imu_params->n_gravity +
-                          acc_noise.vector();
-    Point3 gyro_noise = generate_random_point( noise_generator, params.noise_dist["gyro"] );                      
-    Vector3 msmt_w = scenario.omega_b(counters.current_time) + gyro_noise.vector();
+    Vector3 msmt_w= sim_imu_w(scenario.omega_b(counters.current_time),
+                              noise_generator,
+                              params.noise_dist["gyro"],
+                              params.is_noisy["imu"]);
+
+    // Preintegrate IMU msmts
     params.accum.integrateMeasurement(msmt_acc, msmt_w, params.dt_imu);
 
     // GPS update
@@ -99,9 +103,9 @@ int main(int argc, char** argv) {
       predict_state = params.accum.predict(prev_state, prev_bias);
 
       // predicted init values
-      initialEstimate.insert(X(counters.current_factor), predict_state.pose());
-      initialEstimate.insert(V(counters.current_factor), predict_state.velocity());
-      initialEstimate.insert(B(counters.current_factor), imuBias::ConstantBias());  
+      initial_estimate.insert(X(counters.current_factor), predict_state.pose());
+      initial_estimate.insert(V(counters.current_factor), predict_state.velocity());
+      initial_estimate.insert(B(counters.current_factor), imuBias::ConstantBias());  
 
       // Add Imu Factor
       CombinedImuFactor imu_factor(X(counters.prev_factor),    V(counters.prev_factor), 
@@ -152,7 +156,7 @@ int main(int argc, char** argv) {
       }      
       
       // Incremental solution
-      isam_result = isam.update(newgraph, initialEstimate);
+      isam_result = isam.update(newgraph, initial_estimate);
       result = isam.calculateEstimate();
 
       // compute error
@@ -162,7 +166,7 @@ int main(int argc, char** argv) {
 	    // reset variables
       newgraph = NonlinearFactorGraph();
       params.accum.resetIntegration();
-      initialEstimate.clear();
+      initial_estimate.clear();
       counters.reset_timer();
     }
   } // end for loop  

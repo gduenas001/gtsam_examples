@@ -34,19 +34,34 @@ using symbol_shorthand::B;
 
 
 
-// save data
+/*
+Saves the following .csv files in the results folder:
+- estimated_positions
+- true_positions
+- errors
+- average_errors
+- landmarks
+Note that each time the simulation is run, this files get
+overwritten.
+*/
 void saveData(Values result,
               std::vector<Point3> true_positions,
               std::vector<Point3> landmarks,
               std::vector<Pose3> online_error);
 
 
-// generate a random 3D point
-Point3 generate_random_point(std::default_random_engine &generator, 
-							 std::normal_distribution<double> &distribution);
+/*
+Generate a random 3D point from the given distribution
+*/
+Point3 generate_random_point(
+              std::default_random_engine &generator, 
+							std::normal_distribution<double> &distribution);
 
-// TBD
-Vector6 errorAverage(std::vector<Pose3> poses);
+/*
+Compute average of vector of poses is a 6D vector
+(roll, pitch, yaw, x, y, z)
+*/
+Vector6 error_average(std::vector<Pose3> poses);
 
 // add a noiseless prior factor
 int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
@@ -133,4 +148,16 @@ sim_gps_msmt(const gtsam::Point3 &true_position,
              std::default_random_engine &noise_generator, 
              std::normal_distribution<double> &gps_distribution,
              bool is_noisy);
+
+Vector3 sim_imu_acc(ConstantTwistScenario &scenario,
+             std::default_random_engine &noise_generator, 
+             std::normal_distribution<double> &imu_acc_dist,
+             gtsam::Vector3 g,
+             double time,
+             bool is_noisy);
+
+Vector3 sim_imu_w(gtsam::Vector3 true_imu_w,
+                 std::default_random_engine &noise_generator, 
+                 std::normal_distribution<double> &imu_gyro_dist,
+                 bool is_noisy);
 
