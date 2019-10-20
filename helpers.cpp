@@ -1,11 +1,12 @@
 
+
 #include "helpers.h"
 
 using namespace std;
 using namespace gtsam;
 
 // -------------------------------------------------------
-void saveData(Values result,
+void save_data(Values result,
               std::vector<Point3> true_positions,
               std::vector<Point3> landmarks,
               std::vector<Pose3> online_error){
@@ -98,9 +99,6 @@ int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph,
                              Values &initial_estimate,
                              const Scenario &scenario,
                              map<string, vector<int>> &A_rows_per_type) {
-  /*
-  add a noiseless prior factor
-  */
 
   // initialize the count on the rows of A
   int A_rows_count = 0;
@@ -143,9 +141,6 @@ int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph,
 
 // -------------------------------------------------------
 ConstantTwistScenario createConstantTwistScenario(double radius, double linear_velocity) {
-  /*
-  creates the ground truth from where we simulate the measurements and measure the error
-  */
 
   // Start with a camera on x-axis looking at origin (only use pose_0 from here to generate the scenario)
   const Point3 up(0, 0, 1), target(0, 0, 0);
@@ -164,9 +159,6 @@ ConstantTwistScenario createConstantTwistScenario(double radius, double linear_v
 
 // -------------------------------------------------------
 std::vector<Point3>  createLandmarks(double radius){
-  /*
-  creates the map of landmarks and stores them in a vector of 3D points
-  */
 
   double distance = radius + radius/10;
   std::vector<Point3> landmarks;
@@ -181,9 +173,6 @@ std::vector<Point3>  createLandmarks(double radius){
 
 // -------------------------------------------------------
 std::vector<int> returnIncrVector(int start, int num_elem){
-  /*
-  return int vector with increasing values
-  */
 
   vector<int> v(num_elem);
   iota (begin(v), end(v), start);
@@ -191,65 +180,9 @@ std::vector<int> returnIncrVector(int start, int num_elem){
   return v;
 }
 
-// -------------------------------------------------------
-void eliminateFactorsByType_old(
-          boost::shared_ptr<GaussianFactorGraph> &lin_graph,
-          vector<string> factor_types,
-          string type){
-  /*
-  eliminate all factors with this type
-  */
-
-  typedef FastVector<boost::shared_ptr<GaussianFactor>>::iterator 
-                              sharedGaussianFactorIterator;
-
-  sharedGaussianFactorIterator it = lin_graph->begin();
-  int num_elim_factors = 0;
-  for (int i = 0; i < factor_types.size(); ++i){
-    cout<< "factor "<< i<< " is of type "<< factor_types[i]<< endl;
-    if (factor_types[i] == type) {
-      lin_graph->erase(it + i - num_elim_factors);
-      cout<< "erase factor of type "<< type<< endl;
-      ++num_elim_factors;
-    }
-  }
-}
-
-
-// -------------------------------------------------------
-// OLD
-Matrix eliminateFactorsByType(Matrix &M,
-              map<string, vector<int>> &A_rows_per_type,
-              string type){
-  /*
-  extract the matrix corresponding to the measurements of this type
-  */
-  return extractJacobianRows(M, A_rows_per_type[type]);
-}
-
-
-// -------------------------------------------------------
-// OLD
-Matrix extractJacobianRows(Matrix &M, vector<int> &row_inds){
-  /*
-  extracte rows from Jacobians
-  */
-
-  Matrix h_M( row_inds.size(), row_inds.size() );
-  for (int i = 0; i < row_inds.size(); ++i){
-    for (int j = 0; j < row_inds.size(); ++j){
-      h_M(i,j) = M(row_inds[i], row_inds[j]);
-    }
-  }
-  return h_M;
-}
-
 
 // -------------------------------------------------------
 Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds){
-  /*
-  extracts the rows from the matrix
-  */
 
   Matrix B(row_inds.size(), A.cols());
   for (int i = 0; i < row_inds.size(); ++i){
@@ -263,9 +196,6 @@ Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds){
 
 // -------------------------------------------------------
 Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds){
-  /*
-  extracts the rows from the matrix
-  */
 
   Matrix B(A.rows(), col_inds.size());
   for (int j = 0; j < col_inds.size(); ++j){
@@ -281,9 +211,6 @@ Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds){
 Matrix extractMatrixRowsAndColumns(Matrix &A, 
 								   vector<int> &row_inds, 
 								   vector<int> &col_inds){
-  /*
-  extracte rows and columns
-  */
 
   Matrix B( row_inds.size(), col_inds.size() );
   for (int i = 0; i < row_inds.size(); ++i){
@@ -297,9 +224,6 @@ Matrix extractMatrixRowsAndColumns(Matrix &A,
 
 // -------------------------------------------------------
 void printIntVector(vector<int> v){
-  /*
-  Print vector of ints
-  */
 
   for (auto i = v.begin(); i != v.end(); ++i)
     cout << *i << ' ';
@@ -312,9 +236,6 @@ void addLidarFactor(NonlinearFactorGraph &newgraph,
 					RangeBearingFactorMap &range_bearing_factor,
 					map<string, vector<int>> &A_rows_per_type, 
 					int &A_rows_count){
-  /*
-  add lidar factor
-  */
 
   newgraph.add(range_bearing_factor);
   vector<int> lidar_rows= returnIncrVector(A_rows_count, 3);
@@ -329,9 +250,6 @@ void addGPSFactor(NonlinearFactorGraph &newgraph,
 			   GPSFactor &gps_factor,
 				 map<string, vector<int>> &A_rows_per_type, 
 				 int &A_rows_count) {
-  /*
-  add GPS factor
-  */
 
 	newgraph.add(gps_factor);
 	vector<int> gps_rows=  returnIncrVector(A_rows_count, 3);
@@ -346,9 +264,6 @@ void addOdomFactor(NonlinearFactorGraph &newgraph,
 		    CombinedImuFactor &imufac,
 			  map<string, vector<int>> &A_rows_per_type, 
 			  int &A_rows_count) {
-  /*
-  add odometry factor
-  */
 
 	newgraph.add(imufac);
 	vector<int> odom_rows=  returnIncrVector(A_rows_count, 15);
@@ -360,9 +275,7 @@ void addOdomFactor(NonlinearFactorGraph &newgraph,
 
 // -------------------------------------------------------
 void printMatrix(Matrix A){
-  /*
-  print matrix
-  */
+  
   Eigen::IOFormat CleanFmt(3, 0, ", ", "\n", "[", "]");
   cout<< A.format(CleanFmt)<< endl;
 }
@@ -371,9 +284,7 @@ void printMatrix(Matrix A){
 // -------------------------------------------------------
 Pose3 compute_error(Pose3 true_pose,
 					Pose3 estimated_pose){
-  /*
-  compute error
-  */
+  
 	Rot3 rotation_error = true_pose.rotation() *
 	  	   Rot3( estimated_pose.rotation().transpose() );
 	Point3 translation_error = true_pose.translation() - 
@@ -389,9 +300,6 @@ RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
                     Params &params,
                     std::default_random_engine noise_generator,
                     bool is_noisy){
-  /*
-  generate lidar msmts
-  */
   
   // range
   double range = scenario.pose(time).range(landmark);
@@ -519,5 +427,64 @@ Vector3 sim_imu_w(Vector3 true_imu_w,
 
 
 
+
+
+
+// -------------------------------------------------------
+/*
+deprecated
+*/
+// -------------------------------------------------------
+
+
+// -------------------------------------------------------
+void eliminateFactorsByType_old(
+          boost::shared_ptr<GaussianFactorGraph> &lin_graph,
+          vector<string> factor_types,
+          string type){
+
+  typedef FastVector<boost::shared_ptr<GaussianFactor>>::iterator 
+                              sharedGaussianFactorIterator;
+
+  sharedGaussianFactorIterator it = lin_graph->begin();
+  int num_elim_factors = 0;
+  for (int i = 0; i < factor_types.size(); ++i){
+    cout<< "factor "<< i<< " is of type "<< factor_types[i]<< endl;
+    if (factor_types[i] == type) {
+      lin_graph->erase(it + i - num_elim_factors);
+      cout<< "erase factor of type "<< type<< endl;
+      ++num_elim_factors;
+    }
+  }
+}
+
+
+// -------------------------------------------------------
+// OLD
+Matrix eliminateFactorsByType(Matrix &M,
+              map<string, vector<int>> &A_rows_per_type,
+              string type){
+  /*
+  extract the matrix corresponding to the measurements of this type
+  */
+  return extractJacobianRows(M, A_rows_per_type[type]);
+}
+
+
+// -------------------------------------------------------
+// OLD
+Matrix extractJacobianRows(Matrix &M, vector<int> &row_inds){
+  /*
+  extracte rows from Jacobians
+  */
+
+  Matrix h_M( row_inds.size(), row_inds.size() );
+  for (int i = 0; i < row_inds.size(); ++i){
+    for (int j = 0; j < row_inds.size(); ++j){
+      h_M(i,j) = M(row_inds[i], row_inds[j]);
+    }
+  }
+  return h_M;
+}
 
 

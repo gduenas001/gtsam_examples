@@ -3,7 +3,13 @@
 
 #include "optionsParser.h"
 
+
 class Counters{
+	/*
+	Counters class that contains variables related to time
+	number of elements. 
+	*/
+	
 public:
 	Counters(Params const &params){
 		this->current_time= 0;
@@ -24,7 +30,7 @@ public:
 
 	int current_factor;
 	int prev_factor;
-
+	
 	// ----------------------------------------------------
 	void increase_time(){
 		this->current_time   += this->dt_imu;

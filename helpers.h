@@ -1,4 +1,9 @@
 
+/*
+Helper functions for the main code.
+*/
+
+
 #pragma once
 
 
@@ -44,7 +49,7 @@ Saves the following .csv files in the results folder:
 Note that each time the simulation is run, this files get
 overwritten.
 */
-void saveData(Values result,
+void save_data(gtsam::Values result,
               std::vector<Point3> true_positions,
               std::vector<Point3> landmarks,
               std::vector<Pose3> online_error);
@@ -53,7 +58,8 @@ void saveData(Values result,
 /*
 Generate a random 3D point from the given distribution
 */
-Point3 generate_random_point(
+gtsam::Point3 
+generate_random_point(
               std::default_random_engine &generator, 
 							std::normal_distribution<double> &distribution);
 
@@ -61,27 +67,211 @@ Point3 generate_random_point(
 Compute average of vector of poses is a 6D vector
 (roll, pitch, yaw, x, y, z)
 */
-Vector6 error_average(std::vector<Pose3> poses);
+gtsam::Vector6 error_average(std::vector<Pose3> poses);
 
-// add a noiseless prior factor
-int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
-							               Values &initial_estimate,
-                             const Scenario &scenario,
-                             map<string, vector<int>> &A_rows_per_type);
+/*
+Add a noiseless prior factors in:
+- pose (X)
+- velocity (V) 
+- IMU bias (B)
+TODO: add noise to this prior when requested
+*/
+int addNoiselessPriorFactor(
+         gtsam::NonlinearFactorGraph &new_graph, 
+         gtsam::Values &initial_estimate,
+         const gtsam::Scenario &scenario,
+         std::map<string, vector<int>> &A_rows_per_type);
+
+/*
+Return int vector with increasing values
+e.g. returnIncrVector(3, 2) --> (3,4)
+*/
+std::vector<int> returnIncrVector(int start, 
+                                  int num_elem);
+
+/*
+Creates the ground truth from where we simulate the
+measurements. The simulated robot moves in circles at a
+constant speed.
+*/
+gtsam::ConstantTwistScenario 
+createConstantTwistScenario(double radius = 30, 
+                            double linear_velocity = 25);
+
+/*
+Creates the map of landmarks and stores them in a vector
+of 3D points. 
+TODO: read landmarks from text file.
+*/
+std::vector<Point3> createLandmarks(double radius);
 
 
-// return int vector with increasing value
-std::vector<int> returnIncrVector(int start, int num_elem);
+/*
+Extracts the rows from the matrix and return a new matrix
+TODO: check if there is an inbuilt function
+*/
+gtsam::Matrix 
+extractMatrixRows(gtsam::Matrix &A, 
+                  std::vector<int> &row_inds);
+
+/*
+Extracts the columns from the matrix and return a new matrix
+TODO: check if there is an inbuilt function
+*/
+gtsam::Matrix 
+extractMatrixColumns(gtsam::Matrix &A, 
+                     std::vector<int> &col_inds);
+
+/*
+Extract matrix rows and columns and return matrix
+*/
+gtsam::Matrix 
+extractMatrixRowsAndColumns(
+                   gtsam::Matrix &A, 
+                   std::vector<int> &row_inds, 
+                   std::vector<int> &col_inds);
+
+/*
+Simple function to print vector of ints in terminal
+*/
+void printIntVector(std::vector<int> v);
+
+/*
+Add lidar factor to factor graph.
+It also keep A_rows_per_type updated.
+*/
+void addLidarFactor(
+      gtsam::NonlinearFactorGraph &newgraph,
+      RangeBearingFactorMap &range_bearing_factor,
+      std::map<string, vector<int>> &A_rows_per_type, 
+      int &A_rows_count);
+
+/*
+Add GPS factor to factor graph.
+It also keep A_rows_per_type updated.
+*/
+void addGPSFactor(
+      gtsam::NonlinearFactorGraph &newgraph,
+      GPSFactor &gps_factor,
+      std::map<string, vector<int>> &A_rows_per_type, 
+      int &A_rows_count);
 
 
-// creates the ground truth from where we simulate the measurements and measure the error
-ConstantTwistScenario createConstantTwistScenario(double radius = 30, double linear_velocity = 25);
+/*
+Add IMU factor to factor graph.
+It also keep A_rows_per_type updated.
+*/
+void addOdomFactor(
+      gtsam::NonlinearFactorGraph &newgraph,
+      gtsam::CombinedImuFactor &imufac,
+      std::map<string, vector<int>> &A_rows_per_type, 
+      int &A_rows_count);
+
+/*
+Simple function to print matrix with nice format
+*/
+void printMatrix(gtsam::Matrix A);
+
+/*
+Compute error between two poses
+convention: error = true - estimated
+TODO: check if the rotation follows this convention
+*/
+gtsam::Pose3 
+compute_error(gtsam::Pose3 true_pose, 
+              gtsam::Pose3 estimated_pose);
 
 
-// creates the map of landmarks and stores them in a vector of 3D points
-std::vector<Point3>  createLandmarks(double radius);
+/*
+Calculate the effective number of measurements in the
+graph. This is trying to deal with the fact that the 
+effective number of measurements for each IMU factor in 
+less than 15, which is the number of measurements in 
+each IMU factor.
+*/
+double getDOFfromGraph(
+      std::map<string, std::vector<int>> &A_rows_per_type);
 
-// eliminate all factors of type "type"
+/*
+Calculate the effective number of measurements in all 
+factors of the type. See getDOFfromGraph.
+*/
+double getDOFfromFactorType(int dim, std::string type);
+
+/*
+Build t vector. This is the vector that extracts the state
+of interest.
+*/
+std::map<std::string, gtsam::Vector> 
+buildt_vector(int size);
+
+/*
+Retruns the variances for the last estimated pose in the
+graph as a map.
+e.g. var["x"] or var["roll"]
+TODO: I think that this are the variances in x-y-z
+in the inertial frame. Check if they actually are the
+variances in lateral-longitudinal-vertical. If not, 
+calculate the variances in lateral-longitudinal-vertical.
+*/
+std::map<std::string, double> 
+getVariancesForLastPose(gtsam::ISAM2 &isam,
+                        Counters &counters);
+
+
+/*
+Generate lidar (range & bearing) measurements to all
+landmarks.
+*/
+RangeBearingMeasurement 
+sim_lidar_msmt(gtsam::ConstantTwistScenario &scenario,
+               gtsam::Point3 &landmark,
+               double time,
+               Params &params,
+               std::default_random_engine noise_generator,
+               bool is_noisy);
+
+
+/*
+Simulate GPS measurement of the position of the robot.
+*/
+gtsam::Point3 
+sim_gps_msmt(const gtsam::Point3 &true_position,
+             std::default_random_engine &noise_generator, 
+             std::normal_distribution<double> &gps_distribution,
+             bool is_noisy);
+
+/*
+Simulate IMU acceleration measurement. This takes care of the gravity.
+*/
+gtsam::Vector3 sim_imu_acc(
+      gtsam::ConstantTwistScenario &scenario,
+      std::default_random_engine &noise_generator, 
+      std::normal_distribution<double> &imu_acc_dist,
+      gtsam::Vector3 g,
+      double time,
+      bool is_noisy);
+
+
+/*
+Simulate gyro measurement.
+*/
+gtsam::Vector3 sim_imu_w(
+         gtsam::Vector3 true_imu_w,
+         std::default_random_engine &noise_generator, 
+         std::normal_distribution<double> &imu_gyro_dist,
+         bool is_noisy);
+
+
+
+
+
+
+// -------------------------------------------------------
+/*
+deprecated
+*/
+// -------------------------------------------------------
 void eliminateFactorsByType_old(
           boost::shared_ptr<GaussianFactorGraph> &lin_graph,
           vector<string> factor_types,
@@ -91,73 +281,5 @@ Matrix eliminateFactorsByType(Matrix &A,
               map<string, vector<int>> &A_rows_per_type,
               string type);
 
+
 Matrix extractJacobianRows(Matrix &A, vector<int> &row_inds);
-
-Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds);
-
-Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds);
-
-Matrix extractMatrixRowsAndColumns(Matrix &A, 
-                   vector<int> &row_inds, 
-                   vector<int> &col_inds);
-
-void printIntVector(vector<int> v);
-
-void addLidarFactor(NonlinearFactorGraph &newgraph,
-                    RangeBearingFactorMap &range_bearing_factor,
-                    map<string, vector<int>> &A_rows_per_type, 
-                    int &A_rows_count);
-
-void addGPSFactor(NonlinearFactorGraph &newgraph,
-                  GPSFactor &gps_factor,
-                  map<string, vector<int>> &A_rows_per_type, 
-                  int &A_rows_count);
-
-void addOdomFactor(NonlinearFactorGraph &newgraph,
-                   CombinedImuFactor &imufac,
-                   map<string, vector<int>> &A_rows_per_type, 
-                   int &A_rows_count);
-
-void printMatrix(gtsam::Matrix A);
-
-
-Pose3 compute_error(Pose3 true_pose, Pose3 estimated_pose);
-
-
-RangeBearingMeasurement 
-sim_lidar_msmt(ConstantTwistScenario &scenario,
-               Point3 &landmark,
-               double time,
-               Params &params,
-               std::default_random_engine noise_generator,
-               bool is_noisy);
-
-double getDOFfromFactorType(int dim, string type);
-
-double getDOFfromGraph(map<string, vector<int>> &A_rows_per_type);
-
-std::map<std::string, gtsam::Vector> 
-buildt_vector(int size);
-
-std::map<std::string, double> 
-getVariancesForLastPose(gtsam::ISAM2 &isam,
-                        Counters &counters);
-
-gtsam::Point3 
-sim_gps_msmt(const gtsam::Point3 &true_position,
-             std::default_random_engine &noise_generator, 
-             std::normal_distribution<double> &gps_distribution,
-             bool is_noisy);
-
-Vector3 sim_imu_acc(ConstantTwistScenario &scenario,
-             std::default_random_engine &noise_generator, 
-             std::normal_distribution<double> &imu_acc_dist,
-             gtsam::Vector3 g,
-             double time,
-             bool is_noisy);
-
-Vector3 sim_imu_w(gtsam::Vector3 true_imu_w,
-                 std::default_random_engine &noise_generator, 
-                 std::normal_distribution<double> &imu_gyro_dist,
-                 bool is_noisy);
-

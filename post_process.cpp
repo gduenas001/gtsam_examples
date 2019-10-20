@@ -1,10 +1,10 @@
 
-#include "postProcess.h"
+#include "post_process.h"
 #include <boost/math/distributions/chi_squared.hpp>
 #include <boost/math/distributions/non_central_chi_squared.hpp>
 
 
-void postProcess(Values result,
+void post_process(Values result,
 				  ISAM2Result isam_result,
 				  ISAM2 isam,
 				  map<string, vector<int>> A_rows_per_type,
@@ -215,9 +215,9 @@ void postProcess(Values result,
   // -----------------------------------
 
 
-  // print path with python
-  string command = "python ../python_plot.py";
-  system(command.c_str());
+  // // print path with python
+  // string command = "python ../python_plot.py";
+  // system(command.c_str());
 
 
   // save factor graph as graphviz dot file

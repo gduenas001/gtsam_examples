@@ -6,6 +6,10 @@
 // - substitute boost::optional. I don't think this is the use
 // - Why? Odom M matrix is rank 6 because of the actual number of measurements
 // - seems that dof of a odom factor is 12, not 6, but M is still rank 6...
+// - Change naming convention of functions -> use underscores, not capital letters
+// - make Params a class in with its own file and options_parser a function that takes params
+// - Add option to add noise to priors!!! Check residual results
+// - Add option to seed or not seed the random generator
 
 
 #include <gtsam/slam/dataset.h>
@@ -14,7 +18,7 @@
 #include <boost/math/distributions/chi_squared.hpp>
 
 #include "helpers.h"
-#include "postProcess.h"
+#include "post_process.h"
 #include "optionsParser.h"
 #include "Counters.h"
 
@@ -33,10 +37,10 @@ int main(int argc, char** argv) {
   build_variables(params);
 
   std::default_random_engine noise_generator;    // noise generator
-  vector<Point3> landmarks = createLandmarks(params.scenario_radius);
+  vector<Point3> landmarks= createLandmarks(params.scenario_radius);
 
   // scenario to simulate measurements and ground truth
-  ConstantTwistScenario scenario = createConstantTwistScenario(
+  ConstantTwistScenario scenario= createConstantTwistScenario(
                                       params.scenario_radius,
                                       params.scenario_linear_vel);
 
@@ -174,7 +178,7 @@ int main(int argc, char** argv) {
 
 
 // post process data showing each hypothesis
-postProcess(result,
+post_process(result,
            isam_result,
            isam,
            A_rows_per_type,
@@ -182,7 +186,7 @@ postProcess(result,
            params);
 
   // save the data TODO: give option to save in different folder
-saveData(result,
+save_data(result,
          true_positions,
          landmarks,
          online_error);

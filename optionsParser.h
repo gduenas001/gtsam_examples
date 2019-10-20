@@ -39,8 +39,8 @@ struct Params{
   gtsam::Matrix66 bias_acc_omega_int;
   boost::shared_ptr<PreintegratedCombinedMeasurements::Params> imu_params;
   gtsam::PreintegratedCombinedMeasurements accum;
-  std::map<string, std::normal_distribution<double>> noise_dist;
-  ISAM2Params isam_params;
+  std::map<std::string, std::normal_distribution<double>> noise_dist;
+  gtsam::ISAM2Params isam_params;
   std::map<std::string, bool> is_noisy;
 
   // -----------------------------------

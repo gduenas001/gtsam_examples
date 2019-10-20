@@ -16,7 +16,7 @@ add_executable(main
   			   helpers.cpp
   			   RangeBearingFactorMap.cpp
   			   optionsParser.cpp
-  			   postProcess.cpp
+  			   post_process.cpp
 )
 
 # By using CMake exported targets, a simple "link" dependency introduces the
