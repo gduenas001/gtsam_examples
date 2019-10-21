@@ -1,4 +1,8 @@
-
+'''
+Function that reads the .csv files of the output in the results folder
+and creates useful plots. This is an ad-hoc solution because plotting with python is so much easier
+than plotting with C++.
+'''
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np

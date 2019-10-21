@@ -5,6 +5,7 @@
 using namespace std;
 using namespace gtsam;
 
+
 // -------------------------------------------------------
 void save_data(Values result,
               std::vector<Point3> true_positions,
@@ -95,42 +96,100 @@ Vector6 error_average(std::vector<Pose3> poses){
 
 
 // -------------------------------------------------------
-int addNoiselessPriorFactor(NonlinearFactorGraph &new_graph, 
-                             Values &initial_estimate,
-                             const Scenario &scenario,
-                             map<string, vector<int>> &A_rows_per_type) {
+int add_prior_factor(NonlinearFactorGraph &new_graph, 
+                            Values &initial_estimate,
+                            const Scenario &scenario,
+                            default_random_engine &noise_generator, 
+                            map<string, vector<int>> &A_rows_per_type,
+                            Params &params){
 
   // initialize the count on the rows of A
   int A_rows_count = 0;
 
   // Add a prior on pose x0. This indirectly specifies where the origin is.
-  noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas(
-        (Vector(6) << Vector3::Constant(0.01), Vector3::Constant(0.1)).finished() );
-  PriorFactor<Pose3> pose_prior(X(0), scenario.pose(0), pose_noise);
-  new_graph.add(PriorFactor<Pose3>(X(0), scenario.pose(0), pose_noise));
-  initial_estimate.insert(X(0), scenario.pose(0));
+  noiseModel::Diagonal::shared_ptr 
+  pose_noise_model= 
+  noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(0.01), 
+                                Vector3::Constant(0.1) ).finished() );
+
+  // simulate a prior pose measurement
+  Rot3 prior_orientation_msmt= scenario.pose(0).rotation();
+  Point3 prior_position_msmt= scenario.pose(0).translation();
+  if (params.is_noisy["prior"]){
+    Point3 prior_orientation_noise= 
+    generate_random_point(noise_generator, 
+                          params.noise_dist["prior_orientation"]);
+    prior_orientation_msmt.RzRyRx(prior_orientation_noise);
+
+    Point3 prior_position_noise= 
+    generate_random_point(noise_generator, 
+                          params.noise_dist["prior_position"]);
+    prior_position_msmt= prior_position_msmt + prior_position_noise;
+    
+  }
+  Pose3 prior_pose_msmt= Pose3(prior_orientation_msmt,
+                               prior_position_msmt);
+
+  // add prior pose factor
+  PriorFactor<Pose3> pose_prior(X(0), 
+                                prior_pose_msmt,
+                                params.prior_pose_cov);
+  new_graph.add(pose_prior);
+  initial_estimate.insert(X(0), prior_pose_msmt);
+
+  // keep track of Jacobian rows
   A_rows_per_type.insert(pair<string, vector<int>> 
           ("prior_pose", returnIncrVector(0,6)));
   A_rows_count += 6;
   
+
   // add velocity prior to graph and init values
-  Vector vel_prior(3); // needs to be a dynamically allocated vector (I don't know why)
-  vel_prior= scenario.velocity_n(0);
-  noiseModel::Diagonal::shared_ptr vel_noise = noiseModel::Diagonal::Sigmas( 
-        Vector3::Constant(0.01) ); // default 0.01
-  PriorFactor<Vector> vel_prior_factor(V(0), vel_prior, vel_noise);
+  Vector prior_vel_msmt(3); // needs to be a dynamically allocated vector (I don't know why)
+  prior_vel_msmt= scenario.velocity_n(0);
+  if (params.is_noisy["prior"]){
+    Point3 prior_vel_noise= 
+    generate_random_point(noise_generator,
+                          params.noise_dist["prior_vel"]);
+    prior_vel_msmt= prior_vel_msmt + prior_vel_noise;
+  }
+
+  PriorFactor<Vector> vel_prior_factor(V(0), 
+                                       prior_vel_msmt, 
+                                       params.prior_vel_cov);
   new_graph.add(vel_prior_factor);
-  initial_estimate.insert(V(0), vel_prior);
+  initial_estimate.insert(V(0), prior_vel_msmt);
+
+  // keep track of Jacobians rows
   A_rows_per_type.insert(pair<string, vector<int>> 
           ("prior_vel", returnIncrVector(A_rows_count,3)));
   A_rows_count += 3;
 
+
   // Add bias priors to graph and init values
-  noiseModel::Diagonal::shared_ptr bias_noise = noiseModel::Diagonal::Sigmas(
-        Vector6::Constant(0.01)); // default 0.1
-  PriorFactor<imuBias::ConstantBias> bias_prior_factor(B(0), imuBias::ConstantBias(), bias_noise);
-  new_graph.add(bias_prior_factor); 
-  initial_estimate.insert(B(0), imuBias::ConstantBias());
+  imuBias::ConstantBias prior_bias_msmt= imuBias::ConstantBias();
+  if (params.is_noisy["prior"]){
+    Point3 prior_bias_acc_noise= 
+    generate_random_point(noise_generator,
+                          params.noise_dist["prior_bias_acc"]);
+    Point3 prior_bias_gyro_noise= 
+    generate_random_point(noise_generator,
+                          params.noise_dist["prior_bias_gyro"]);
+
+    imuBias::ConstantBias prior_bias_noise= 
+    imuBias::ConstantBias(prior_bias_acc_noise.vector(), 
+                          prior_bias_gyro_noise.vector() );
+
+    prior_bias_msmt= prior_bias_msmt + prior_bias_noise;
+  }
+
+  PriorFactor<imuBias::ConstantBias> 
+  prior_bias_factor(B(0), 
+                    prior_bias_msmt,
+                    params.prior_bias_cov);
+  new_graph.add(prior_bias_factor);
+  initial_estimate.insert(B(0), prior_bias_msmt);
+
+  // keep track of Jacobians rows
   A_rows_per_type.insert(pair<string, vector<int>> 
           ("prior_bias", returnIncrVector(A_rows_count,6)));
   A_rows_count += 6;

@@ -31,6 +31,10 @@ struct Params{
   // params that are build later
   gtsam::noiseModel::Diagonal::shared_ptr lidar_cov;
   gtsam::noiseModel::Diagonal::shared_ptr gps_cov;
+  gtsam::noiseModel::Diagonal::shared_ptr prior_pose_cov;
+  gtsam::noiseModel::Diagonal::shared_ptr prior_vel_cov;
+  gtsam::noiseModel::Diagonal::shared_ptr prior_bias_cov;
+
   gtsam::Matrix33 measured_acc_cov;
   gtsam::Matrix33 measured_omega_cov;
   gtsam::Matrix33 bias_acc_cov;
@@ -88,9 +92,25 @@ struct Params{
 
   // if set to false, the measurements are perfect
   bool is_noisy_gps= true; // if the GPS measurements are noisy
-  bool is_noisy_lidar= true; // if the GPS measurements are noisy
-  bool is_noisy_imu= true; // if the GPS measurements are noisy
-  
+  bool is_noisy_lidar= true; // if the lidar measurements are noisy
+  bool is_noisy_imu= true; // if the IMU measurements are noisy
+  bool is_noisy_prior= true; // if the prior pose is noisy
+
+  // prior position noise
+  double prior_position_noise_sigma= 0.01; //meters
+
+  // prior orientation noise
+  double prior_orientation_noise_sigma= 0.01; //rads
+
+  // prior velocity noise
+  double prior_vel_noise_sigma= 0.01; // m/s
+
+  // prior IMU bias noise
+  double prior_bias_acc_noise_sigma= 0.05; // m/s2
+  double prior_bias_gyro_noise_sigma= 1 * M_PI / 180; // rad
+
+  // noise generator seed
+  int seed= 0;
 };
 
 /*

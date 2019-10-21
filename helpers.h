@@ -70,17 +70,20 @@ Compute average of vector of poses is a 6D vector
 gtsam::Vector6 error_average(std::vector<Pose3> poses);
 
 /*
-Add a noiseless prior factors in:
+Add a prior factors in:
 - pose (X)
 - velocity (V) 
 - IMU bias (B)
-TODO: add noise to this prior when requested
+the priors are sampled from their corresponding
+noise distributions is set in the parameters.
 */
-int addNoiselessPriorFactor(
+int add_prior_factor(
          gtsam::NonlinearFactorGraph &new_graph, 
          gtsam::Values &initial_estimate,
          const gtsam::Scenario &scenario,
-         std::map<string, vector<int>> &A_rows_per_type);
+         std::default_random_engine &noise_generator, 
+         std::map<string, vector<int>> &A_rows_per_type,
+         Params &params);
 
 /*
 Return int vector with increasing values

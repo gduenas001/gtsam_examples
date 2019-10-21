@@ -26,6 +26,11 @@ struct option long_opt[] =
   {"is_noisy_gps", required_argument, NULL, 'r'},
   {"is_noisy_lidar", required_argument, NULL, 's'},
   {"is_noisy_imu", required_argument, NULL, 't'},
+  {"prior_position_noise_sigma", required_argument, NULL, 'u'},
+  {"prior_orientation_noise_sigma", required_argument, NULL, 'v'},
+  {"is_noisy_prior", required_argument, NULL, 'w'},
+  {"seed", required_argument, NULL, 'x'},
+
 
   {NULL,   0,                 NULL, 0  }
 };
@@ -132,7 +137,9 @@ int optionsParser (int argc, char **argv, Params &params){
 
        case 'r':
          printf("you entered \"%s\" for the variable 'is_noisy_gps'\n", optarg);
-         params.is_noisy_gps= atof(optarg);
+         if ( strcmp(optarg, "false") == 0 ){
+           params.is_noisy_gps= false;
+         }
        break;
 
        case 's':
@@ -145,6 +152,27 @@ int optionsParser (int argc, char **argv, Params &params){
          params.is_noisy_imu= atof(optarg);
        break;
 
+       case 'u':
+         printf("you entered \"%s\" for the variable 'prior_position_noise_sigma'\n", optarg);
+         params.prior_position_noise_sigma= atof(optarg);
+       break;
+
+       case 'v':
+         printf("you entered \"%s\" for the variable 'prior_orientation_noise_sigma'\n", optarg);
+         params.prior_orientation_noise_sigma= atof(optarg);
+       break;
+
+       case 'w':
+         printf("you entered \"%s\" for the variable 'is_noisy_prior'\n", optarg);
+         if ( strcmp(optarg, "false") == 0 ){
+          params.is_noisy_prior= false;
+         }
+       break;
+
+       case 'x':
+         printf("you entered \"%s\" for the variable 'seed'\n", optarg);
+         params.seed= atoi(optarg);
+       break;
 
        // default error
        default:
@@ -173,7 +201,18 @@ void build_variables(Params &params){
                params.gps_noise_sigma,
                params.gps_noise_sigma,
                params.gps_noise_sigma).finished() );
-  // params.gps_cov = noiseModel::Isotropic::Sigma(3, params.gps_noise_sigma); // GPS covariance is constant
+
+  params.prior_pose_cov= noiseModel::Diagonal::Sigmas( (Vector(6) << 
+               Vector3::Constant(params.prior_orientation_noise_sigma), 
+               Vector3::Constant(params.prior_position_noise_sigma) ).finished() );
+
+  params.prior_vel_cov= noiseModel::Diagonal::Sigmas( (Vector(3) << 
+               Vector3::Constant(params.prior_vel_noise_sigma) ).finished() );
+
+  params.prior_bias_cov= noiseModel::Diagonal::Sigmas( (Vector(6) << 
+               Vector3::Constant(params.prior_bias_acc_noise_sigma), 
+               Vector3::Constant(params.prior_bias_gyro_noise_sigma) ).finished() );
+
 
   params.measured_acc_cov = I_3x3 * pow(params.accel_noise_sigma,2);
   params.measured_omega_cov = I_3x3 * pow(params.gyro_noise_sigma,2);
@@ -201,13 +240,20 @@ void build_variables(Params &params){
   params.noise_dist["range"]= std::normal_distribution<double>(0, params.range_noise_sigma);
   params.noise_dist["bearing"]= std::normal_distribution<double>(0, params.bearing_noise_sigma);
   params.noise_dist["gps"]= std::normal_distribution<double>(0, params.gps_noise_sigma);
-
-  params.isam_params.evaluateNonlinearError= params.evaluate_nonlinear_error; // for the residuals
+  params.noise_dist["prior_position"]= std::normal_distribution<double>(0, params.prior_position_noise_sigma);
+  params.noise_dist["prior_orientation"]= std::normal_distribution<double>(0, params.prior_orientation_noise_sigma);
+  params.noise_dist["prior_vel"]= std::normal_distribution<double>(0, params.prior_vel_noise_sigma);
+  params.noise_dist["prior_bias_acc"]= std::normal_distribution<double>(0, params.prior_bias_acc_noise_sigma);
+  params.noise_dist["prior_bias_gyro"]= std::normal_distribution<double>(0, params.prior_bias_gyro_noise_sigma);
 
   params.is_noisy["gps"]= params.is_noisy_gps;
   params.is_noisy["lidar"]= params.is_noisy_lidar;
   params.is_noisy["imu"]= params.is_noisy_imu;
+  params.is_noisy["prior"]= params.is_noisy_prior;
   
+
+  // deprecated
+  params.isam_params.evaluateNonlinearError= params.evaluate_nonlinear_error; // for the residuals
 }
 
 
