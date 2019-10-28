@@ -97,11 +97,13 @@ Vector6 error_average(std::vector<Pose3> poses){
 
 // -------------------------------------------------------
 int add_prior_factor(NonlinearFactorGraph &new_graph, 
-                            Values &initial_estimate,
-                            const Scenario &scenario,
-                            default_random_engine &noise_generator, 
-                            map<string, vector<int>> &A_rows_per_type,
-                            Params &params){
+                     FixedLagSmoother::KeyTimestampMap &new_timestamps,
+                     Values &initial_estimate,
+                     const Scenario &scenario,
+                     default_random_engine &noise_generator, 
+                     map<string, vector<int>> &A_rows_per_type,
+                     Counters &counters,
+                     Params &params){
 
   // initialize the count on the rows of A
   int A_rows_count = 0;
@@ -136,6 +138,7 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
                                 params.prior_pose_cov);
   new_graph.add(pose_prior);
   initial_estimate.insert(X(0), prior_pose_msmt);
+  new_timestamps[X(0)]= counters.current_time;
 
   // keep track of Jacobian rows
   A_rows_per_type.insert(pair<string, vector<int>> 
@@ -158,6 +161,7 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
                                        params.prior_vel_cov);
   new_graph.add(vel_prior_factor);
   initial_estimate.insert(V(0), prior_vel_msmt);
+  new_timestamps[V(0)]= counters.current_time;
 
   // keep track of Jacobians rows
   A_rows_per_type.insert(pair<string, vector<int>> 
@@ -188,6 +192,7 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
                     params.prior_bias_cov);
   new_graph.add(prior_bias_factor);
   initial_estimate.insert(B(0), prior_bias_msmt);
+  new_timestamps[B(0)]= counters.current_time;
 
   // keep track of Jacobians rows
   A_rows_per_type.insert(pair<string, vector<int>> 
@@ -325,7 +330,7 @@ void addOdomFactor(NonlinearFactorGraph &newgraph,
 			  int &A_rows_count) {
 
 	newgraph.add(imufac);
-	vector<int> odom_rows=  returnIncrVector(A_rows_count, 15);
+	vector<int> odom_rows= returnIncrVector(A_rows_count, 15);
 	A_rows_per_type["odom"].insert( A_rows_per_type["odom"].end(),
 	     	    odom_rows.begin(), odom_rows.end() );
 	A_rows_count += 15;
@@ -435,6 +440,25 @@ map<string,double> getVariancesForLastPose(ISAM2 &isam,
 
 	return var;
 }
+
+// -------------------------------------------------------
+map<string,double> get_variances_for_last_pose(
+                  IncrementalFixedLagSmoother fixed_lag_smoother,
+                  Counters &counters){
+  
+  map<string,double> var;
+  Matrix P_x= fixed_lag_smoother.marginalCovariance(X(counters.current_factor));
+  var["roll"]= P_x(0,0);
+  var["pitch"]= P_x(1,1);
+  var["yaw"]= P_x(2,2);
+  var["x"]= P_x(3,3);
+  var["y"]= P_x(4,4);
+  var["z"]= P_x(5,5);
+
+  return var;
+}
+
+
 
 // -------------------------------------------------------
 gtsam::Point3

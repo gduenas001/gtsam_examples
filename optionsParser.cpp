@@ -30,6 +30,7 @@ struct option long_opt[] =
   {"prior_orientation_noise_sigma", required_argument, NULL, 'v'},
   {"is_noisy_prior", required_argument, NULL, 'w'},
   {"seed", required_argument, NULL, 'x'},
+  {"lag", required_argument, NULL, 'y'},
 
 
   {NULL,   0,                 NULL, 0  }
@@ -174,6 +175,13 @@ int optionsParser (int argc, char **argv, Params &params){
          params.seed= atoi(optarg);
        break;
 
+       case 'y':
+         printf("you entered \"%s\" for the variable 'lag'\n", optarg);
+         params.lag= atoi(optarg);
+       break;
+
+
+
        // default error
        default:
        fprintf(stderr, "%s: invalid option -- %c\n", argv[0], opt);
@@ -251,6 +259,9 @@ void build_variables(Params &params){
   params.is_noisy["imu"]= params.is_noisy_imu;
   params.is_noisy["prior"]= params.is_noisy_prior;
   
+  // ISAM2 params
+  params.fl_isam_params.relinearizeThreshold = 0.0; // Set the relin threshold to zero such that the batch estimate is recovered
+  params.fl_isam_params.relinearizeSkip = 1; // Relinearize every time
 
   // deprecated
   params.isam_params.evaluateNonlinearError= params.evaluate_nonlinear_error; // for the residuals

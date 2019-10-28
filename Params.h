@@ -37,7 +37,7 @@ struct Params{
   boost::shared_ptr<PreintegratedCombinedMeasurements::Params> imu_params;
   gtsam::PreintegratedCombinedMeasurements accum;
   std::map<std::string, std::normal_distribution<double>> noise_dist;
-  gtsam::ISAM2Params isam_params;
+  gtsam::ISAM2Params isam_params, fl_isam_params;
   std::map<std::string, bool> is_noisy;
 
   // -----------------------------------
@@ -73,7 +73,7 @@ struct Params{
   double sim_time= 2; // seconds
 
   // deprecated
-  bool   evaluate_nonlinear_error= true; // for the residuals
+  bool evaluate_nonlinear_error= true; // for the residuals
 
   // prob allocation for the upper bound of lambda
   double P_lambda= 1e-5; 
@@ -104,4 +104,7 @@ struct Params{
 
   // noise generator seed
   int seed= 0;
+
+  // fixed-lag smoother lag time
+  double lag= 3;
 };

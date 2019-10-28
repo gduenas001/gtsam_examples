@@ -18,6 +18,7 @@ Helper functions for the main code.
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/nonlinear/ISAM2.h>
+#include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 #include <gtsam/navigation/ImuBias.h>
 #include <vector>
 #include <string>
@@ -79,10 +80,12 @@ noise distributions is set in the parameters.
 */
 int add_prior_factor(
          gtsam::NonlinearFactorGraph &new_graph, 
+         gtsam::FixedLagSmoother::KeyTimestampMap &new_timestamps,
          gtsam::Values &initial_estimate,
          const gtsam::Scenario &scenario,
          std::default_random_engine &noise_generator, 
          std::map<string, vector<int>> &A_rows_per_type,
+         Counters &counters,
          Params &params);
 
 /*
@@ -221,6 +224,10 @@ std::map<std::string, double>
 getVariancesForLastPose(gtsam::ISAM2 &isam,
                         Counters &counters);
 
+
+std::map<string,double> get_variances_for_last_pose(
+                  gtsam::IncrementalFixedLagSmoother fixed_lag_smoother,
+                  Counters &counters);
 
 /*
 Generate lidar (range & bearing) measurements to all

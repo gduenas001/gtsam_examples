@@ -7,12 +7,15 @@
 // - Why? Odom M matrix is rank 6 because of the actual number of measurements
 // - seems that dof of a odom factor is 12, not 6, but M is still rank 6...
 // - Change naming convention of functions -> use underscores, not capital letters
+// - check fixed-lag smoother parameters
 
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <typeinfo>
 #include <boost/math/distributions/chi_squared.hpp>
+#include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
+
 
 #include "helpers.h"
 #include "post_process.h"
@@ -48,7 +51,11 @@ int main(int argc, char** argv) {
   // Create a factor graph &  ISAM2
   NonlinearFactorGraph newgraph;
   ISAM2 isam(params.isam_params);
-  Values initial_estimate, result; // Create the initial estimate to the solution
+  Values initial_estimate, result, result_fl; // Create the initial estimate to the solution
+
+  FixedLagSmoother::KeyTimestampMap new_timestamps;
+  IncrementalFixedLagSmoother fixed_lag_smoother(params.lag, params.fl_isam_params);
+ 
 
   // initialize variables
   Counters counters(params);
@@ -58,6 +65,7 @@ int main(int argc, char** argv) {
   vector<Pose3> online_error; // error when computed online
   true_positions.push_back( scenario.pose(0).translation() );
   ISAM2Result isam_result;
+  FixedLagSmoother::Result isam_result_fl;
   map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
   A_rows_per_type.insert( pair<string, vector<int>> ("lidar", {}) );
   A_rows_per_type.insert( pair<string, vector<int>> ("odom", {}) );
@@ -65,17 +73,23 @@ int main(int argc, char** argv) {
 
   // add prior factor
   int A_rows_count= add_prior_factor(newgraph,
+                              new_timestamps,
                         		  initial_estimate, 
                           		scenario,
                               noise_generator,
                           		A_rows_per_type,
+                              counters,
                               params);
+
 
   // solve the graph once
   isam.update(newgraph, initial_estimate);
-  result = isam.calculateEstimate();
-  newgraph = NonlinearFactorGraph();
+  fixed_lag_smoother.update(newgraph, initial_estimate, new_timestamps);
+  result= isam.calculateEstimate();
+  result_fl= fixed_lag_smoother.calculateEstimate();
+  newgraph= NonlinearFactorGraph();
   initial_estimate.clear();
+  new_timestamps.clear();
 
   // Simulate poses and imu measurements, adding them to the factor graph
   while (counters.current_time < params.sim_time){
@@ -101,6 +115,9 @@ int main(int argc, char** argv) {
     if (counters.gps_time_accum > params.dt_gps) {
 
       counters.increase_factors_count();
+      new_timestamps[X(counters.current_factor)];
+      new_timestamps[V(counters.current_factor)];
+      new_timestamps[B(counters.current_factor)];
 
       // save the current position
       true_positions.push_back( scenario.pose(counters.current_time).translation() );
@@ -126,6 +143,7 @@ int main(int argc, char** argv) {
                     imu_factor,
                     A_rows_per_type, 
                     A_rows_count);
+
    
       // Adding GPS factor
       Point3 gps_msmt= sim_gps_msmt(scenario.pose(counters.current_time).translation(),
@@ -165,17 +183,21 @@ int main(int argc, char** argv) {
       }      
       
       // Incremental solution
-      isam_result = isam.update(newgraph, initial_estimate);
-      result = isam.calculateEstimate();
+      isam_result= isam.update(newgraph, initial_estimate);
+      isam_result_fl= fixed_lag_smoother.update(newgraph, initial_estimate, new_timestamps);
+
+      result= isam.calculateEstimate();
+      result_fl= fixed_lag_smoother.calculateEstimate();
 
       // compute error
       online_error.push_back(compute_error(scenario.pose(counters.current_time),
                             result.at<Pose3>(X(counters.current_factor)) ));
 
 	    // reset variables
-      newgraph = NonlinearFactorGraph();
+      newgraph= NonlinearFactorGraph();
       params.accum.resetIntegration();
       initial_estimate.clear();
+      new_timestamps.clear();
       counters.reset_timer();
     }
   } // end for loop  
@@ -184,8 +206,11 @@ int main(int argc, char** argv) {
 
 // post process data showing each hypothesis
 post_process(result,
+           result_fl,
            isam_result,
+           isam_result_fl,
            isam,
+           fixed_lag_smoother,
            A_rows_per_type,
            counters,
            params);

@@ -4,19 +4,24 @@
 #include <boost/math/distributions/non_central_chi_squared.hpp>
 
 
-void post_process(Values result,
+void post_process(
+          Values result,
+          Values result_fl,
 				  ISAM2Result isam_result,
-				  ISAM2 isam,
+				  FixedLagSmoother::Result isam_result_fl,
+          ISAM2 isam,
+          IncrementalFixedLagSmoother fixed_lag_smoother,
 				  map<string, vector<int>> A_rows_per_type,
           Counters &counters,
           Params &params){
 
   // get the factor graph & Jacobian from isam
-  NonlinearFactorGraph factor_graph = isam.getFactorsUnsafe();
+  // NonlinearFactorGraph factor_graph = isam.getFactorsUnsafe();
+  NonlinearFactorGraph factor_graph= fixed_lag_smoother.getFactors();
   boost::shared_ptr<GaussianFactorGraph> 
                   lin_graph = factor_graph.linearize(result);
   Matrix A= (lin_graph->jacobian()).first;
-  Matrix Lambda = (lin_graph->hessian()).first;
+  Matrix Lambda= (lin_graph->hessian()).first;
   Matrix P= Lambda.inverse();
   Matrix S = P * A.transpose();
   Matrix S_transpose= S.transpose();
@@ -33,7 +38,8 @@ void post_process(Values result,
   cout<< "n = "<< n<< "\nm = "<< m<< endl;
 
   // get variances for the last state
-  map<string,double> var= getVariancesForLastPose(isam, counters);
+  // map<string,double> var= getVariancesForLastPose(isam, counters);
+  map<string,double> var= get_variances_for_last_pose(fixed_lag_smoother, counters);
   cout<< "std dev. (roll, pitch, yaw, x, y, z): "<< "("<< 
           sqrt(var["roll"])<< ", "<< 
           sqrt(var["pitch"])<< ", "<< 
@@ -58,9 +64,9 @@ void post_process(Values result,
 
 
   // check residuals
-  boost::optional<double> error_after = isam_result.errorAfter;
-  cout<< "error after: "<< error_after.value_or(-1)<< endl;
-  // cout<< "error from error() fn: "<< factor_graph.error(result)<< endl;
+  // boost::optional<double> error_after = isam_result.errorAfter;
+  // cout<< "error after: "<< error_after.value_or(-1)<< endl;
+  cout<< "error from error() fn: "<< factor_graph.error(result)<< endl;
 
   cout<< "----------- Hypothesis 0 ----------"<< "\n\n";
   
