@@ -7,9 +7,6 @@
 // - Why? Odom M matrix is rank 6 because of the actual number of measurements
 // - seems that dof of a odom factor is 12, not 6, but M is still rank 6...
 // - Change naming convention of functions -> use underscores, not capital letters
-// - make Params a class in with its own file and options_parser a function that takes params
-// - Add option to seed or not seed the random generator
-// - Add option to add noise to priors!!! Check residual results
 
 
 #include <gtsam/slam/dataset.h>
