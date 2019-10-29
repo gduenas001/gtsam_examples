@@ -8,7 +8,8 @@
 // - seems that dof of a odom factor is 12, not 6, but M is still rank 6...
 // - Change naming convention of functions -> use underscores, not capital letters
 // - check fixed-lag smoother parameters
-
+// - include times in A_rows_per_type
+// - segmentation fault obtaining the Jacobian when sim_time > lag
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -73,13 +74,13 @@ int main(int argc, char** argv) {
 
   // add prior factor
   int A_rows_count= add_prior_factor(newgraph,
-                              new_timestamps,
-                        		  initial_estimate, 
+                              	new_timestamps,
+                        		initial_estimate, 
                           		scenario,
-                              noise_generator,
+                              	noise_generator,
                           		A_rows_per_type,
-                              counters,
-                              params);
+                              	counters,
+                              	params);
 
 
   // solve the graph once
@@ -115,9 +116,9 @@ int main(int argc, char** argv) {
     if (counters.gps_time_accum > params.dt_gps) {
 
       counters.increase_factors_count();
-      new_timestamps[X(counters.current_factor)];
-      new_timestamps[V(counters.current_factor)];
-      new_timestamps[B(counters.current_factor)];
+      new_timestamps[X(counters.current_factor)]= counters.current_time;
+      new_timestamps[V(counters.current_factor)]= counters.current_time;
+      new_timestamps[B(counters.current_factor)]= counters.current_time;
 
       // save the current position
       true_positions.push_back( scenario.pose(counters.current_time).translation() );

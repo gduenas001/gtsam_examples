@@ -20,8 +20,23 @@ void post_process(
   NonlinearFactorGraph factor_graph= fixed_lag_smoother.getFactors();
   boost::shared_ptr<GaussianFactorGraph> 
                   lin_graph = factor_graph.linearize(result);
-  Matrix A= (lin_graph->jacobian()).first;
+
+
   Matrix Lambda= (lin_graph->hessian()).first;
+
+  cout<< Lambda.rows()<< " x "<< Lambda.cols()<< endl;
+
+  Matrix Ab= lin_graph->augmentedJacobian();
+
+  cout<< Ab.rows()<< " x "<< Ab.cols()<< endl;
+  
+
+  return; 
+  
+
+  Matrix A= (lin_graph->jacobian()).first;
+
+  
   Matrix P= Lambda.inverse();
   Matrix S = P * A.transpose();
   Matrix S_transpose= S.transpose();
@@ -51,6 +66,8 @@ void post_process(
   // builds a map for vector t for each coordinate TODO: change to lat, long, vert (needs rotations)
   map<string, Vector> t_vector= buildt_vector(m);
   
+  return;
+
   // upper bound lambda
   double effective_n= getDOFfromGraph(A_rows_per_type);
   double chi_squared_dof= effective_n - m;
@@ -220,6 +237,10 @@ void post_process(
   cout<< "sum of dimensions: "<< dim<< endl;
   // -----------------------------------
 
+  for(const FixedLagSmoother::KeyTimestampMap::value_type& key_timestamp : fixed_lag_smoother.timestamps()) {
+    cout << "Key: " << key_timestamp.first << 
+            "  Time: " << key_timestamp.second << endl;
+  }
 
   // // print path with python
   // string command = "python ../python_plot.py";
@@ -229,8 +250,8 @@ void post_process(
   // save factor graph as graphviz dot file
   // Use this to convert to png image
   // dot -Tpng -Gdpi=1000 isam_example.dot -o isam_example.png
-  // ofstream os("isam_example.dot");
-  // factor_graph.saveGraph(os, result);
+  ofstream os("isam_example.dot");
+  factor_graph.saveGraph(os, result);
 
 
   // GTSAM_PRINT(result);
