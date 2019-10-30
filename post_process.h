@@ -16,11 +16,12 @@ NOTE: This function is work in progress and is messy.
 */
 void post_process(
 	gtsam::Values result,
-	Values result_fl,
+	gtsam::Values result_fl,
     gtsam::ISAM2Result isam_result,
-    FixedLagSmoother::Result isam_result_fl,
+    gtsam::FixedLagSmoother::Result isam_result_fl,
     gtsam::ISAM2 isam,
-    IncrementalFixedLagSmoother fixed_lag_smoother,
+    gtsam::IncrementalFixedLagSmoother fixed_lag_smoother,
+    // gtsam::BatchFixedLagSmoother fixed_lag_smoother,
 	std::map<std::string, std::vector<int>> A_rows_per_type,
   	Counters &counters,
 	Params &params);

@@ -16,6 +16,7 @@
 #include <typeinfo>
 #include <boost/math/distributions/chi_squared.hpp>
 #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
+#include <gtsam_unstable/nonlinear/BatchFixedLagSmoother.h>
 
 
 #include "helpers.h"
@@ -56,7 +57,8 @@ int main(int argc, char** argv) {
 
   FixedLagSmoother::KeyTimestampMap new_timestamps;
   IncrementalFixedLagSmoother fixed_lag_smoother(params.lag, params.fl_isam_params);
- 
+  // BatchFixedLagSmoother fixed_lag_smoother(params.lag);
+
 
   // initialize variables
   Counters counters(params);
@@ -75,10 +77,10 @@ int main(int argc, char** argv) {
   // add prior factor
   int A_rows_count= add_prior_factor(newgraph,
                               	new_timestamps,
-                        		initial_estimate, 
-                          		scenario,
+                        		    initial_estimate, 
+                          		  scenario,
                               	noise_generator,
-                          		A_rows_per_type,
+                          		  A_rows_per_type,
                               	counters,
                               	params);
 

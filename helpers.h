@@ -19,6 +19,7 @@ Helper functions for the main code.
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/nonlinear/ISAM2.h>
 #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
+#include <gtsam_unstable/nonlinear/BatchFixedLagSmoother.h>
 #include <gtsam/navigation/ImuBias.h>
 #include <vector>
 #include <string>
@@ -227,6 +228,7 @@ getVariancesForLastPose(gtsam::ISAM2 &isam,
 
 std::map<string,double> get_variances_for_last_pose(
                   gtsam::IncrementalFixedLagSmoother fixed_lag_smoother,
+                  // BatchFixedLagSmoother fixed_lag_smoother,
                   Counters &counters);
 
 /*

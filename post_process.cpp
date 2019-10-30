@@ -3,6 +3,9 @@
 #include <boost/math/distributions/chi_squared.hpp>
 #include <boost/math/distributions/non_central_chi_squared.hpp>
 
+using namespace std;
+using namespace gtsam;
+
 
 void post_process(
           Values result,
@@ -11,6 +14,7 @@ void post_process(
 				  FixedLagSmoother::Result isam_result_fl,
           ISAM2 isam,
           IncrementalFixedLagSmoother fixed_lag_smoother,
+          // BatchFixedLagSmoother fixed_lag_smoother,
 				  map<string, vector<int>> A_rows_per_type,
           Counters &counters,
           Params &params){
@@ -18,25 +22,29 @@ void post_process(
   // get the factor graph & Jacobian from isam
   // NonlinearFactorGraph factor_graph = isam.getFactorsUnsafe();
   NonlinearFactorGraph factor_graph= fixed_lag_smoother.getFactors();
+
+  // this one produces the proper hessian but crashes computing the Jacobian
   boost::shared_ptr<GaussianFactorGraph> 
-                  lin_graph = factor_graph.linearize(result);
+                  lin_graph_for_hessian= factor_graph.linearize(result);
+
+  // SEGMENTATION FAULT HERE!!
+  // I need to create the JacobianFactor some other way, 
+  // maybe indicating the keys to include manually...
+  JacobianFactor jacobian_combined_factor(*lin_graph_for_hessian);
+  // Matrix A_from_hessian= jacobian_combined_factor.jacobian().first;
+  // cout<< "Jacobian matrix, A from hessian size = "
+  //       << A_from_hessian.rows()<< " x "<< A_from_hessian.cols()<< endl;
 
 
-  Matrix Lambda= (lin_graph->hessian()).first;
+  // doesn't crash but computes weird hessian and Jacobian when lag < sim_time
+  boost::shared_ptr<HessianFactor>
+                  lin_graph= factor_graph.linearizeToHessianFactor(result);
 
-  cout<< Lambda.rows()<< " x "<< Lambda.cols()<< endl;
-
-  Matrix Ab= lin_graph->augmentedJacobian();
-
-  cout<< Ab.rows()<< " x "<< Ab.cols()<< endl;
-  
-
-  return; 
-  
-
+  Matrix A_sparse= lin_graph_for_hessian->sparseJacobian_();
+  Matrix hessian= (lin_graph_for_hessian->hessian()).first;
+  Matrix Lambda= (lin_graph->information());
   Matrix A= (lin_graph->jacobian()).first;
-
-  
+  Matrix A_TxA= A.transpose() * A;
   Matrix P= Lambda.inverse();
   Matrix S = P * A.transpose();
   Matrix S_transpose= S.transpose();
@@ -51,6 +59,25 @@ void post_process(
   double n = A.rows(); double m = A.cols();
   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
   cout<< "n = "<< n<< "\nm = "<< m<< endl;
+  cout<< "From <hessian>: Hessian (Lambda) matrix size = "<<hessian.rows()<< " x "<< hessian.cols()<< endl;
+  // cout<< hessian<< endl;
+  cout<< "From <information>: Hessian (Lambda) matrix size = "<<Lambda.rows()<< " x "<< Lambda.cols()<< endl;
+  // cout<< Lambda<< endl;
+  cout<< "From <hessian>: sparse Jacobian matrix size = "<<A_sparse.rows()<< " x "<< A_sparse.cols()<< endl;
+
+
+  if (hessian.isApprox(Lambda, 0.01)){
+     cout<< "hessian and Lambda are equal"<< endl;
+  }else{
+     cout<< "hessian and Lambda are NOT equal"<< endl;
+  }
+
+  if (Lambda.isApprox(A_TxA, 0.01)){
+     cout<< "Lambda and A^T*A are equal"<< endl;
+  }else{
+     cout<< "Lambda and A^T*A are NOT equal"<< endl;
+  }
+
 
   // get variances for the last state
   // map<string,double> var= getVariancesForLastPose(isam, counters);
@@ -66,8 +93,6 @@ void post_process(
   // builds a map for vector t for each coordinate TODO: change to lat, long, vert (needs rotations)
   map<string, Vector> t_vector= buildt_vector(m);
   
-  return;
-
   // upper bound lambda
   double effective_n= getDOFfromGraph(A_rows_per_type);
   double chi_squared_dof= effective_n - m;

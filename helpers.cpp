@@ -444,8 +444,9 @@ map<string,double> getVariancesForLastPose(ISAM2 &isam,
 // -------------------------------------------------------
 map<string,double> get_variances_for_last_pose(
                   IncrementalFixedLagSmoother fixed_lag_smoother,
+                  // BatchFixedLagSmoother fixed_lag_smoother,
                   Counters &counters){
-  
+
   map<string,double> var;
   Matrix P_x= fixed_lag_smoother.marginalCovariance(X(counters.current_factor));
   var["roll"]= P_x(0,0);
@@ -457,8 +458,6 @@ map<string,double> get_variances_for_last_pose(
 
   return var;
 }
-
-
 
 // -------------------------------------------------------
 gtsam::Point3
