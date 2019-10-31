@@ -27,10 +27,26 @@ void post_process(
   boost::shared_ptr<GaussianFactorGraph> 
                   lin_graph_for_hessian= factor_graph.linearize(result);
 
+  // try casting the GaussianfactorGraph to a jacobian one (if exists)
+  // then get the jacobian
+
+  // this has seg fault as allways                  
+  JacobianFactor jacobian_factor(*lin_graph_for_hessian);
+  cout<< "jacobian factor created"<< endl;
+  Matrix A_from_jacobian_factor= jacobian_factor.jacobian().first;
+  cout<< "Jacobian matrix from jacobian factor, A size = "<<
+       A_from_jacobian_factor.rows()<< " x "<< A_from_jacobian_factor.cols()<< endl;
+
   // SEGMENTATION FAULT HERE!!
   // I need to create the JacobianFactor some other way, 
   // maybe indicating the keys to include manually...
-  JacobianFactor jacobian_combined_factor(*lin_graph_for_hessian);
+  // cout<< "try getting the normal Jacobian..."<< endl;
+  // std::pair< Matrix, Vector > A_pair(lin_graph_for_hessian->jacobian());
+  // Matrix A= A_pair.first;
+  // cout<< "normal Jacobian done!"<< endl;
+
+
+  // JacobianFactor jacobian_combined_factor(*lin_graph_for_hessian);
   // Matrix A_from_hessian= jacobian_combined_factor.jacobian().first;
   // cout<< "Jacobian matrix, A from hessian size = "
   //       << A_from_hessian.rows()<< " x "<< A_from_hessian.cols()<< endl;
@@ -282,7 +298,4 @@ void post_process(
   // GTSAM_PRINT(result);
 
 }
-
-
-
 
