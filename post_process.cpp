@@ -3,6 +3,8 @@
 #include <boost/math/distributions/chi_squared.hpp>
 #include <boost/math/distributions/non_central_chi_squared.hpp>
 
+#include <typeinfo>
+
 using namespace std;
 using namespace gtsam;
 
@@ -12,8 +14,8 @@ void post_process(
           Values result_fl,
 				  ISAM2Result isam_result,
 				  FixedLagSmoother::Result isam_result_fl,
-          ISAM2 isam,
-          IncrementalFixedLagSmoother fixed_lag_smoother,
+          ISAM2 &isam,
+          IncrementalFixedLagSmoother &fixed_lag_smoother,
           // BatchFixedLagSmoother fixed_lag_smoother,
 				  map<string, vector<int>> A_rows_per_type,
           Counters &counters,
@@ -23,12 +25,37 @@ void post_process(
   // NonlinearFactorGraph factor_graph = isam.getFactorsUnsafe();
   NonlinearFactorGraph factor_graph= fixed_lag_smoother.getFactors();
 
+  // print the keys of the nonlinear factor graph
+  factor_graph.keys().print();
+  cout<< endl;
+
   // this one produces the proper hessian but crashes computing the Jacobian
   boost::shared_ptr<GaussianFactorGraph> 
-                  lin_graph_for_hessian= factor_graph.linearize(result);
+                  lin_graph_for_hessian= factor_graph.linearize(result_fl);
 
+  cout<< "get A with linearization point in same line"<< endl;
+  Matrix A_direct= factor_graph.linearize( 
+            fixed_lag_smoother.calculateEstimate())->jacobian().first;
+  cout<< "Got it!"<< endl;
+  
+  // GaussianFactorGraph lin_graph_clone= lin_graph_for_hessian->clone();
   // try casting the GaussianfactorGraph to a jacobian one (if exists)
   // then get the jacobian
+
+
+  // for(auto factor: *lin_graph_for_hessian) {
+
+  //   cout<< "type of the factor: "<< typeid(factor).name()<< endl;
+
+
+  //   cout<<"Printing the keys"<< std::endl;
+  //   // factor->print();
+  //   // factor->printKeys();
+  //   cout<< "Accessing the key vector"<< endl;
+  //   const KeyVector& key_vector= factor->keys();
+  //   cout<< "Size of the key vector: "<< key_vector.size()<< endl;
+
+  // }
 
   // this has seg fault as allways                  
   JacobianFactor jacobian_factor(*lin_graph_for_hessian);
