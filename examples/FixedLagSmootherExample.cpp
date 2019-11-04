@@ -52,6 +52,10 @@
 
 #include <iomanip>
 
+
+#include <gtsam/inference/VariableSlots.h>
+
+
 using namespace std;
 using namespace gtsam;
 
@@ -144,6 +148,75 @@ int main(int argc, char** argv) {
   for(const FixedLagSmoother::KeyTimestampMap::value_type& key_timestamp: smootherISAM2.timestamps()) {
     cout << setprecision(5) << "    Key: " << key_timestamp.first << "  Time: " << key_timestamp.second << endl;
   }
+
+
+
+  // --------------------------------------
+  // Values result= smootherISAM2.calculateEstimate();
+  Values result= smootherISAM2.getLinearizationPoint();
+  NonlinearFactorGraph factor_graph= smootherISAM2.getFactors();
+  // --------------------------------------
+  
+  // // print the keys of the nonlinear factor graph
+  // cout<< "print keys of the factor graph"<< endl;
+  // factor_graph.keys().print(); cout<< endl;
+
+  // // get the hessian factor
+  // HessianFactor hessian_factor( *factor_graph.linearize(result) );
+  // // HessianFactor hessian_factor( *factor_graph.linearizeToHessianFactor(result) );
+  // cout<< "we have the Hessian factor"<< endl;
+  // hessian_factor.printKeys();
+
+  // // conver the hessian factor to jacobian
+  // JacobianFactor jacobian_factor(hessian_factor);
+  // cout<< "we have the Jacobian factor"<< endl;
+  // jacobian_factor.printKeys();
+
+  // // get the Jacobian 
+  // Matrix A= jacobian_factor.augmentedJacobian();
+
+  // // print Jacobian
+  // cout<< "Jacobian matrix is: "<< A.rows()<< " x "<< A.cols()<< endl;
+  
+  // // this one produces the proper hessian but crashes computing the Jacobian
+  // boost::shared_ptr<GaussianFactorGraph> lin_graph= factor_graph.linearize(result);
+  // Matrix Lambda= lin_graph->hessian().first;
+
+  // cout<< "Hessian (Lambda) is: "<<Lambda.rows()<< " x "<< Lambda.cols()<< endl;
+
+  // --------------------------------------
+
+  // *factor_graph.linearize(result)
+  
+  // const VariableSlots & variableSlots= VariableSlots( factor_graph );
+
+  bool debug = true;
+  size_t jointFactorPos = 0;
+  for(auto factor: factor_graph) {
+    assert(factor);
+    size_t factorVarSlot = 0;
+    cout<< "type of the factor"<< endl;
+    cout<< typeid(factor).name()<< endl;
+    
+    factor->printKeys();
+    for(const Key involvedVariable: *factor) {
+      cout<< "keys"<< endl;
+      // cout<< typeid(involvedVariable).name()<< endl;
+      // Set the slot in this factor for this variable.  If the
+      // variable was not already discovered, create an array for it
+      // that we'll fill with the slot indices for each factor that
+      // we're combining.  Initially we put the max integer value in
+      // the array entry for each factor that will indicate the factor
+      // does not involve the variable.
+      
+    }
+    ++ jointFactorPos;
+  }
+
+  // segmentation fault
+  cout<< "expected segmentation fault"<< endl;
+  VariableSlots variable_slots( factor_graph );
+  // --------------------------------------
 
   return 0;
 }
