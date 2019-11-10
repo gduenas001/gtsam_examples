@@ -21,74 +21,30 @@ void post_process(
           Counters &counters,
           Params &params){
 
+
+  cout<< "----------------------"<< endl;
+  for(const FixedLagSmoother::KeyTimestampMap::value_type& key_timestamp: 
+                                        fixed_lag_smoother.timestamps()) {
+    cout << setprecision(5) << "    Key: " << key_timestamp.first << "  Time: " << key_timestamp.second << endl;
+  }
+  cout<< "----------------------"<< endl;
+
+
   // get the factor graph & Jacobian from isam
-  // NonlinearFactorGraph factor_graph = isam.getFactorsUnsafe();
   NonlinearFactorGraph factor_graph= fixed_lag_smoother.getFactors();
 
-  // print the keys of the nonlinear factor graph
-  factor_graph.keys().print();
-  cout<< endl;
-
-  // this one produces the proper hessian but crashes computing the Jacobian
+  // get the linear graph
   boost::shared_ptr<GaussianFactorGraph> 
-                  lin_graph_for_hessian= factor_graph.linearize(result_fl);
+                  lin_graph= factor_graph.linearize(result_fl);
 
-  cout<< "get A with linearization point in same line"<< endl;
-  Matrix A_direct= factor_graph.linearize( 
-            fixed_lag_smoother.calculateEstimate())->jacobian().first;
-  cout<< "Got it!"<< endl;
   
-  // GaussianFactorGraph lin_graph_clone= lin_graph_for_hessian->clone();
-  // try casting the GaussianfactorGraph to a jacobian one (if exists)
-  // then get the jacobian
+  // // doesn't crash but computes weird hessian and Jacobian when lag < sim_time
+  // boost::shared_ptr<HessianFactor>
+  //                 lin_graph= factor_graph.linearizeToHessianFactor(result);
 
-
-  // for(auto factor: *lin_graph_for_hessian) {
-
-  //   cout<< "type of the factor: "<< typeid(factor).name()<< endl;
-
-
-  //   cout<<"Printing the keys"<< std::endl;
-  //   // factor->print();
-  //   // factor->printKeys();
-  //   cout<< "Accessing the key vector"<< endl;
-  //   const KeyVector& key_vector= factor->keys();
-  //   cout<< "Size of the key vector: "<< key_vector.size()<< endl;
-
-  // }
-
-  // this has seg fault as allways                  
-  JacobianFactor jacobian_factor(*lin_graph_for_hessian);
-  cout<< "jacobian factor created"<< endl;
-  Matrix A_from_jacobian_factor= jacobian_factor.jacobian().first;
-  cout<< "Jacobian matrix from jacobian factor, A size = "<<
-       A_from_jacobian_factor.rows()<< " x "<< A_from_jacobian_factor.cols()<< endl;
-
-  // SEGMENTATION FAULT HERE!!
-  // I need to create the JacobianFactor some other way, 
-  // maybe indicating the keys to include manually...
-  // cout<< "try getting the normal Jacobian..."<< endl;
-  // std::pair< Matrix, Vector > A_pair(lin_graph_for_hessian->jacobian());
-  // Matrix A= A_pair.first;
-  // cout<< "normal Jacobian done!"<< endl;
-
-
-  // JacobianFactor jacobian_combined_factor(*lin_graph_for_hessian);
-  // Matrix A_from_hessian= jacobian_combined_factor.jacobian().first;
-  // cout<< "Jacobian matrix, A from hessian size = "
-  //       << A_from_hessian.rows()<< " x "<< A_from_hessian.cols()<< endl;
-
-
-  // doesn't crash but computes weird hessian and Jacobian when lag < sim_time
-  boost::shared_ptr<HessianFactor>
-                  lin_graph= factor_graph.linearizeToHessianFactor(result);
-
-  Matrix A_sparse= lin_graph_for_hessian->sparseJacobian_();
-  Matrix hessian= (lin_graph_for_hessian->hessian()).first;
-  Matrix Lambda= (lin_graph->information());
+  Matrix hessian= (lin_graph->hessian()).first;
   Matrix A= (lin_graph->jacobian()).first;
-  Matrix A_TxA= A.transpose() * A;
-  Matrix P= Lambda.inverse();
+  Matrix P= hessian.inverse();
   Matrix S = P * A.transpose();
   Matrix S_transpose= S.transpose();
 
@@ -102,28 +58,15 @@ void post_process(
   double n = A.rows(); double m = A.cols();
   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
   cout<< "n = "<< n<< "\nm = "<< m<< endl;
-  cout<< "From <hessian>: Hessian (Lambda) matrix size = "<<hessian.rows()<< " x "<< hessian.cols()<< endl;
-  // cout<< hessian<< endl;
-  cout<< "From <information>: Hessian (Lambda) matrix size = "<<Lambda.rows()<< " x "<< Lambda.cols()<< endl;
-  // cout<< Lambda<< endl;
-  cout<< "From <hessian>: sparse Jacobian matrix size = "<<A_sparse.rows()<< " x "<< A_sparse.cols()<< endl;
-
-
-  if (hessian.isApprox(Lambda, 0.01)){
-     cout<< "hessian and Lambda are equal"<< endl;
-  }else{
-     cout<< "hessian and Lambda are NOT equal"<< endl;
-  }
-
-  if (Lambda.isApprox(A_TxA, 0.01)){
-     cout<< "Lambda and A^T*A are equal"<< endl;
-  }else{
-     cout<< "Lambda and A^T*A are NOT equal"<< endl;
-  }
-
+  cout<< "Hessian (Lambda) matrix size = "<<hessian.rows()<< " x "<< hessian.cols()<< endl;
+  
+  // if (hessian.isApprox(Lambda, 0.01)){
+  //    cout<< "hessian and Lambda are equal"<< endl;
+  // }else{
+  //    cout<< "hessian and Lambda are NOT equal"<< endl;
+  // }
 
   // get variances for the last state
-  // map<string,double> var= getVariancesForLastPose(isam, counters);
   map<string,double> var= get_variances_for_last_pose(fixed_lag_smoother, counters);
   cout<< "std dev. (roll, pitch, yaw, x, y, z): "<< "("<< 
           sqrt(var["roll"])<< ", "<< 
@@ -139,19 +82,18 @@ void post_process(
   // upper bound lambda
   double effective_n= getDOFfromGraph(A_rows_per_type);
   double chi_squared_dof= effective_n - m;
-  double r= 2 * factor_graph.error(result);
+  double r= 2 * factor_graph.error(result_fl);
   boost::math::chi_squared_distribution<> chi2_dist_lambda(chi_squared_dof);
   double lambda= pow( sqrt(r) + sqrt(boost::math::quantile(chi2_dist_lambda, 1-1e-5)), 2 );
   cout<< "effective number of measurements: "<< effective_n<< endl;
   cout<< "DOF of the chi-squared: "<< chi_squared_dof<< endl;
   cout<< "r: "<< r<< endl;
-  cout<< "lambda: "<< lambda<< endl;
-
+  cout<< "Non-centrality parameter, lambda: "<< lambda<< endl;
 
   // check residuals
-  // boost::optional<double> error_after = isam_result.errorAfter;
-  // cout<< "error after: "<< error_after.value_or(-1)<< endl;
-  cout<< "error from error() fn: "<< factor_graph.error(result)<< endl;
+  cout<< "factor graph error: "<< 
+          factor_graph.error(result_fl)<< endl;
+
 
   cout<< "----------- Hypothesis 0 ----------"<< "\n\n";
   
@@ -173,7 +115,6 @@ void post_process(
   h_LIR["z"]= 1 - boost::math::cdf(chi2_dist_raim, 
                       pow(params.AL_z / sqrt(var["z"]), 2) );
 
-
   cout<< "LIR for h in x: "<< h_LIR["x"]<< endl;
   cout<< "LIR for h in y: "<< h_LIR["y"]<< endl;
   cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
@@ -188,8 +129,8 @@ void post_process(
     vector<int> row_inds= it->second;
     int h_n= row_inds.size();
 
-    // cout<< "Rows to be extracted: "; 
-    // printIntVector( row_inds );
+    cout<< "Rows to be extracted: ";
+    printIntVector( row_inds );
 
     Matrix h_M = extractJacobianRows(M, row_inds);
     Eigen::FullPivLU<Matrix> h_M_lu(h_M);
@@ -285,13 +226,13 @@ void post_process(
   // -----------------------------------
   double sum= 0, dim= 0, whitened_sum= 0;
   for (auto factor : factor_graph){
-    double factor_error= factor->error(result);
+    double factor_error= factor->error(result_fl);
     double factor_dim= factor->dim();
 
     // cast nonlinearfactor to noisemodelfactor
     boost::shared_ptr<NoiseModelFactor> noise_factor=
              boost::dynamic_pointer_cast<NoiseModelFactor>(factor);
-    Vector whitened_error= noise_factor->whitenedError(result);
+    Vector whitened_error= noise_factor->whitenedError(result_fl);
     whitened_sum += whitened_error.squaredNorm() * 0.5;
 
     factor->printKeys();
@@ -319,7 +260,7 @@ void post_process(
   // Use this to convert to png image
   // dot -Tpng -Gdpi=1000 isam_example.dot -o isam_example.png
   ofstream os("isam_example.dot");
-  factor_graph.saveGraph(os, result);
+  factor_graph.saveGraph(os, result_fl);
 
 
   // GTSAM_PRINT(result);

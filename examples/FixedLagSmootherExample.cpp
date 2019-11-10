@@ -152,9 +152,16 @@ int main(int argc, char** argv) {
 
 
   // --------------------------------------
-  // Values result= smootherISAM2.calculateEstimate();
-  Values result= smootherISAM2.getLinearizationPoint();
+  Values result= smootherISAM2.calculateEstimate();
+  // Values result= smootherISAM2.getLinearizationPoint();
   NonlinearFactorGraph factor_graph= smootherISAM2.getFactors();
+  // --------------------------------------
+
+  boost::shared_ptr<GaussianFactorGraph> lin_graph= factor_graph.linearize(result);
+  Matrix A= lin_graph->jacobian().first;
+
+
+
   // --------------------------------------
   
   // // print the keys of the nonlinear factor graph
@@ -183,40 +190,6 @@ int main(int argc, char** argv) {
   // Matrix Lambda= lin_graph->hessian().first;
 
   // cout<< "Hessian (Lambda) is: "<<Lambda.rows()<< " x "<< Lambda.cols()<< endl;
-
-  // --------------------------------------
-
-  // *factor_graph.linearize(result)
-  
-  // const VariableSlots & variableSlots= VariableSlots( factor_graph );
-
-  bool debug = true;
-  size_t jointFactorPos = 0;
-  for(auto factor: factor_graph) {
-    assert(factor);
-    size_t factorVarSlot = 0;
-    cout<< "type of the factor"<< endl;
-    cout<< typeid(factor).name()<< endl;
-    
-    factor->printKeys();
-    for(const Key involvedVariable: *factor) {
-      cout<< "keys"<< endl;
-      // cout<< typeid(involvedVariable).name()<< endl;
-      // Set the slot in this factor for this variable.  If the
-      // variable was not already discovered, create an array for it
-      // that we'll fill with the slot indices for each factor that
-      // we're combining.  Initially we put the max integer value in
-      // the array entry for each factor that will indicate the factor
-      // does not involve the variable.
-      
-    }
-    ++ jointFactorPos;
-  }
-
-  // segmentation fault
-  cout<< "expected segmentation fault"<< endl;
-  VariableSlots variable_slots( factor_graph );
-  // --------------------------------------
 
   return 0;
 }
