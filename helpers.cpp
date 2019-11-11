@@ -81,6 +81,7 @@ Point3 generate_random_point(std::default_random_engine &generator, std::normal_
 
 
 // -------------------------------------------------------
+// -------------------------------------------------------
 Vector6 error_average(std::vector<Pose3> poses){
  
   Vector3 ave_translation, ave_rotation; // deault constructor -> zero translation
@@ -95,6 +96,7 @@ Vector6 error_average(std::vector<Pose3> poses){
 }
 
 
+// -------------------------------------------------------
 // -------------------------------------------------------
 int add_prior_factor(NonlinearFactorGraph &new_graph, 
                      FixedLagSmoother::KeyTimestampMap &new_timestamps,
@@ -145,14 +147,20 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
           ("prior_pose", returnIncrVector(0,6)));
   A_rows_count += 6;
   
-
+  // new way of keeping track
+  vector<int> rows= returnIncrVector(0,6);
+  for (int i = 0; i < rows.size(); ++i){
+    counters.A_rows["prior_pose"].push_back(
+            make_pair(rows[i], counters.current_time));
+  }
+  counters.num_A_rows += 6;
+  
   // add velocity prior to graph and init values
   Vector prior_vel_msmt(3); // needs to be a dynamically allocated vector (I don't know why)
   prior_vel_msmt= scenario.velocity_n(0);
   if (params.is_noisy["prior"]){
-    Point3 prior_vel_noise= 
-    generate_random_point(noise_generator,
-                          params.noise_dist["prior_vel"]);
+    Point3 prior_vel_noise= generate_random_point(noise_generator,
+                                    params.noise_dist["prior_vel"]);
     prior_vel_msmt= prior_vel_msmt + prior_vel_noise;
   }
 
@@ -168,6 +176,13 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
           ("prior_vel", returnIncrVector(A_rows_count,3)));
   A_rows_count += 3;
 
+  // new way of keeping track
+  rows= returnIncrVector(counters.num_A_rows, 3);
+  for (int i = 0; i < rows.size(); ++i){
+    counters.A_rows["prior_vel"].push_back(
+            make_pair(rows[i], counters.current_time));
+  }
+  counters.num_A_rows += 3;
 
   // Add bias priors to graph and init values
   imuBias::ConstantBias prior_bias_msmt= imuBias::ConstantBias();
@@ -199,10 +214,20 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
           ("prior_bias", returnIncrVector(A_rows_count,6)));
   A_rows_count += 6;
 
+  // new way of keeping track
+  rows= returnIncrVector(counters.num_A_rows, 6);
+  for (int i = 0; i < rows.size(); ++i){
+    counters.A_rows["prior_bias"].push_back(
+            make_pair(rows[i], counters.current_time));
+  }
+  counters.num_A_rows += 6;
+
   // return the count of the rows of A
   return A_rows_count;
 }
 
+
+// -------------------------------------------------------
 // -------------------------------------------------------
 ConstantTwistScenario createConstantTwistScenario(double radius, double linear_velocity) {
 
@@ -222,6 +247,7 @@ ConstantTwistScenario createConstantTwistScenario(double radius, double linear_v
 
 
 // -------------------------------------------------------
+// -------------------------------------------------------
 std::vector<Point3>  createLandmarks(double radius){
 
   double distance = radius + radius/10;
@@ -236,6 +262,7 @@ std::vector<Point3>  createLandmarks(double radius){
 
 
 // -------------------------------------------------------
+// -------------------------------------------------------
 std::vector<int> returnIncrVector(int start, int num_elem){
 
   vector<int> v(num_elem);
@@ -245,6 +272,26 @@ std::vector<int> returnIncrVector(int start, int num_elem){
 }
 
 
+
+// -------------------------------------------------------
+// -------------------------------------------------------
+Matrix extractJacobianRows(Matrix &M, vector<int> &row_inds){
+  /*
+  extracte rows from Jacobians
+  */
+
+  Matrix h_M( row_inds.size(), row_inds.size() );
+  for (int i = 0; i < row_inds.size(); ++i){
+    for (int j = 0; j < row_inds.size(); ++j){
+      h_M(i,j) = M(row_inds[i], row_inds[j]);
+    }
+  }
+  return h_M;
+}
+
+
+
+// -------------------------------------------------------
 // -------------------------------------------------------
 Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds){
 
@@ -259,6 +306,7 @@ Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds){
 
 
 // -------------------------------------------------------
+// -------------------------------------------------------
 Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds){
 
   Matrix B(A.rows(), col_inds.size());
@@ -271,6 +319,7 @@ Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds){
 }
 
 
+// -------------------------------------------------------
 // -------------------------------------------------------
 Matrix extractMatrixRowsAndColumns(Matrix &A, 
 								   vector<int> &row_inds, 
@@ -287,6 +336,7 @@ Matrix extractMatrixRowsAndColumns(Matrix &A,
 
 
 // -------------------------------------------------------
+// -------------------------------------------------------
 void printIntVector(vector<int> v){
 
   for (auto i = v.begin(); i != v.end(); ++i)
@@ -296,47 +346,81 @@ void printIntVector(vector<int> v){
 
 
 // -------------------------------------------------------
-void addLidarFactor(NonlinearFactorGraph &newgraph,
+// -------------------------------------------------------
+void add_lidar_factor(NonlinearFactorGraph &newgraph,
 					RangeBearingFactorMap &range_bearing_factor,
 					map<string, vector<int>> &A_rows_per_type, 
-					int &A_rows_count){
+					int &A_rows_count,
+          Counters &counters){
 
   newgraph.add(range_bearing_factor);
   vector<int> lidar_rows= returnIncrVector(A_rows_count, 3);
   A_rows_per_type["lidar"].insert( A_rows_per_type["lidar"].end(),
         	  lidar_rows.begin(), lidar_rows.end() );
   A_rows_count += 3;
+
+
+  // new way of keeping track
+  vector<int> rows= returnIncrVector(counters.num_A_rows, 3);
+  for (int i = 0; i < rows.size(); ++i){
+    counters.A_rows["lidar"].push_back(
+            make_pair(rows[i], counters.current_time));
+  }
+  counters.num_A_rows += 3;
 }
 
 
 // -------------------------------------------------------
-void addGPSFactor(NonlinearFactorGraph &newgraph,
+// -------------------------------------------------------
+void add_gps_factor(NonlinearFactorGraph &newgraph,
 			   GPSFactor &gps_factor,
 				 map<string, vector<int>> &A_rows_per_type, 
-				 int &A_rows_count) {
+				 int &A_rows_count,
+         Counters &counters) {
 
 	newgraph.add(gps_factor);
 	vector<int> gps_rows=  returnIncrVector(A_rows_count, 3);
 	A_rows_per_type["gps"].insert( A_rows_per_type["gps"].end(),
 				gps_rows.begin(), gps_rows.end() );
 	A_rows_count += 3;
+
+  // new way of keeping track
+  vector<int> rows= returnIncrVector(counters.num_A_rows, 3);
+  for (int i = 0; i < rows.size(); ++i){
+    counters.A_rows["gps"].push_back(
+            make_pair(rows[i], counters.current_time));
+  }
+  counters.num_A_rows += 3;
+
 }
 
 
 // -------------------------------------------------------
+// -------------------------------------------------------
 void addOdomFactor(NonlinearFactorGraph &newgraph,
 		    CombinedImuFactor &imufac,
 			  map<string, vector<int>> &A_rows_per_type, 
-			  int &A_rows_count) {
+			  int &A_rows_count,
+        Counters &counters) {
 
 	newgraph.add(imufac);
 	vector<int> odom_rows= returnIncrVector(A_rows_count, 15);
 	A_rows_per_type["odom"].insert( A_rows_per_type["odom"].end(),
 	     	    odom_rows.begin(), odom_rows.end() );
 	A_rows_count += 15;
+
+   // new way of keeping track
+  vector<int> rows= returnIncrVector(counters.num_A_rows, 15);
+  for (int i = 0; i < rows.size(); ++i){
+    counters.A_rows["odom"].push_back(
+            make_pair(rows[i], counters.current_time));
+  }
+  counters.num_A_rows += 15;
+
 }
 
 
+// -------------------------------------------------------
 // -------------------------------------------------------
 void printMatrix(Matrix A){
   
@@ -345,6 +429,7 @@ void printMatrix(Matrix A){
 }
 
 
+// -------------------------------------------------------
 // -------------------------------------------------------
 Pose3 compute_error(Pose3 true_pose,
 					Pose3 estimated_pose){
@@ -357,6 +442,7 @@ Pose3 compute_error(Pose3 true_pose,
 }
 
 
+// -------------------------------------------------------
 // -------------------------------------------------------
 RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
                     Point3 &landmark,
@@ -388,30 +474,23 @@ RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
 
 
 // -------------------------------------------------------
-double getDOFfromFactorType(int n, string type){
-	if (type == "odom"){
-		int num_odom_factors= n / 15;
-    	return n - (num_odom_factors * 3);
+// -------------------------------------------------------
+double get_dof_from_graph(const NonlinearFactorGraph &graph){
+  int dim= 0;
+  for (auto factor : graph){
+    if (!factor) {continue;}
+
+    if (factor->dim() == 15){
+      dim += 12;
     }else{
-    	return n;
+      dim += factor->dim();
     }
+  }
+  return dim;
 }
+
 
 // -------------------------------------------------------
-double getDOFfromGraph(map<string, vector<int>> &A_rows_per_type){
-
-	double dof= 0;
-	for (map<string, vector<int>>::iterator it= A_rows_per_type.begin(); 
-	     it != A_rows_per_type.end(); 
-	     ++it){
-
-		string factor_type = it->first;
-		double factor_n= (it->second).size();
-		dof += getDOFfromFactorType(factor_n, factor_type);
-	}
-	return dof;
-}
-
 // -------------------------------------------------------
 map<string, Vector> buildt_vector(int size){
 
@@ -426,6 +505,8 @@ map<string, Vector> buildt_vector(int size){
 	return t_vector;
 }
 
+
+// -------------------------------------------------------
 // -------------------------------------------------------
 map<string,double> getVariancesForLastPose(ISAM2 &isam,
 										   Counters &counters){
@@ -441,6 +522,8 @@ map<string,double> getVariancesForLastPose(ISAM2 &isam,
 	return var;
 }
 
+
+// -------------------------------------------------------
 // -------------------------------------------------------
 map<string,double> get_variances_for_last_pose(
                   IncrementalFixedLagSmoother fixed_lag_smoother,
@@ -459,6 +542,8 @@ map<string,double> get_variances_for_last_pose(
   return var;
 }
 
+
+// -------------------------------------------------------
 // -------------------------------------------------------
 gtsam::Point3
 sim_gps_msmt(const Point3 &true_position,
@@ -474,6 +559,8 @@ sim_gps_msmt(const Point3 &true_position,
   }
 }
 
+
+// -------------------------------------------------------
 // -------------------------------------------------------
 Vector3 sim_imu_acc(ConstantTwistScenario &scenario,
              std::default_random_engine &noise_generator, 
@@ -492,6 +579,8 @@ Vector3 sim_imu_acc(ConstantTwistScenario &scenario,
   return msmt_acc;
 }
 
+
+// -------------------------------------------------------
 // -------------------------------------------------------
 Vector3 sim_imu_w(Vector3 true_imu_w,
              std::default_random_engine &noise_generator, 
@@ -520,6 +609,7 @@ deprecated
 
 
 // -------------------------------------------------------
+// -------------------------------------------------------
 void eliminateFactorsByType_old(
           boost::shared_ptr<GaussianFactorGraph> &lin_graph,
           vector<string> factor_types,
@@ -542,7 +632,7 @@ void eliminateFactorsByType_old(
 
 
 // -------------------------------------------------------
-// OLD
+// -------------------------------------------------------
 Matrix eliminateFactorsByType(Matrix &M,
               map<string, vector<int>> &A_rows_per_type,
               string type){
@@ -554,19 +644,29 @@ Matrix eliminateFactorsByType(Matrix &M,
 
 
 // -------------------------------------------------------
-// OLD
-Matrix extractJacobianRows(Matrix &M, vector<int> &row_inds){
-  /*
-  extracte rows from Jacobians
-  */
+// -------------------------------------------------------
+double getDOFfromGraph(map<string, vector<int>> &A_rows_per_type){
 
-  Matrix h_M( row_inds.size(), row_inds.size() );
-  for (int i = 0; i < row_inds.size(); ++i){
-    for (int j = 0; j < row_inds.size(); ++j){
-      h_M(i,j) = M(row_inds[i], row_inds[j]);
-    }
+  double dof= 0;
+  for (map<string, vector<int>>::iterator it= A_rows_per_type.begin(); 
+       it != A_rows_per_type.end(); 
+       ++it){
+
+    string factor_type = it->first;
+    double factor_n= (it->second).size();
+    dof += getDOFfromFactorType(factor_n, factor_type);
   }
-  return h_M;
+  return dof;
 }
 
 
+// -------------------------------------------------------
+// -------------------------------------------------------
+double getDOFfromFactorType(int n, string type){
+  if (type == "odom"){
+    int num_odom_factors= n / 15;
+      return n - (num_odom_factors * 3);
+    }else{
+      return n;
+    }
+}

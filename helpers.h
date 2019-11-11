@@ -147,21 +147,23 @@ void printIntVector(std::vector<int> v);
 Add lidar factor to factor graph.
 It also keep A_rows_per_type updated.
 */
-void addLidarFactor(
+void add_lidar_factor(
       gtsam::NonlinearFactorGraph &newgraph,
       RangeBearingFactorMap &range_bearing_factor,
       std::map<string, vector<int>> &A_rows_per_type, 
-      int &A_rows_count);
+      int &A_rows_count,
+      Counters &counters);
 
 /*
 Add GPS factor to factor graph.
 It also keep A_rows_per_type updated.
 */
-void addGPSFactor(
+void add_gps_factor(
       gtsam::NonlinearFactorGraph &newgraph,
       GPSFactor &gps_factor,
       std::map<string, vector<int>> &A_rows_per_type, 
-      int &A_rows_count);
+      int &A_rows_count,
+      Counters &counters);
 
 
 /*
@@ -172,7 +174,8 @@ void addOdomFactor(
       gtsam::NonlinearFactorGraph &newgraph,
       gtsam::CombinedImuFactor &imufac,
       std::map<string, vector<int>> &A_rows_per_type, 
-      int &A_rows_count);
+      int &A_rows_count,
+      Counters &counters);
 
 /*
 Simple function to print matrix with nice format
@@ -188,7 +191,6 @@ gtsam::Pose3
 compute_error(gtsam::Pose3 true_pose, 
               gtsam::Pose3 estimated_pose);
 
-
 /*
 Calculate the effective number of measurements in the
 graph. This is trying to deal with the fact that the 
@@ -196,14 +198,8 @@ effective number of measurements for each IMU factor in
 less than 15, which is the number of measurements in 
 each IMU factor.
 */
-double getDOFfromGraph(
-      std::map<string, std::vector<int>> &A_rows_per_type);
-
-/*
-Calculate the effective number of measurements in all 
-factors of the type. See getDOFfromGraph.
-*/
-double getDOFfromFactorType(int dim, std::string type);
+double 
+get_dof_from_graph(const gtsam::NonlinearFactorGraph &graph);
 
 /*
 Build t vector. This is the vector that extracts the state
@@ -224,11 +220,15 @@ calculate the variances in lateral-longitudinal-vertical.
 std::map<std::string, double> 
 getVariancesForLastPose(gtsam::ISAM2 &isam,
                         Counters &counters);
+  
 
 
+/*
+Returns the variances for the last estimated pose:
+"roll" - "pitch" - "yaw" - "x" - "y" - "z"
+*/
 std::map<string,double> get_variances_for_last_pose(
                   gtsam::IncrementalFixedLagSmoother fixed_lag_smoother,
-                  // BatchFixedLagSmoother fixed_lag_smoother,
                   Counters &counters);
 
 /*
@@ -278,7 +278,6 @@ gtsam::Vector3 sim_imu_w(
 
 
 
-
 // -------------------------------------------------------
 /*
 deprecated
@@ -295,3 +294,20 @@ Matrix eliminateFactorsByType(Matrix &A,
 
 
 Matrix extractJacobianRows(Matrix &A, vector<int> &row_inds);
+
+
+/*
+Calculate the effective number of measurements in the
+graph. This is trying to deal with the fact that the 
+effective number of measurements for each IMU factor in 
+less than 15, which is the number of measurements in 
+each IMU factor.
+*/
+double getDOFfromGraph(
+      std::map<string, std::vector<int>> &A_rows_per_type);
+
+/*
+Calculate the effective number of measurements in all 
+factors of the type. See getDOFfromGraph.
+*/
+double getDOFfromFactorType(int dim, std::string type);

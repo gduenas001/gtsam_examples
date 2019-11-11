@@ -2,14 +2,14 @@
 // - need to figure out how the imu noise is specified: continuous - discrete time conversion.
 // - data association for landmarks
 // - different frequencies for GPS and lidar
-// - use sliding window filter
 // - substitute boost::optional. I don't think this is the use
 // - Why? Odom M matrix is rank 6 because of the actual number of measurements
 // - seems that dof of a odom factor is 12, not 6, but M is still rank 6...
 // - Change naming convention of functions -> use underscores, not capital letters
-// - check fixed-lag smoother parameters
-// - include times in A_rows_per_type
-// - segmentation fault obtaining the Jacobian when sim_time > lag
+// - include times in A_rows_per_type and remove previous lines 
+// - see if the fixed-lag smoother adds a prior factor when marginalizing
+// - save_data to support fixed-lag smoother
+// - predict the initial estimate for the bias from the previous state (currently using a zero bias as init state)
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -50,14 +50,15 @@ int main(int argc, char** argv) {
                                       params.scenario_radius,
                                       params.scenario_linear_vel);
 
-  // Create a factor graph &  ISAM2
+  // Create factor graph & timestamps to update ISAM2 fixed-lag smoother
   NonlinearFactorGraph newgraph;
-  ISAM2 isam(params.isam_params);
-  Values initial_estimate, result, result_fl; // Create the initial estimate to the solution
-
   FixedLagSmoother::KeyTimestampMap new_timestamps;
+
+  // Create the initial estimate to the solution
+  Values initial_estimate, result_fl; 
+  
+  // fixed-lag smoother
   IncrementalFixedLagSmoother fixed_lag_smoother(params.lag, params.fl_isam_params);
-  // BatchFixedLagSmoother fixed_lag_smoother(params.lag);
 
 
   // initialize variables
@@ -67,7 +68,6 @@ int main(int argc, char** argv) {
   vector<Point3> true_positions;
   vector<Pose3> online_error; // error when computed online
   true_positions.push_back( scenario.pose(0).translation() );
-  ISAM2Result isam_result;
   FixedLagSmoother::Result isam_result_fl;
   map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
   A_rows_per_type.insert( pair<string, vector<int>> ("lidar", {}) );
@@ -76,19 +76,16 @@ int main(int argc, char** argv) {
 
   // add prior factor
   int A_rows_count= add_prior_factor(newgraph,
-                              	new_timestamps,
-                        		    initial_estimate, 
-                          		  scenario,
-                              	noise_generator,
-                          		  A_rows_per_type,
-                              	counters,
-                              	params);
-
+                                  	new_timestamps,
+                            		    initial_estimate, 
+                              		  scenario,
+                                  	noise_generator,
+                              		  A_rows_per_type,
+                                  	counters,
+                                  	params);
 
   // solve the graph once
-  isam.update(newgraph, initial_estimate);
   fixed_lag_smoother.update(newgraph, initial_estimate, new_timestamps);
-  result= isam.calculateEstimate();
   result_fl= fixed_lag_smoother.calculateEstimate();
   newgraph= NonlinearFactorGraph();
   initial_estimate.clear();
@@ -100,11 +97,11 @@ int main(int argc, char** argv) {
       
     // Simulate acceleration and gyro measurements in (actual) body frame
     Vector3 msmt_acc= sim_imu_acc(scenario,
-                          noise_generator,
-                          params.noise_dist["acc"],
-                          params.imu_params->n_gravity,
-                          counters.current_time,
-                          params.is_noisy["imu"]);
+                                  noise_generator,
+                                  params.noise_dist["acc"],
+                                  params.imu_params->n_gravity,
+                                  counters.current_time,
+                                  params.is_noisy["imu"]);
 
     Vector3 msmt_w= sim_imu_w(scenario.omega_b(counters.current_time),
                               noise_generator,
@@ -126,10 +123,10 @@ int main(int argc, char** argv) {
       true_positions.push_back( scenario.pose(counters.current_time).translation() );
 
       // predict from IMU accumulated msmts
-      prev_state = NavState(result.at<Pose3>  (X(counters.prev_factor)), 
-                            result.at<Vector3>(V(counters.prev_factor)));
-      prev_bias = result.at<imuBias::ConstantBias>(B(counters.prev_factor));
-      predict_state = params.accum.predict(prev_state, prev_bias);
+      prev_state= NavState(result_fl.at<Pose3>  (X(counters.prev_factor)), 
+                            result_fl.at<Vector3>(V(counters.prev_factor)));
+      prev_bias= result_fl.at<imuBias::ConstantBias>(B(counters.prev_factor));
+      predict_state= params.accum.predict(prev_state, prev_bias);
 
       // predicted init values
       initial_estimate.insert(X(counters.current_factor), predict_state.pose());
@@ -145,20 +142,26 @@ int main(int argc, char** argv) {
       addOdomFactor(newgraph,
                     imu_factor,
                     A_rows_per_type, 
-                    A_rows_count);
+                    A_rows_count,
+                    counters);
 
    
       // Adding GPS factor
-      Point3 gps_msmt= sim_gps_msmt(scenario.pose(counters.current_time).translation(),
-                     noise_generator, 
-                     params.noise_dist["range"],
-                     params.is_noisy["gps"]);
+      Point3 gps_msmt= sim_gps_msmt(
+                         scenario.pose(counters.current_time).translation(),
+                         noise_generator, 
+                         params.noise_dist["range"],
+                         params.is_noisy["gps"] );
 
-      GPSFactor gps_factor(X(counters.current_factor), gps_msmt, params.gps_cov);
-      addGPSFactor(newgraph,
+      GPSFactor gps_factor(X(counters.current_factor), 
+                          gps_msmt, 
+                          params.gps_cov);
+
+      add_gps_factor(newgraph,
                    gps_factor,
                    A_rows_per_type,
-                   A_rows_count);
+                   A_rows_count,
+                   counters);
 
       // lidar measurements
       for (int j = 0; j < landmarks.size(); ++j) {
@@ -179,50 +182,48 @@ int main(int argc, char** argv) {
                              landmarks[j], 
                              params.lidar_cov);
 
-        addLidarFactor(newgraph,
+        add_lidar_factor(newgraph,
                        range_bearing_factor,
                        A_rows_per_type, 
-                       A_rows_count);
+                       A_rows_count,
+                       counters);
       }      
       
       // Incremental solution
-      isam_result= isam.update(newgraph, initial_estimate);
-      isam_result_fl= fixed_lag_smoother.update(newgraph, initial_estimate, new_timestamps);
+      isam_result_fl= fixed_lag_smoother.update(newgraph, 
+                                                initial_estimate, 
+                                                new_timestamps);
 
-      result= isam.calculateEstimate();
       result_fl= fixed_lag_smoother.calculateEstimate();
 
       // compute error
       online_error.push_back(compute_error(scenario.pose(counters.current_time),
-                            result.at<Pose3>(X(counters.current_factor)) ));
+                            result_fl.at<Pose3>(X(counters.current_factor)) ));
 
 	    // reset variables
+      counters.update_A_rows(params.lag);
       newgraph= NonlinearFactorGraph();
       params.accum.resetIntegration();
       initial_estimate.clear();
       new_timestamps.clear();
       counters.reset_timer();
     }
-  } // end for loop  
-
+  } // end for loop
 
 
 // post process data showing each hypothesis
-post_process(result,
-           result_fl,
-           isam_result,
-           isam_result_fl,
-           isam,
-           fixed_lag_smoother,
-           A_rows_per_type,
-           counters,
-           params);
+post_process(result_fl,
+             isam_result_fl,
+             fixed_lag_smoother,
+             A_rows_per_type,
+             counters,
+             params);
 
-  // save the data TODO: give option to save in different folder
-save_data(result,
-         true_positions,
-         landmarks,
-         online_error);
+// save the data TODO: give option to save in different folder
+// save_data(result_fl,
+//          true_positions,
+//          landmarks,
+//          online_error);
 
   return 0;
 }
