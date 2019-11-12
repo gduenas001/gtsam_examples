@@ -273,7 +273,10 @@ gtsam::Vector3 sim_imu_w(
          std::normal_distribution<double> &imu_gyro_dist,
          bool is_noisy);
 
-
+/*
+Return first element from a pair
+*/
+int return_first_element(const std::pair<int, double> &p);
 
 
 

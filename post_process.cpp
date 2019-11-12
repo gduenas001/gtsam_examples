@@ -133,19 +133,29 @@ void post_process(
   cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
 
 
-
-  return;
-
-
-
-
-
-
-
   // loop over hypotheses
-  for (map<string, vector<int>>::iterator it= A_rows_per_type.begin(); 
-       it != A_rows_per_type.end(); 
-       ++it){
+  for (map<string, pair_vector>::iterator 
+            it_type= counters.A_rows.begin(); 
+            it_type != counters.A_rows.end();
+            ++it_type) {
+    string type= it_type->first;
+
+    pair_vector const &row_time= it_type->second;
+
+    // extract the row indexes 
+    vector<int> row_inds;
+    transform(row_time.begin(), 
+              row_time.end(), 
+              back_inserter( row_inds ),
+              return_first_element );
+    
+  }
+
+  for (map<string, vector<int>>::iterator 
+        it= A_rows_per_type.begin(); 
+        it != A_rows_per_type.end(); 
+        ++it){
+
     string type = it->first;
 
     cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";

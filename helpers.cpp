@@ -596,7 +596,11 @@ Vector3 sim_imu_w(Vector3 true_imu_w,
 }
 
 
-
+// -------------------------------------------------------
+// -------------------------------------------------------
+int return_first_element(const pair<int, double> &p){
+    return p.first;
+}
 
 
 
