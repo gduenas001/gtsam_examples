@@ -3,6 +3,8 @@
 
 #include <gtsam/geometry/SimpleCamera.h>
 #include <gtsam/navigation/CombinedImuFactor.h>
+#include <gtsam/nonlinear/ISAM2.h>
+#include <random>
 
 
 using namespace gtsam;

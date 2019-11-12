@@ -9,7 +9,6 @@ Helper functions for the main code.
 
 #include <random>
 #include <fstream>
-
 #include <gtsam/geometry/SimpleCamera.h>
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/navigation/Scenario.h>

@@ -17,13 +17,10 @@ add_executable(main
   			   RangeBearingFactorMap.cpp
   			   optionsParser.cpp
   			   post_process.cpp
+  			   Counters.cpp
 )
-
-add_executable(fixed_lag_smoother
-			   examples/FixedLagSmootherExample.cpp)
 
 # By using CMake exported targets, a simple "link" dependency introduces the
 # include directories (-I) flags, links against Boost, and add any other
 # required build flags (e.g. C++11, etc.)
 target_link_libraries(main PRIVATE gtsam gtsam_unstable)
-target_link_libraries(fixed_lag_smoother PRIVATE gtsam gtsam_unstable)

@@ -177,7 +177,7 @@ int optionsParser (int argc, char **argv, Params &params){
 
        case 'y':
          printf("you entered \"%s\" for the variable 'lag'\n", optarg);
-         params.lag= atoi(optarg);
+         params.lag= atof(optarg);
        break;
 
 
