@@ -18,6 +18,7 @@ add_executable(main
   			   optionsParser.cpp
   			   post_process.cpp
   			   Counters.cpp
+  			   add_factors.cpp
 )
 
 # By using CMake exported targets, a simple "link" dependency introduces the

@@ -1,4 +1,6 @@
 
+#pragma once
+
 #include <gtsam/geometry/SimpleCamera.h>
 
 

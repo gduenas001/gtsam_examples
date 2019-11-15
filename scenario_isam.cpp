@@ -25,6 +25,7 @@
 #include "post_process.h"
 #include "optionsParser.h"
 #include "Counters.h"
+#include "add_factors.h"
 
 using namespace std;
 using namespace gtsam;
