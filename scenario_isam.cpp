@@ -6,10 +6,12 @@
 // - Why? Odom M matrix is rank 6 because of the actual number of measurements
 // - seems that dof of a odom factor is 12, not 6, but M is still rank 6...
 // - Change naming convention of functions -> use underscores, not capital letters
-// - include times in A_rows_per_type and remove previous lines 
-// - see if the fixed-lag smoother adds a prior factor when marginalizing
 // - save_data to support fixed-lag smoother
 // - predict the initial estimate for the bias from the previous state (currently using a zero bias as init state)
+// - use counters.A_rows instead of A_rows_per_type
+// - use proto for Params class and read from external .pbtxt file
+// - run multiple iterations at each epoch and check if the error at the prior factor increases
+// - in fixed-lag smoothing, all hypotheses are rank-deficient
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -193,6 +195,10 @@ int main(int argc, char** argv) {
       isam_result_fl= fixed_lag_smoother.update(newgraph, 
                                                 initial_estimate, 
                                                 new_timestamps);
+      for (int i = 0; i < 3; ++i) {
+        isam_result_fl= fixed_lag_smoother.update();
+      }
+      
 
       result_fl= fixed_lag_smoother.calculateEstimate();
 

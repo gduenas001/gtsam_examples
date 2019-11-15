@@ -27,6 +27,15 @@ void post_process(
                   lin_graph= factor_graph.linearize(result_fl);
 
 
+
+  cout<< "Number of non-null factors in nonlinear graph: "
+      << factor_graph.nrFactors()<< endl;
+  cout<< "Print nonlinear graph"<< endl;
+  factor_graph.print();    
+  cout<< "Print linear graph"<< endl;
+  lin_graph->print();    
+
+  // --------------- print factors --------------------
   double sum= 0, dim= 0, whitened_sum= 0;
   for (auto factor : factor_graph){
     if (!factor) {continue;}
@@ -45,21 +54,25 @@ void post_process(
   cout<< "sum of dimensions: "<< dim<< endl;
   // -----------------------------------
 
-  
+ 
+  int num_extracted_rows= 0;
   for(map<string, pair_vector>::iterator 
       it= counters.A_rows.begin(); it != counters.A_rows.end(); ++it){
     string type= it->first;
-    cout<< "----------- "<< type<< " -----------"<< endl;
+    // cout<< "----------- "<< type<< " -----------"<< endl;
+
+    // keep count the number of total rows extracted in any h
+    num_extracted_rows += counters.A_rows[type].size();
 
     pair_vector row_time= it->second;
-    for (int i = 0; i < counters.A_rows[type].size(); ++i) {
-      cout<< "Row index: "<< counters.A_rows[type][i].first
-          << "\tTime: "<< counters.A_rows[type][i].second << endl;
-    }
+    // for (int i = 0; i < counters.A_rows[type].size(); ++i) {
+      // cout<< "Row index: "<< counters.A_rows[type][i].first
+          // << "\tTime: "<< counters.A_rows[type][i].second << endl;
+    // }
   }
-
-
-  cout<< "----------------------"<< endl;
+  // cout<< "----------------------"<< endl;
+  cout<< "total number of extracted rows from A: "
+      << num_extracted_rows<< endl;
 
 
  
@@ -73,13 +86,16 @@ void post_process(
   Eigen::FullPivLU<Matrix> A_lu(A);
   A_lu.setThreshold(1e-7);
   double A_rank= A_lu.rank();
-  cout<< "rank of A: "<< A_rank<< endl;
+  
   
   // number of measurements and states
   double n = A.rows(); double m = A.cols();
   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
   cout<< "n = "<< n<< "\nm = "<< m<< endl;
-  cout<< "Hessian (Lambda) matrix size = "<<hessian.rows()<< " x "<< hessian.cols()<< endl;
+  cout<< "rank of A: "<< A_rank<< endl;
+  // cout<< "Matrix A: "<< endl;
+  // cout<< A<< endl; 
+  cout<< "Hessian (Lambda) matrix size = "<< hessian.rows()<< " x "<< hessian.cols()<< endl;
 
   // get variances for the last state
   map<string,double> var= get_variances_for_last_pose(fixed_lag_smoother, counters);
@@ -133,12 +149,18 @@ void post_process(
   cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
 
 
+  return;
+
+
   // loop over hypotheses
   for (map<string, pair_vector>::iterator 
             it_type= counters.A_rows.begin(); 
             it_type != counters.A_rows.end();
             ++it_type) {
+
     string type= it_type->first;
+
+    cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
 
     pair_vector const &row_time= it_type->second;
 
@@ -148,8 +170,83 @@ void post_process(
               row_time.end(), 
               back_inserter( row_inds ),
               return_first_element );
+
+    // number of msmts for hypothesis
+    int h_n= row_inds.size();
+
+    cout<< "Rows to be extracted: ";
+    printIntVector( row_inds );
+
+    if (h_n == 0) {
+      cout<< "empty hypothesis"<< endl;
+      continue;
+    }
+
+
+    Matrix h_M = extractMatrixRowsAndColumns(M, row_inds, row_inds);
+    Eigen::FullPivLU<Matrix> h_M_lu(h_M);
+    h_M_lu.setThreshold(1e-8);
+    double h_M_rank= h_M_lu.rank();
+    cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
+    cout << "rank of M is " << h_M_rank << endl; 
     
+
+    if (h_M_rank == h_M.rows()){
+
+      // DEBUG
+      cout<< "inverse of h_H: "<< endl;
+      cout<< h_M.inverse()<< endl;
+
+      cout<< "determinant of h_M: "<< endl;
+      cout<< h_M.determinant()<< endl;
+
+      // build vector D
+      Eigen::SelfAdjointEigenSolver<Matrix> adj(h_M);
+      Matrix h_M_inv_sqrt= adj.operatorInverseSqrt();
+      cout<< "inverse sqrt:"<< endl;
+      cout<< h_M_inv_sqrt<< endl;
+
+      // vector D
+      map<string, Vector> D;
+      D["x"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["x"];
+      D["y"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["y"];
+      D["z"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["z"];
+
+      // get kappa
+      map<string, double> k;
+      k["x"]= D["x"].squaredNorm() / var["x"];
+      k["y"]= D["y"].squaredNorm() / var["y"];
+      k["z"]= D["z"].squaredNorm() / var["z"];
+
+      // non-centrality parameter
+      map<string, double> mu;
+      mu["x"]= k["x"] * lambda;
+      mu["y"]= k["y"] * lambda;
+      mu["z"]= k["z"] * lambda;
+
+      // compute integrity
+      h_LIR["x"]= 1 - boost::math::cdf(
+                          boost::math::non_central_chi_squared(1, mu["x"]),
+                          pow(params.AL_x / sqrt(var["x"]), 2) );
+      h_LIR["y"]= 1 - boost::math::cdf(
+                          boost::math::non_central_chi_squared(1, mu["y"]), 
+                          pow(params.AL_y / sqrt(var["y"]), 2) );
+      h_LIR["z"]= 1 - boost::math::cdf(
+                          boost::math::non_central_chi_squared(1, mu["z"]), 
+                          pow(params.AL_z / sqrt(var["z"]), 2) );
+      
+
+      cout<< "LIR for h in x: "<< h_LIR["x"]<< endl;
+      cout<< "LIR for h in y: "<< h_LIR["y"]<< endl;
+      cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
+    }
   }
+
+
+
+
+
+/*
 
   for (map<string, vector<int>>::iterator 
         it= A_rows_per_type.begin(); 
@@ -254,7 +351,7 @@ void post_process(
     //   cout<< "AS is NOT equal"<< endl;
     // }
   } // end for loop on h-hypotheses
-
+*/
 
   
 
@@ -266,8 +363,8 @@ void post_process(
   // save factor graph as graphviz dot file
   // Use this to convert to png image
   // dot -Tpng -Gdpi=1000 isam_example.dot -o isam_example.png
-  ofstream os("isam_example.dot");
-  factor_graph.saveGraph(os, result_fl);
+  // ofstream os("isam_example.dot");
+  // factor_graph.saveGraph(os, result_fl);
 
 
   // GTSAM_PRINT(result);
