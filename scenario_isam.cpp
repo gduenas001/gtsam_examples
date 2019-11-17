@@ -199,13 +199,17 @@ int main(int argc, char** argv) {
       for (int i = 0; i < 3; ++i) {
         isam_result_fl= fixed_lag_smoother.update();
       }
-      
 
       result_fl= fixed_lag_smoother.calculateEstimate();
 
       // compute error
       online_error.push_back(compute_error(scenario.pose(counters.current_time),
                             result_fl.at<Pose3>(X(counters.current_factor)) ));
+
+      // if there's been marginalization -> add factor
+      if (counters.current_time  > params.lag){
+        counters.add_factor("marginalized_prior");
+      }
 
 	    // reset variables
       counters.update_A_rows(params.lag);

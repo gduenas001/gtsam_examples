@@ -19,7 +19,7 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
   int A_rows_count = 0;
 
   // Add a prior on pose x0. This indirectly specifies where the origin is.
-  noiseModel::Diagonal::shared_ptr 
+  noiseModel::Diagonal::shared_ptr
   pose_noise_model= 
   noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(0.01), 
                                 Vector3::Constant(0.1) ).finished() );
@@ -54,6 +54,7 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
   A_rows_per_type.insert(pair<string, vector<int>> 
           ("prior_pose", returnIncrVector(0,6)));
   A_rows_count += 6;
+
   
   // new way of keeping track
   vector<int> rows= returnIncrVector(0,6);
@@ -62,6 +63,9 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
             make_pair(rows[i], counters.current_time));
   }
   counters.num_A_rows += 6;
+
+  // keep track of the factor types inserted
+  counters.add_factor("prior_pose");
   
   // add velocity prior to graph and init values
   Vector prior_vel_msmt(3); // needs to be a dynamically allocated vector (I don't know why)
@@ -91,6 +95,9 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
             make_pair(rows[i], counters.current_time));
   }
   counters.num_A_rows += 3;
+
+  // keep track of the factor types inserted
+  counters.add_factor("prior_vel");
 
   // Add bias priors to graph and init values
   imuBias::ConstantBias prior_bias_msmt= imuBias::ConstantBias();
@@ -130,6 +137,10 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
   }
   counters.num_A_rows += 6;
 
+  // keep track of the factor types inserted
+  counters.add_factor("prior_bias");
+  
+
   // return the count of the rows of A
   return A_rows_count;
 }
@@ -157,6 +168,9 @@ void add_lidar_factor(NonlinearFactorGraph &newgraph,
             make_pair(rows[i], counters.current_time));
   }
   counters.num_A_rows += 3;
+
+  // keep track of the factor types inserted
+  counters.add_factor("lidar");
 }
 
 
@@ -181,6 +195,10 @@ void add_gps_factor(NonlinearFactorGraph &newgraph,
             make_pair(rows[i], counters.current_time));
   }
   counters.num_A_rows += 3;
+
+  // keep track of the factor types inserted
+  counters.add_factor("gps");
+  
 }
 
 
@@ -205,5 +223,9 @@ void addOdomFactor(NonlinearFactorGraph &newgraph,
             make_pair(rows[i], counters.current_time));
   }
   counters.num_A_rows += 15;
+
+  // keep track of the factor types inserted
+  counters.add_factor("odom");
+  
 }
 

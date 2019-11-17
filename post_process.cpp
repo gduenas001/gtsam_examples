@@ -27,25 +27,38 @@ void post_process(
                   lin_graph= factor_graph.linearize(result_fl);
 
 
+  // cout<< "Number of non-null factors in nonlinear graph: "
+  //     << factor_graph.nrFactors()<< endl;
+  // cout<< "Print nonlinear graph"<< endl;
+  // factor_graph.print();    
+  // cout<< "Print linear graph"<< endl;
+  // lin_graph->print();
 
-  cout<< "Number of non-null factors in nonlinear graph: "
-      << factor_graph.nrFactors()<< endl;
-  cout<< "Print nonlinear graph"<< endl;
-  factor_graph.print();    
-  cout<< "Print linear graph"<< endl;
-  lin_graph->print();    
+  // --------------- counters factors --------------------
+  cout<< "print counters factor types"<< endl;
+  for (int i = 0; i < counters.types.size(); ++i){
+    cout<< "factor # "<< i+1<< " is type: "
+        <<  counters.types[i]<< endl;
+  }
+
 
   // --------------- print factors --------------------
   double sum= 0, dim= 0, whitened_sum= 0;
+  int factor_count= 0;
   for (auto factor : factor_graph){
+    ++factor_count;
     if (!factor) {continue;}
 
     double factor_error= 2 * factor->error(result_fl);
     double factor_dim= factor->dim();
 
+
+    
+    cout<< "factor # "<< factor_count<< "\t"
+        << "dim: "<< factor_dim<< "\t"
+        << "error: "<< 2 * factor_error<< "\t"
+        << " with keys: ";
     factor->printKeys();
-    cout<< "dim: "<< factor_dim<< "\t"
-        << "error: "<< 2 * factor_error<< endl;
     sum += factor_error;
     dim += factor_dim;
   }

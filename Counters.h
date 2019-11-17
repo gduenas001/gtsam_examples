@@ -36,6 +36,10 @@ public:
 		this->A_rows.insert({"gps", empty_pair_vector});
 
 		this->num_A_rows= 0;
+
+		// initialize factor types vector
+		std::vector<std::string> temp_vec;
+		this->types= temp_vec;
 	};
 
 	double current_time;
@@ -50,6 +54,9 @@ public:
 	// to keep track of the msmts in the Jacobian (A)
 	std::map<std::string, pair_vector> A_rows;
 	int num_A_rows;
+
+	// to keep track of factor types
+	std::vector<std::string> types;
 
 	// ----------------------------------------------------
 	void increase_time(){
@@ -67,6 +74,8 @@ public:
 		this->current_factor += 1;
 		this->prev_factor += 1;
 	}
+	// ----------------------------------------------------
+	void add_factor(std::string type);
 
 	// ----------------------------------------------------
 	void update_A_rows(double lag);
