@@ -34,39 +34,94 @@ void post_process(
   // cout<< "Print linear graph"<< endl;
   // lin_graph->print();
 
-  // --------------- counters factors --------------------
-  cout<< "print counters factor types"<< endl;
-  for (int i = 0; i < counters.types.size(); ++i){
-    cout<< "factor # "<< i+1<< " is type: "
-        <<  counters.types[i]<< endl;
-  }
+  // // --------------- counters factors --------------------
+  // cout<< "print counters factor types"<< endl;
+  // for (int i = 0; i < counters.types.size(); ++i){
+  //   cout<< "factor # "<< i<< " is type: "
+  //       <<  counters.types[i]<< endl;
+  // }
 
 
   // --------------- print factors --------------------
-  double sum= 0, dim= 0, whitened_sum= 0;
-  int factor_count= 0;
-  for (auto factor : factor_graph){
-    ++factor_count;
-    if (!factor) {continue;}
+  {
+    double sum= 0, dim= 0, whitened_sum= 0;
+    int factor_count= -1;
+    for (auto factor : factor_graph){
+      ++factor_count;
+      if (!factor) {continue;}
 
-    double factor_error= 2 * factor->error(result_fl);
-    double factor_dim= factor->dim();
+      double factor_error= 2 * factor->error(result_fl);
+      double factor_dim= factor->dim();
+      
+      cout<< "factor # "<< factor_count<< "\t"
+          << "type: "<< counters.types[factor_count]<< "\t"
+          << "dim: "<< factor_dim<< "\t"
+          << "error: "<< 2 * factor_error<< "\t"
+          << " with keys: ";
+      factor->printKeys();
+      sum += factor_error;
+      dim += factor_dim;
+    }
+    cout<< "sum of errors: "<< sum<< endl;
+    cout<< "sum of dimensions: "<< dim<< endl;
 
-
-    
-    cout<< "factor # "<< factor_count<< "\t"
-        << "dim: "<< factor_dim<< "\t"
-        << "error: "<< 2 * factor_error<< "\t"
-        << " with keys: ";
-    factor->printKeys();
-    sum += factor_error;
-    dim += factor_dim;
+    cout<< "----------------------"<< endl;
   }
-  // cout<< "sum of whitened errors (*0.5): "<< whitened_sum<< endl;
-  cout<< "sum of errors: "<< sum<< endl;
-  cout<< "sum of dimensions: "<< dim<< endl;
   // -----------------------------------
 
+
+  // ----------- reduced factor graph --------------
+  {
+    GaussianFactorGraph fg= lin_graph->clone();
+    int factor_count= -1;
+    for (auto factor : fg){
+      ++factor_count;
+      if (!factor) {continue;}
+
+      string type= counters.types[factor_count];
+
+      // remove lidar factors
+      if (type == "lidar"){fg.remove(factor_count);}
+      if (type == "marginalized_prior"){fg.remove(factor_count);}
+    }
+
+
+
+    Matrix A= fg.jacobian().first;
+    double n = A.rows(); double m = A.cols();
+    Eigen::FullPivLU<Matrix> A_lu(A);
+    A_lu.setThreshold(1e-7);
+    double A_rank= A_lu.rank();
+    cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
+    cout<< "n = "<< n<< "\nm = "<< m<< endl;
+    cout<< "rank of A: "<< A_rank<< endl;
+  
+
+    cout<< "print reduced graph without lidar & marginalized factors"<< endl;
+    factor_count= -1;
+    double sum= 0, dim= 0;
+    for (auto factor : fg){
+      ++factor_count;
+      if (!factor) {continue;}
+
+      // double factor_error= 2 * factor->error(result_fl);
+      // double factor_dim= factor->dim();
+      
+      cout<< "factor # "<< factor_count<< "\t"
+          << "type: "<< counters.types[factor_count]<< "\t"
+          // << "dim: "<< factor_dim<< "\t"
+          // << "error: "<< 2 * factor_error<< "\t"
+          << " with keys: ";
+      factor->printKeys();
+      // sum += factor_error;
+      // dim += factor_dim;
+    }
+
+    cout<< "----------------------"<< endl;
+  }
+  // -----------------------------------
+
+  return;
  
   int num_extracted_rows= 0;
   for(map<string, pair_vector>::iterator 
