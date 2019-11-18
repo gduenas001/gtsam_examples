@@ -3,6 +3,9 @@
 #include <boost/math/distributions/chi_squared.hpp>
 #include <boost/math/distributions/non_central_chi_squared.hpp>
 
+
+#include <vector> 
+#include <algorithm> 
 #include <typeinfo>
 
 using namespace std;
@@ -26,25 +29,8 @@ void post_process(
   boost::shared_ptr<GaussianFactorGraph> 
                   lin_graph= factor_graph.linearize(result_fl);
 
-
-  // cout<< "Number of non-null factors in nonlinear graph: "
-  //     << factor_graph.nrFactors()<< endl;
-  // cout<< "Print nonlinear graph"<< endl;
-  // factor_graph.print();    
-  // cout<< "Print linear graph"<< endl;
-  // lin_graph->print();
-
-  // // --------------- counters factors --------------------
-  // cout<< "print counters factor types"<< endl;
-  // for (int i = 0; i < counters.types.size(); ++i){
-  //   cout<< "factor # "<< i<< " is type: "
-  //       <<  counters.types[i]<< endl;
-  // }
-
-
   // --------------- print factors --------------------
   {
-    double sum= 0, dim= 0, whitened_sum= 0;
     int factor_count= -1;
     for (auto factor : factor_graph){
       ++factor_count;
@@ -54,16 +40,11 @@ void post_process(
       double factor_dim= factor->dim();
       
       cout<< "factor # "<< factor_count<< "\t"
-          << "type: "<< counters.types[factor_count]<< "\t"
+          << "type: "<< counters.types[factor_count]<< "\t\t"
           << "dim: "<< factor_dim<< "\t"
-          << "error: "<< 2 * factor_error<< "\t"
-          << " with keys: ";
+          << "error: "<< 2 * factor_error<< "\t";
       factor->printKeys();
-      sum += factor_error;
-      dim += factor_dim;
     }
-    cout<< "sum of errors: "<< sum<< endl;
-    cout<< "sum of dimensions: "<< dim<< endl;
 
     cout<< "----------------------"<< endl;
   }
@@ -99,48 +80,29 @@ void post_process(
 
     cout<< "print reduced graph without lidar & marginalized factors"<< endl;
     factor_count= -1;
-    double sum= 0, dim= 0;
+    double sum= 0, size= 0;
     for (auto factor : fg){
       ++factor_count;
       if (!factor) {continue;}
 
       // double factor_error= 2 * factor->error(result_fl);
-      // double factor_dim= factor->dim();
+      double factor_size= factor->size();
       
       cout<< "factor # "<< factor_count<< "\t"
           << "type: "<< counters.types[factor_count]<< "\t"
-          // << "dim: "<< factor_dim<< "\t"
+          << "size: "<< factor_size<< "\t"
           // << "error: "<< 2 * factor_error<< "\t"
           << " with keys: ";
       factor->printKeys();
       // sum += factor_error;
-      // dim += factor_dim;
+      size += factor_size;
     }
+    cout<< "reduce factor size: "<< size<< endl;
 
     cout<< "----------------------"<< endl;
   }
   // -----------------------------------
 
-  return;
- 
-  int num_extracted_rows= 0;
-  for(map<string, pair_vector>::iterator 
-      it= counters.A_rows.begin(); it != counters.A_rows.end(); ++it){
-    string type= it->first;
-    // cout<< "----------- "<< type<< " -----------"<< endl;
-
-    // keep count the number of total rows extracted in any h
-    num_extracted_rows += counters.A_rows[type].size();
-
-    pair_vector row_time= it->second;
-    // for (int i = 0; i < counters.A_rows[type].size(); ++i) {
-      // cout<< "Row index: "<< counters.A_rows[type][i].first
-          // << "\tTime: "<< counters.A_rows[type][i].second << endl;
-    // }
-  }
-  // cout<< "----------------------"<< endl;
-  cout<< "total number of extracted rows from A: "
-      << num_extracted_rows<< endl;
 
 
  
@@ -155,14 +117,9 @@ void post_process(
   A_lu.setThreshold(1e-7);
   double A_rank= A_lu.rank();
   
-  
   // number of measurements and states
-  double n = A.rows(); double m = A.cols();
   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
-  cout<< "n = "<< n<< "\nm = "<< m<< endl;
   cout<< "rank of A: "<< A_rank<< endl;
-  // cout<< "Matrix A: "<< endl;
-  // cout<< A<< endl; 
   cout<< "Hessian (Lambda) matrix size = "<< hessian.rows()<< " x "<< hessian.cols()<< endl;
 
   // get variances for the last state
@@ -176,12 +133,11 @@ void post_process(
           sqrt(var["z"])<< ")"<< endl;
   
   // builds a map for vector t for each coordinate TODO: change to lat, long, vert (needs rotations)
-  map<string, Vector> t_vector= buildt_vector(m);
+  map<string, Vector> t_vector= buildt_vector(A.cols());
   
   // upper bound lambda
-  double effective_n= get_dof_from_graph(factor_graph);
-
-  double chi_squared_dof= effective_n - m;
+  double effective_n= get_dof_from_graph(factor_graph, counters);
+  double chi_squared_dof= effective_n - A.cols();
   double r= 2 * factor_graph.error(result_fl);
   boost::math::chi_squared_distribution<> chi2_dist_lambda(chi_squared_dof);
   double lambda= pow( sqrt(r) + sqrt(boost::math::quantile(chi2_dist_lambda, 1-1e-5)), 2 );
@@ -195,7 +151,7 @@ void post_process(
   cout<< "----------- Hypothesis 0 ----------"<< "\n\n";
   
   // check matrix M before elimination
-  Matrix M = (Eigen::MatrixXd::Identity(n, n) - A*S);
+  Matrix M = (Eigen::MatrixXd::Identity(A.rows(), A.rows()) - A*S);
   Eigen::FullPivLU<Matrix> M_lu(M);
   M_lu.setThreshold(1e-7);
   cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
@@ -217,7 +173,108 @@ void post_process(
   cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
 
 
+  // ----------- loop over hypotheses --------------
+
+  // vector<string> factor_types= counters.types;
+  // vector<string>::iterator it_string= unique(factor_types.begin(), factor_types.end());
+  
+  // // Resizing the vector so as to remove the undefined terms
+  // factor_types.resize(distance(factor_types.begin(), it_string)); 
+  
+  vector<string> factor_types= return_unique_vector(counters.types);
+  cout<< "factor types: "<< endl;
+  for (int i= 0; i < factor_types.size(); ++i){
+    cout<< factor_types[i]<< endl;  
+  }
+  
+
+
   return;
+
+  for (map<string, pair_vector>::iterator 
+            it_type= counters.A_rows.begin(); 
+            it_type != counters.A_rows.end();
+            ++it_type) {
+
+    string type= it_type->first;
+
+    cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
+
+    GaussianFactorGraph fg= lin_graph->clone();
+    int factor_count= -1;
+    for (auto factor : fg){
+      ++factor_count;
+      if (!factor) {continue;}
+
+      string type= counters.types[factor_count];
+
+      // remove lidar factors
+      if (type == "lidar"){fg.remove(factor_count);}
+      if (type == "marginalized_prior"){fg.remove(factor_count);}
+    }
+
+
+
+    Matrix A= fg.jacobian().first;
+    double n = A.rows(); double m = A.cols();
+    Eigen::FullPivLU<Matrix> A_lu(A);
+    A_lu.setThreshold(1e-7);
+    double A_rank= A_lu.rank();
+    cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
+    cout<< "n = "<< n<< "\nm = "<< m<< endl;
+    cout<< "rank of A: "<< A_rank<< endl;
+
+
+    cout<< "print reduced graph without lidar & marginalized factors"<< endl;
+    factor_count= -1;
+    double sum= 0, size= 0;
+    for (auto factor : fg){
+      ++factor_count;
+      if (!factor) {continue;}
+
+      // double factor_error= 2 * factor->error(result_fl);
+      double factor_size= factor->size();
+      
+      cout<< "factor # "<< factor_count<< "\t"
+          << "type: "<< counters.types[factor_count]<< "\t"
+          << "size: "<< factor_size<< "\t"
+          // << "error: "<< 2 * factor_error<< "\t"
+          << " with keys: ";
+      factor->printKeys();
+      // sum += factor_error;
+      size += factor_size;
+    }
+    cout<< "reduce factor size: "<< size<< endl;
+
+    cout<< "----------------------"<< endl;
+  }
+  // -----------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+  return;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   // loop over hypotheses

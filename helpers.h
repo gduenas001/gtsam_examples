@@ -147,7 +147,8 @@ less than 15, which is the number of measurements in
 each IMU factor.
 */
 double 
-get_dof_from_graph(const gtsam::NonlinearFactorGraph &graph);
+get_dof_from_graph(const gtsam::NonlinearFactorGraph &graph,
+                   const Counters &counters);
 
 /*
 Build t vector. This is the vector that extracts the state
@@ -227,11 +228,32 @@ Return first element from a pair
 */
 int return_first_element(const std::pair<int, double> &p);
 
+// /*
+// return vector with unique elemets
+// */
+// template<typename T>
+// std::vector<T> return_unique_vector(std::vector<T> vec){
+
+//   // set repeated elements to NULL and move them to the end
+//   // typename std::vector<T>::iterator last= unique(vec.begin(), vec.end() );
+//   auto last= unique( vec.begin(), vec.end() );
+  
+//   // Resizing the vector so as to remove the undefined terms
+//   vec.erase(last, vec.end());
+//   // vec.resize(std::distance(vec.begin(), it)); 
+    
+//   return vec;
+// };
+
+std::vector<std::string> 
+return_unique_vector(std::vector<std::string> vec);
+
+
 
 
 // -------------------------------------------------------
 /*
-deprecated
+DEPRECATED
 */
 // -------------------------------------------------------
 void eliminateFactorsByType_old(

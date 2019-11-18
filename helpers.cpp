@@ -273,13 +273,17 @@ RangeBearingMeasurement sim_lidar_msmt(ConstantTwistScenario &scenario,
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-double get_dof_from_graph(const NonlinearFactorGraph &graph){
-  int dim= 0;
+double get_dof_from_graph(const NonlinearFactorGraph &graph,
+                          const Counters &counters){
+  int dim= 0, factor_count= -1;
   for (auto factor : graph){
+    ++factor_count;
     if (!factor) {continue;}
 
-    if (factor->dim() == 15){
+    if (counters.types[factor_count] == "odom"){
       dim += 12;
+    }else if(counters.types[factor_count] == "marginalized_prior"){
+      dim += 15;
     }else{
       dim += factor->dim();
     }
@@ -400,6 +404,21 @@ int return_first_element(const pair<int, double> &p){
     return p.first;
 }
 
+
+// -------------------------------------------------------
+// -------------------------------------------------------
+std::vector<std::string> return_unique_vector(std::vector<string> vec){
+
+  // set repeated elements to NULL and move them to the end
+  // typename std::vector<T>::iterator last= unique(vec.begin(), vec.end() );
+  auto last= unique( vec.begin(), vec.end() );
+  
+  // Resizing the vector so as to remove the undefined terms
+  vec.erase(last, vec.end());
+  // vec.resize(std::distance(vec.begin(), it)); 
+    
+  return vec;
+}
 
 
 
