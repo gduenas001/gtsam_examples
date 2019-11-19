@@ -120,7 +120,7 @@ ConstantTwistScenario createConstantTwistScenario(double radius, double linear_v
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-std::vector<Point3>  createLandmarks(double radius){
+std::vector<Point3> createLandmarks(double radius){
 
   double distance = radius + radius/10;
   std::vector<Point3> landmarks;

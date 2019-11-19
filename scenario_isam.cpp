@@ -223,20 +223,19 @@ int main(int argc, char** argv) {
     }
   } // end for loop
 
-
-// post process data showing each hypothesis
-post_process(result_fl,
-             isam_result_fl,
-             fixed_lag_smoother,
-             A_rows_per_type,
-             counters,
-             params);
-
-// save the data TODO: give option to save in different folder
-// save_data(result_fl,
-//          true_positions,
-//          landmarks,
-//          online_error);
+  // save the data TODO: give option to save in different folder
+  save_data(result_fl,
+           true_positions,
+           landmarks,
+           online_error);
+  
+  // post process data showing each hypothesis
+  post_process(result_fl,
+               isam_result_fl,
+               fixed_lag_smoother,
+               A_rows_per_type,
+               counters,
+               params);
 
   return 0;
 }
