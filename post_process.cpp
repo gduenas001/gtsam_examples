@@ -174,82 +174,22 @@ void post_process(
 
 
   // ----------- loop over hypotheses --------------
-
-  // vector<string> factor_types= counters.types;
-  // vector<string>::iterator it_string= unique(factor_types.begin(), factor_types.end());
-  
-  // // Resizing the vector so as to remove the undefined terms
-  // factor_types.resize(distance(factor_types.begin(), it_string)); 
-  
   vector<string> factor_types= return_unique_vector(counters.types);
-  cout<< "factor types: "<< endl;
-  for (int i= 0; i < factor_types.size(); ++i){
-    cout<< factor_types[i]<< endl;  
-  }
-  
-
-
-  return;
-
-  for (map<string, pair_vector>::iterator 
-            it_type= counters.A_rows.begin(); 
-            it_type != counters.A_rows.end();
+  for (vector<string>::iterator 
+            it_type= factor_types.begin(); 
+            it_type != factor_types.end();
             ++it_type) {
 
-    string type= it_type->first;
+    string h_type= *it_type;
 
-    cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
+    cout<< "----------- Hypothesis "<< h_type <<" ----------"<< "\n\n";
 
-    GaussianFactorGraph fg= lin_graph->clone();
-    int factor_count= -1;
-    for (auto factor : fg){
-      ++factor_count;
-      if (!factor) {continue;}
-
-      string type= counters.types[factor_count];
-
-      // remove lidar factors
-      if (type == "lidar"){fg.remove(factor_count);}
-      if (type == "marginalized_prior"){fg.remove(factor_count);}
+    for (int i= 0; i < counters.A_rows[h_type].size(); ++i) {
+      cout<< "row:  "<< counters.A_rows[h_type][i].first
+          << "\ttime: "<< counters.A_rows[h_type][i].second<< endl;
     }
-
-
-
-    Matrix A= fg.jacobian().first;
-    double n = A.rows(); double m = A.cols();
-    Eigen::FullPivLU<Matrix> A_lu(A);
-    A_lu.setThreshold(1e-7);
-    double A_rank= A_lu.rank();
-    cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
-    cout<< "n = "<< n<< "\nm = "<< m<< endl;
-    cout<< "rank of A: "<< A_rank<< endl;
-
-
-    cout<< "print reduced graph without lidar & marginalized factors"<< endl;
-    factor_count= -1;
-    double sum= 0, size= 0;
-    for (auto factor : fg){
-      ++factor_count;
-      if (!factor) {continue;}
-
-      // double factor_error= 2 * factor->error(result_fl);
-      double factor_size= factor->size();
-      
-      cout<< "factor # "<< factor_count<< "\t"
-          << "type: "<< counters.types[factor_count]<< "\t"
-          << "size: "<< factor_size<< "\t"
-          // << "error: "<< 2 * factor_error<< "\t"
-          << " with keys: ";
-      factor->printKeys();
-      // sum += factor_error;
-      size += factor_size;
-    }
-    cout<< "reduce factor size: "<< size<< endl;
-
-    cout<< "----------------------"<< endl;
+    
   }
-  // -----------------------------------
-
 
 
 

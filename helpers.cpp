@@ -409,13 +409,8 @@ int return_first_element(const pair<int, double> &p){
 // -------------------------------------------------------
 std::vector<std::string> return_unique_vector(std::vector<string> vec){
 
-  // set repeated elements to NULL and move them to the end
-  // typename std::vector<T>::iterator last= unique(vec.begin(), vec.end() );
-  auto last= unique( vec.begin(), vec.end() );
-  
-  // Resizing the vector so as to remove the undefined terms
-  vec.erase(last, vec.end());
-  // vec.resize(std::distance(vec.begin(), it)); 
+  sort( vec.begin(), vec.end() );
+  vec.erase( unique( vec.begin(), vec.end() ), vec.end() );
     
   return vec;
 }

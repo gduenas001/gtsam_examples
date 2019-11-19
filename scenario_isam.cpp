@@ -8,10 +8,10 @@
 // - Change naming convention of functions -> use underscores, not capital letters
 // - save_data to support fixed-lag smoother
 // - predict the initial estimate for the bias from the previous state (currently using a zero bias as init state)
-// - use counters.A_rows instead of A_rows_per_type
 // - use proto for Params class and read from external .pbtxt file
-// - run multiple iterations at each epoch and check if the error at the prior factor increases
 // - in fixed-lag smoothing, all hypotheses are rank-deficient
+// - change results_fl to results
+
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -112,7 +112,9 @@ int main(int argc, char** argv) {
                               params.is_noisy["imu"]);
 
     // Preintegrate IMU msmts
-    params.accum.integrateMeasurement(msmt_acc, msmt_w, params.dt_imu);
+    params.accum.integrateMeasurement(msmt_acc, 
+                                      msmt_w, 
+                                      params.dt_imu);
 
     // GPS update
     if (counters.gps_time_accum > params.dt_gps) {
@@ -127,7 +129,7 @@ int main(int argc, char** argv) {
 
       // predict from IMU accumulated msmts
       prev_state= NavState(result_fl.at<Pose3>  (X(counters.prev_factor)), 
-                            result_fl.at<Vector3>(V(counters.prev_factor)));
+                           result_fl.at<Vector3>(V(counters.prev_factor)));
       prev_bias= result_fl.at<imuBias::ConstantBias>(B(counters.prev_factor));
       predict_state= params.accum.predict(prev_state, prev_bias);
 
