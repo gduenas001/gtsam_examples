@@ -11,6 +11,8 @@
 // - use proto for Params class and read from external .pbtxt file
 // - in fixed-lag smoothing, all hypotheses are rank-deficient
 // - change results_fl to results
+// - add option for the python plot
+// - remove random seed and check that r values coincide with dof
 
 
 #include <gtsam/slam/dataset.h>

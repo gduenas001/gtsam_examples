@@ -281,7 +281,7 @@ double get_dof_from_graph(const NonlinearFactorGraph &graph,
     if (!factor) {continue;}
 
     if (counters.types[factor_count] == "odom"){
-      dim += 12;
+      dim += 6;
     }else if(counters.types[factor_count] == "marginalized_prior"){
       dim += 15;
     }else{

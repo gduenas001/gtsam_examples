@@ -157,7 +157,7 @@ void post_process(
     // extract rows & cols from M
     Matrix h_M = extractMatrixRowsAndColumns(M, row_inds, row_inds);
     Eigen::FullPivLU<Matrix> h_M_lu(h_M);
-    h_M_lu.setThreshold(1e-8);
+    h_M_lu.setThreshold(1e-5);
     double h_M_rank= h_M_lu.rank();
     cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
     cout << "rank of M is " << h_M_rank << endl; 
@@ -271,9 +271,9 @@ void post_process(
   // ofstream os("isam_example.dot");
   // factor_graph.saveGraph(os, result_fl);
 
-  // print path with python
-  string command = "python ../python_plot.py";
-  system(command.c_str());
+  // // print path with python
+  // string command = "python ../python_plot.py";
+  // system(command.c_str());
 
   // GTSAM_PRINT(result);
 
