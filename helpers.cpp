@@ -124,10 +124,10 @@ std::vector<Point3>  createLandmarks(double radius){
 
   double distance = radius + radius/10;
   std::vector<Point3> landmarks;
-  landmarks.push_back( Point3(distance, 0, 0) );  
-  landmarks.push_back( Point3(0, distance, 0) );
-  landmarks.push_back( Point3(-distance, 0, 0) );
-  landmarks.push_back( Point3(0, -distance, 0) );
+  landmarks.push_back( Point3(distance, 0, distance) );  
+  landmarks.push_back( Point3(0, distance, -distance) );
+  landmarks.push_back( Point3(-distance, 0, distance) );
+  landmarks.push_back( Point3(0, -distance, -distance) );
   
   return landmarks;
 }

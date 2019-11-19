@@ -44,11 +44,11 @@ struct Params{
 
   // -----------------------------------
   // options with default values 
-
+  
   // IMU noise specs
-  // TODO: investigate what this units are. default: 0003924
-  double accel_noise_sigma = 0.1; 
-  double gyro_noise_sigma = 0.1; // default: 000205689024915
+  // TODO: investigate what this units are. 
+  double accel_noise_sigma= 0.0003924; //0.1; // default: 0003924
+  double gyro_noise_sigma= 0.000205689024915; // 0.1; // default: 000205689024915
   double accel_bias_rw_sigma = 0.004905; // default: 0.004905
   double gyro_bias_rw_sigma = 0.000001454441043; // default: 0.000001454441043
 

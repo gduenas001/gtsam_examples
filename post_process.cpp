@@ -51,60 +51,6 @@ void post_process(
   // -----------------------------------
 
 
-  // ----------- reduced factor graph --------------
-  {
-    GaussianFactorGraph fg= lin_graph->clone();
-    int factor_count= -1;
-    for (auto factor : fg){
-      ++factor_count;
-      if (!factor) {continue;}
-
-      string type= counters.types[factor_count];
-
-      // remove lidar factors
-      if (type == "lidar"){fg.remove(factor_count);}
-      if (type == "marginalized_prior"){fg.remove(factor_count);}
-    }
-
-
-
-    Matrix A= fg.jacobian().first;
-    double n = A.rows(); double m = A.cols();
-    Eigen::FullPivLU<Matrix> A_lu(A);
-    A_lu.setThreshold(1e-7);
-    double A_rank= A_lu.rank();
-    cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
-    cout<< "n = "<< n<< "\nm = "<< m<< endl;
-    cout<< "rank of A: "<< A_rank<< endl;
-  
-
-    cout<< "print reduced graph without lidar & marginalized factors"<< endl;
-    factor_count= -1;
-    double sum= 0, size= 0;
-    for (auto factor : fg){
-      ++factor_count;
-      if (!factor) {continue;}
-
-      // double factor_error= 2 * factor->error(result_fl);
-      double factor_size= factor->size();
-      
-      cout<< "factor # "<< factor_count<< "\t"
-          << "type: "<< counters.types[factor_count]<< "\t"
-          << "size: "<< factor_size<< "\t"
-          // << "error: "<< 2 * factor_error<< "\t"
-          << " with keys: ";
-      factor->printKeys();
-      // sum += factor_error;
-      size += factor_size;
-    }
-    cout<< "reduce factor size: "<< size<< endl;
-
-    cout<< "----------------------"<< endl;
-  }
-  // -----------------------------------
-
-
-
  
   Matrix hessian= (lin_graph->hessian()).first;
   Matrix A= (lin_graph->jacobian()).first;
@@ -181,22 +127,88 @@ void post_process(
             ++it_type) {
 
     string h_type= *it_type;
-
     cout<< "----------- Hypothesis "<< h_type <<" ----------"<< "\n\n";
 
-    for (int i= 0; i < counters.A_rows[h_type].size(); ++i) {
-      cout<< "row:  "<< counters.A_rows[h_type][i].first
-          << "\ttime: "<< counters.A_rows[h_type][i].second<< endl;
+    // DEBUG
+    // for (int i= 0; i < counters.A_rows[h_type].size(); ++i) {
+    //   cout<< "row:  "<< counters.A_rows[h_type][i].first
+    //       << "\ttime: "<< counters.A_rows[h_type][i].second<< endl;
+    // }
+
+    // extract the row indexes 
+    vector<int> row_inds;
+    transform(counters.A_rows[h_type].begin(), 
+              counters.A_rows[h_type].end(), 
+              back_inserter( row_inds ),
+              return_first_element );
+
+    // number of msmts for hypothesis
+    int h_n= row_inds.size();
+
+    // DEBUG
+    // cout<< "Rows to be extracted: ";
+    // printIntVector( row_inds );
+
+    if (h_n == 0) {
+      cout<< "empty hypothesis"<< endl;
+      continue;
     }
     
+    // extract rows & cols from M
+    Matrix h_M = extractMatrixRowsAndColumns(M, row_inds, row_inds);
+    Eigen::FullPivLU<Matrix> h_M_lu(h_M);
+    h_M_lu.setThreshold(1e-8);
+    double h_M_rank= h_M_lu.rank();
+    cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
+    cout << "rank of M is " << h_M_rank << endl; 
+    
+    // compute LIR only if h_M is full rank
+    if (h_M_rank != h_M.rows()){
+      cout<< "M for hypothesis is rank deficient"<< endl;
+      continue;
+    }
+
+    // build vector D
+    Eigen::SelfAdjointEigenSolver<Matrix> adj(h_M);
+    Matrix h_M_inv_sqrt= adj.operatorInverseSqrt();
+    // cout<< "inverse sqrt:"<< endl;
+    // cout<< h_M_inv_sqrt<< endl;
+
+    // vector D
+    map<string, Vector> D;
+    D["x"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["x"];
+    D["y"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["y"];
+    D["z"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["z"];
+
+    // get kappa
+    map<string, double> k;
+    k["x"]= D["x"].squaredNorm() / var["x"];
+    k["y"]= D["y"].squaredNorm() / var["y"];
+    k["z"]= D["z"].squaredNorm() / var["z"];
+
+    // non-centrality parameter
+    map<string, double> mu;
+    mu["x"]= k["x"] * lambda;
+    mu["y"]= k["y"] * lambda;
+    mu["z"]= k["z"] * lambda;
+
+    // compute integrity
+    h_LIR["x"]= 1 - boost::math::cdf(
+                        boost::math::non_central_chi_squared(1, mu["x"]),
+                        pow(params.AL_x / sqrt(var["x"]), 2) );
+    h_LIR["y"]= 1 - boost::math::cdf(
+                        boost::math::non_central_chi_squared(1, mu["y"]), 
+                        pow(params.AL_y / sqrt(var["y"]), 2) );
+    h_LIR["z"]= 1 - boost::math::cdf(
+                        boost::math::non_central_chi_squared(1, mu["z"]), 
+                        pow(params.AL_z / sqrt(var["z"]), 2) );
+    
+
+    cout<< "LIR for h in x: "<< h_LIR["x"]<< endl;
+    cout<< "LIR for h in y: "<< h_LIR["y"]<< endl;
+    cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
+  
   }
-
-
-
-
-
-
-
 
 
 
@@ -208,105 +220,57 @@ void post_process(
 
 
 
+  // // ----------- reduced factor graph --------------
+  // {
+  //   GaussianFactorGraph fg= lin_graph->clone();
+  //   int factor_count= -1;
+  //   for (auto factor : fg){
+  //     ++factor_count;
+  //     if (!factor) {continue;}
+
+  //     string type= counters.types[factor_count];
+
+  //     // remove lidar factors
+  //     if (type == "lidar"){fg.remove(factor_count);}
+  //     if (type == "marginalized_prior"){fg.remove(factor_count);}
+  //   }
 
 
 
+  //   Matrix A= fg.jacobian().first;
+  //   double n = A.rows(); double m = A.cols();
+  //   Eigen::FullPivLU<Matrix> A_lu(A);
+  //   A_lu.setThreshold(1e-7);
+  //   double A_rank= A_lu.rank();
+  //   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
+  //   cout<< "n = "<< n<< "\nm = "<< m<< endl;
+  //   cout<< "rank of A: "<< A_rank<< endl;
+  
 
+  //   cout<< "print reduced graph without lidar & marginalized factors"<< endl;
+  //   factor_count= -1;
+  //   double sum= 0, size= 0;
+  //   for (auto factor : fg){
+  //     ++factor_count;
+  //     if (!factor) {continue;}
 
-
-
-
-
-  // loop over hypotheses
-  for (map<string, pair_vector>::iterator 
-            it_type= counters.A_rows.begin(); 
-            it_type != counters.A_rows.end();
-            ++it_type) {
-
-    string type= it_type->first;
-
-    cout<< "----------- Hypothesis "<< type <<" ----------"<< "\n\n";
-
-    pair_vector const &row_time= it_type->second;
-
-    // extract the row indexes 
-    vector<int> row_inds;
-    transform(row_time.begin(), 
-              row_time.end(), 
-              back_inserter( row_inds ),
-              return_first_element );
-
-    // number of msmts for hypothesis
-    int h_n= row_inds.size();
-
-    cout<< "Rows to be extracted: ";
-    printIntVector( row_inds );
-
-    if (h_n == 0) {
-      cout<< "empty hypothesis"<< endl;
-      continue;
-    }
-
-
-    Matrix h_M = extractMatrixRowsAndColumns(M, row_inds, row_inds);
-    Eigen::FullPivLU<Matrix> h_M_lu(h_M);
-    h_M_lu.setThreshold(1e-8);
-    double h_M_rank= h_M_lu.rank();
-    cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
-    cout << "rank of M is " << h_M_rank << endl; 
-    
-
-    if (h_M_rank == h_M.rows()){
-
-      // DEBUG
-      cout<< "inverse of h_H: "<< endl;
-      cout<< h_M.inverse()<< endl;
-
-      cout<< "determinant of h_M: "<< endl;
-      cout<< h_M.determinant()<< endl;
-
-      // build vector D
-      Eigen::SelfAdjointEigenSolver<Matrix> adj(h_M);
-      Matrix h_M_inv_sqrt= adj.operatorInverseSqrt();
-      cout<< "inverse sqrt:"<< endl;
-      cout<< h_M_inv_sqrt<< endl;
-
-      // vector D
-      map<string, Vector> D;
-      D["x"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["x"];
-      D["y"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["y"];
-      D["z"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["z"];
-
-      // get kappa
-      map<string, double> k;
-      k["x"]= D["x"].squaredNorm() / var["x"];
-      k["y"]= D["y"].squaredNorm() / var["y"];
-      k["z"]= D["z"].squaredNorm() / var["z"];
-
-      // non-centrality parameter
-      map<string, double> mu;
-      mu["x"]= k["x"] * lambda;
-      mu["y"]= k["y"] * lambda;
-      mu["z"]= k["z"] * lambda;
-
-      // compute integrity
-      h_LIR["x"]= 1 - boost::math::cdf(
-                          boost::math::non_central_chi_squared(1, mu["x"]),
-                          pow(params.AL_x / sqrt(var["x"]), 2) );
-      h_LIR["y"]= 1 - boost::math::cdf(
-                          boost::math::non_central_chi_squared(1, mu["y"]), 
-                          pow(params.AL_y / sqrt(var["y"]), 2) );
-      h_LIR["z"]= 1 - boost::math::cdf(
-                          boost::math::non_central_chi_squared(1, mu["z"]), 
-                          pow(params.AL_z / sqrt(var["z"]), 2) );
+  //     // double factor_error= 2 * factor->error(result_fl);
+  //     double factor_size= factor->size();
       
+  //     cout<< "factor # "<< factor_count<< "\t"
+  //         << "type: "<< counters.types[factor_count]<< "\t"
+  //         << "size: "<< factor_size<< "\t"
+  //         // << "error: "<< 2 * factor_error<< "\t"
+  //         << " with keys: ";
+  //     factor->printKeys();
+  //     // sum += factor_error;
+  //     size += factor_size;
+  //   }
+  //   cout<< "reduce factor size: "<< size<< endl;
 
-      cout<< "LIR for h in x: "<< h_LIR["x"]<< endl;
-      cout<< "LIR for h in y: "<< h_LIR["y"]<< endl;
-      cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
-    }
-  }
-
+  //   cout<< "----------------------"<< endl;
+  // }
+  // // -----------------------------------
 
 
 
@@ -420,9 +384,9 @@ void post_process(
 
   
 
-  // // print path with python
-  // string command = "python ../python_plot.py";
-  // system(command.c_str());
+  // print path with python
+  string command = "python ../python_plot.py";
+  system(command.c_str());
 
 
   // save factor graph as graphviz dot file
