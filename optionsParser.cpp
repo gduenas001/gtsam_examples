@@ -268,6 +268,30 @@ void build_variables(Params &params){
 }
 
 
+// TODO: create helper function to check if the name exists 
+// if it does, add it to the struct, if not, show a warning 
+// and keep the default from the Params constructor
+void load_params(Params &params){
+  // std::ifstream is RAII, i.e. no need to call close
+  ifstream cFile ("../params.txt");
+  if (cFile.is_open()) {
+      string line;
+      while(getline(cFile, line)){
+          line.erase(remove_if(line.begin(), line.end(), ::isspace),
+                               line.end());
+          if(line[0] == '#' || line.empty())
+              continue;
+          auto delimiterPos = line.find("=");
+          auto name = line.substr(0, delimiterPos);
+          auto value = line.substr(delimiterPos + 1);
+          cout << name << " " << value << '\n';
+      }
+      
+  } else {
+      cerr << "Couldn't open config file for reading.\n";
+  }
+}
+
 
 // --------------- for DEBUG purposes ---------------
 // int main(int argc, char **argv){

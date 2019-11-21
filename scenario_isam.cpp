@@ -13,7 +13,7 @@
 // - change results_fl to results
 // - add option for the python plot
 // - remove random seed and check that r values coincide with dof
-
+// - change name to parser.cpp
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -38,6 +38,9 @@ int main(int argc, char** argv) {
 
   // parse the options
   Params params;
+  load_params();
+
+
   optionsParser(argc, argv, params);
 
   // build variable from params

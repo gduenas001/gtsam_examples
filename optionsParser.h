@@ -3,6 +3,7 @@
 
 
 #include <iostream>
+#include <fstream>
 #include <getopt.h>
 #include <cmath>
 #include <gtsam/geometry/SimpleCamera.h>
@@ -10,6 +11,7 @@
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <random>
 #include <gtsam/nonlinear/ISAM2.h>
+#include <algorithm>
 
 #include "Params.h"
 
@@ -29,3 +31,8 @@ map to access them as "params.AL["x"]", "params.AL["y"]", and "params.AL["z"]".
 */
 void build_variables(Params &params);
 
+
+/*
+Load parameters from text file into params struct
+*/
+void load_params(Params &params);

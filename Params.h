@@ -44,7 +44,7 @@ struct Params{
 
   // -----------------------------------
   // options with default values 
-  
+
   // IMU noise specs
   // TODO: investigate what this units are. 
   double accel_noise_sigma= 0.0003924; //0.1; // default: 0003924
@@ -110,3 +110,5 @@ struct Params{
   // fixed-lag smoother lag time
   double lag= 3;
 };
+
+
