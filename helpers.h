@@ -223,30 +223,27 @@ gtsam::Vector3 sim_imu_w(
          std::normal_distribution<double> &imu_gyro_dist,
          bool is_noisy);
 
+
 /*
 Return first element from a pair
 */
 int return_first_element(const std::pair<int, double> &p);
 
-// /*
-// return vector with unique elemets
-// */
-// template<typename T>
-// std::vector<T> return_unique_vector(std::vector<T> vec){
 
-//   // set repeated elements to NULL and move them to the end
-//   // typename std::vector<T>::iterator last= unique(vec.begin(), vec.end() );
-//   auto last= unique( vec.begin(), vec.end() );
-  
-//   // Resizing the vector so as to remove the undefined terms
-//   vec.erase(last, vec.end());
-//   // vec.resize(std::distance(vec.begin(), it)); 
+/*
+return vector with unique elemets
+*/
+template<typename T>
+std::vector<T> return_unique_vector(std::vector<T> vec){
+
+  // sort the elemets firt (required for next step)
+  sort( vec.begin(), vec.end() );
+
+  // set repeated elements to NULL and move them to the end, then erase
+  vec.erase( unique( vec.begin(), vec.end() ), vec.end());
     
-//   return vec;
-// };
-
-std::vector<std::string> 
-return_unique_vector(std::vector<std::string> vec);
+  return vec;
+};
 
 
 

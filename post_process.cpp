@@ -120,7 +120,7 @@ void post_process(
 
 
   // ----------- loop over hypotheses --------------
-  vector<string> factor_types= return_unique_vector(counters.types);
+  vector<string> factor_types= return_unique_vector (counters.types);
   for (vector<string>::iterator 
             it_type= factor_types.begin(); 
             it_type != factor_types.end();

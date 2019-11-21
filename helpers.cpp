@@ -407,13 +407,13 @@ int return_first_element(const pair<int, double> &p){
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-std::vector<std::string> return_unique_vector(std::vector<string> vec){
+// std::vector<std::string> return_unique_vector(std::vector<string> vec){
 
-  sort( vec.begin(), vec.end() );
-  vec.erase( unique( vec.begin(), vec.end() ), vec.end() );
+//   sort( vec.begin(), vec.end() );
+//   vec.erase( unique( vec.begin(), vec.end() ), vec.end() );
     
-  return vec;
-}
+//   return vec;
+// }
 
 
 
