@@ -4,6 +4,7 @@
 using namespace std;
 using namespace gtsam;
 
+
 struct option long_opt[] =
 {
   {"accel_noise_sigma", required_argument, NULL, 'a'},
@@ -285,11 +286,85 @@ void load_params(Params &params){
           auto name = line.substr(0, delimiterPos);
           auto value = line.substr(delimiterPos + 1);
           cout << name << " " << value << '\n';
-      }
-      
+          if (!add_option(name, value, params)){
+            // cout<< "could not add an option\n";
+          }
+      }      
   } else {
       cerr << "Couldn't open config file for reading.\n";
   }
+}
+
+
+/*
+
+*/
+bool add_option(string name, string value, Params &params){
+
+  if (name == "accel_noise_sigma"){
+    params.accel_noise_sigma= atof(value.c_str());
+  } else if (name == "gyro_noise_sigma") {
+    params.gyro_noise_sigma= atof(value.c_str());
+  } else if (name == "accel_bias_rw_sigma") {
+    params.accel_bias_rw_sigma= atof(value.c_str());
+  } else if (name == "gyro_bias_rw_sigma") {
+    params.gyro_bias_rw_sigma= atof(value.c_str());
+  } else if (name == "gps_noise_sigma") {
+    params.gps_noise_sigma= atof(value.c_str());
+  } else if (name == "dt_imu") {
+    params.dt_imu= atof(value.c_str());
+  } else if (name == "dt_gps") {
+    params.dt_gps= atof(value.c_str());
+  } else if (name == "scenario_radius") {
+    params.scenario_radius= atof(value.c_str());
+  } else if (name == "scenario_linear_vel") {
+    params.scenario_linear_vel= atof(value.c_str());
+  } else if (name == "range_noise_sigma") {
+    params.range_noise_sigma= atof(value.c_str());
+  } else if (name == "bearing_noise_sigma") {
+    params.bearing_noise_sigma= atof(value.c_str());
+  } else if (name == "sim_time") {
+    params.sim_time= atof(value.c_str());
+  } else if (name == "evaluate_nonlinear_error") {
+    params.dt_imu= atoi(value.c_str()); // TODO: check this 
+  } else if (name == "P_lambda") {
+    params.P_lambda= atof(value.c_str());
+  } else if (name == "AL_x") {
+    params.AL_x= atof(value.c_str());
+  } else if (name == "AL_y") {
+    params.AL_y= atof(value.c_str());
+  } else if (name == "AL_z") {
+    params.AL_z= atof(value.c_str());
+  } else if (name == "is_noisy_gps") {
+    params.is_noisy_gps= atoi(value.c_str());
+  } else if (name == "is_noisy_lidar") {
+    params.is_noisy_lidar= atoi(value.c_str());
+  } else if (name == "is_noisy_imu") {
+    params.is_noisy_imu= atoi(value.c_str());
+  } else if (name == "is_noisy_prior") {
+    params.is_noisy_prior= atof(value.c_str());
+  } else if (name == "prior_position_noise_sigma") {
+    params.prior_position_noise_sigma= atof(value.c_str());
+  } else if (name == "prior_orientation_noise_sigma") {
+    params.prior_orientation_noise_sigma= atof(value.c_str());
+  } else if (name == "prior_vel_noise_sigma") {
+    params.prior_vel_noise_sigma= atof(value.c_str());
+  } else if (name == "prior_bias_acc_noise_sigma") {
+    params.prior_bias_acc_noise_sigma= atof(value.c_str());
+  } else if (name == "prior_bias_gyro_noise_sigma") {
+    params.prior_bias_gyro_noise_sigma= atof(value.c_str());
+  } else if (name == "seed") {
+    params.seed= atoi(value.c_str());
+  } else if (name == "lag") {
+    params.lag= atof(value.c_str());
+
+    // name doesn't exist -> return false
+  } else {
+    cout<< "name "<< name<< " is not a member of params"<< endl;
+    return false;
+  }
+
+  return true;
 }
 
 

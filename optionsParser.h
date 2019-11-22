@@ -1,7 +1,7 @@
 
 #pragma once
 
-
+#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <getopt.h>
@@ -36,3 +36,9 @@ void build_variables(Params &params);
 Load parameters from text file into params struct
 */
 void load_params(Params &params);
+
+/*
+*/
+bool add_option(std::string name, std::string value, Params &params);
+
+

@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 
   // parse the options
   Params params;
-  load_params();
+  load_params(params);
 
 
   optionsParser(argc, argv, params);

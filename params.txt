@@ -1,0 +1,80 @@
+# IMU noise specs
+# TODO: investigate what this units are. 
+#0.1; # default: 0003924
+accel_noise_sigma= 0.0003924
+# 0.1; # default: 000205689024915
+gyro_noise_sigma= 0.000205689024915
+# default: 0.004905
+accel_bias_rw_sigma = 0.004905
+# default: 0.000001454441043
+gyro_bias_rw_sigma = 0.000001454441043
+
+# GPS position noise spec [meters]
+gps_noise_sigma = 1.0
+
+# IMU freq
+# default 125HZ -- makes for 10 degrees per step (1.0 / 18)
+dt_imu = 1.0 / 200
+
+# GPS freq [sec] (at the moment GPS and lidar are sync)
+# TODO: add functionality to have asynchronous GPS and lidar measurements
+dt_gps = 1.0
+
+# The current scenario simulate a robot moving in circles,
+# this is the radius of such movement [meters]
+scenario_radius = 30
+# and the linear velocity [m/s]
+scenario_linear_vel = 50 / 3.6
+
+# lidar feature detections noise specs
+# range standard deviation [meters]
+range_noise_sigma = 0.20
+# bearing standard dev [rads]
+bearing_noise_sigma = 3 * M_PI / 180
+
+# default simulation time [sec] 
+# (to increase the simulation time: "--sim_time <time_in_secs>")
+sim_time= 2
+
+# deprecated
+bool evaluate_nonlinear_error= true
+
+# prob allocation for the upper bound of lambda
+P_lambda= 1e-5
+
+# Alert limits [meters]
+alert limit in x-coord
+AL_x= 1
+alert limit in y-coord
+AL_y= 1
+alert limit in z-coord
+AL_z= 1
+
+# if set to false, the measurements are perfect
+bool is_noisy_gps= true
+bool is_noisy_lidar= true
+bool is_noisy_imu= true
+bool is_noisy_prior= true
+
+# prior position noise [meters]
+prior_position_noise_sigma= 0.01
+
+# prior orientation noise [rads]
+prior_orientation_noise_sigma= 0.01
+
+# prior velocity noise [m/s]
+prior_vel_noise_sigma= 0.01
+
+# prior IMU bias noise [m/s2]
+prior_bias_acc_noise_sigma= 0.05
+# [rads]
+prior_bias_gyro_noise_sigma= 1 * M_PI / 180
+
+# noise generator seed
+int seed= 0
+
+# fixed-lag smoother lag time
+lag= 3
+
+
+
