@@ -2,18 +2,11 @@
 // - need to figure out how the imu noise is specified: continuous - discrete time conversion.
 // - data association for landmarks
 // - different frequencies for GPS and lidar
-// - substitute boost::optional. I don't think this is the use
-// - Why? Odom M matrix is rank 6 because of the actual number of measurements
-// - seems that dof of a odom factor is 12, not 6, but M is still rank 6...
 // - Change naming convention of functions -> use underscores, not capital letters
 // - save_data to support fixed-lag smoother
 // - predict the initial estimate for the bias from the previous state (currently using a zero bias as init state)
-// - use proto for Params class and read from external .pbtxt file
-// - in fixed-lag smoothing, all hypotheses are rank-deficient
-// - change results_fl to results
 // - add option for the python plot
 // - remove random seed and check that r values coincide with dof
-// - change name to parser.cpp
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -21,6 +14,8 @@
 #include <boost/math/distributions/chi_squared.hpp>
 #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 #include <gtsam_unstable/nonlinear/BatchFixedLagSmoother.h>
+
+
 
 
 #include "helpers.h"
@@ -44,27 +39,30 @@ int main(int argc, char** argv) {
   // build variable from params
   build_variables(params);
 
-  // noise generator
-  std::default_random_engine noise_generator;
-  noise_generator.seed(params.seed);
+  // initilize random engine for noise generation
+  default_random_engine
+  noise_generator= initialize_noise_generator(params.seed);
+  
 
   // landmarks
-  vector<Point3> landmarks= createLandmarks(params.scenario_radius);
+  vector<Point3> 
+  landmarks= create_landmarks(params.scenario_radius);
 
   // scenario to simulate measurements and ground truth
-  ConstantTwistScenario scenario= createConstantTwistScenario(
-                                      params.scenario_radius,
-                                      params.scenario_linear_vel);
+  ConstantTwistScenario 
+  scenario= createConstantTwistScenario(params.scenario_radius,
+                                        params.scenario_linear_vel);
 
   // Create factor graph & timestamps to update ISAM2 fixed-lag smoother
   NonlinearFactorGraph newgraph;
   FixedLagSmoother::KeyTimestampMap new_timestamps;
 
   // Create the initial estimate to the solution
-  Values initial_estimate, result_fl; 
+  Values initial_estimate, result; 
   
   // fixed-lag smoother
-  IncrementalFixedLagSmoother fixed_lag_smoother(params.lag, params.fl_isam_params);
+  IncrementalFixedLagSmoother 
+  fixed_lag_smoother(params.lag, params.fl_isam_params);
 
 
   // initialize variables
@@ -74,7 +72,7 @@ int main(int argc, char** argv) {
   vector<Point3> true_positions;
   vector<Pose3> online_error; // error when computed online
   true_positions.push_back( scenario.pose(0).translation() );
-  FixedLagSmoother::Result isam_result_fl;
+  FixedLagSmoother::Result isam_result;
   map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
   A_rows_per_type.insert( pair<string, vector<int>> ("lidar", {}) );
   A_rows_per_type.insert( pair<string, vector<int>> ("odom", {}) );
@@ -91,8 +89,10 @@ int main(int argc, char** argv) {
                                   	params);
 
   // solve the graph once
-  fixed_lag_smoother.update(newgraph, initial_estimate, new_timestamps);
-  result_fl= fixed_lag_smoother.calculateEstimate();
+  fixed_lag_smoother.update(newgraph, 
+                            initial_estimate, 
+                            new_timestamps);
+  result= fixed_lag_smoother.calculateEstimate();
   newgraph= NonlinearFactorGraph();
   initial_estimate.clear();
   new_timestamps.clear();
@@ -134,9 +134,9 @@ int main(int argc, char** argv) {
       true_positions.push_back( scenario.pose(counters.current_time).translation() );
 
       // predict from IMU accumulated msmts
-      prev_state= NavState(result_fl.at<Pose3>  (X(counters.prev_factor)), 
-                           result_fl.at<Vector3>(V(counters.prev_factor)));
-      prev_bias= result_fl.at<imuBias::ConstantBias>(B(counters.prev_factor));
+      prev_state= NavState(result.at<Pose3>  (X(counters.prev_factor)), 
+                           result.at<Vector3>(V(counters.prev_factor)));
+      prev_bias= result.at<imuBias::ConstantBias>(B(counters.prev_factor));
       predict_state= params.accum.predict(prev_state, prev_bias);
 
       // predicted init values
@@ -204,18 +204,18 @@ int main(int argc, char** argv) {
       }      
       
       // Incremental solution
-      isam_result_fl= fixed_lag_smoother.update(newgraph, 
+      isam_result= fixed_lag_smoother.update(newgraph, 
                                                 initial_estimate, 
                                                 new_timestamps);
       for (int i = 0; i < 3; ++i) {
-        isam_result_fl= fixed_lag_smoother.update();
+        isam_result= fixed_lag_smoother.update();
       }
 
-      result_fl= fixed_lag_smoother.calculateEstimate();
+      result= fixed_lag_smoother.calculateEstimate();
 
       // compute error
       online_error.push_back(compute_error(scenario.pose(counters.current_time),
-                            result_fl.at<Pose3>(X(counters.current_factor)) ));
+                            result.at<Pose3>(X(counters.current_factor)) ));
 
       // if there's been marginalization -> add factor
       if (counters.current_time  > params.lag){
@@ -233,14 +233,14 @@ int main(int argc, char** argv) {
   } // end for loop
 
   // save the data TODO: give option to save in different folder
-  save_data(result_fl,
+  save_data(result,
            true_positions,
            landmarks,
            online_error);
   
   // post process data showing each hypothesis
-  post_process(result_fl,
-               isam_result_fl,
+  post_process(result,
+               isam_result,
                fixed_lag_smoother,
                A_rows_per_type,
                counters,

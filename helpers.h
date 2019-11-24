@@ -21,6 +21,7 @@ Helper functions for the main code.
 #include <gtsam/navigation/ImuBias.h>
 #include <vector>
 #include <string>
+#include <chrono> 
 
 
 #include "RangeBearingFactorMap.h"
@@ -37,6 +38,12 @@ using symbol_shorthand::V;
 using symbol_shorthand::B;
 
 
+/*
+Initializes the noise generator engine with the seed.
+If seed is -1, sets a random seed with the current time
+*/
+std::default_random_engine 
+initialize_noise_generator(int seed);
 
 
 /*
@@ -92,7 +99,7 @@ Creates the map of landmarks and stores them in a vector
 of 3D points. 
 TODO: read landmarks from text file.
 */
-std::vector<Point3> createLandmarks(double radius);
+std::vector<Point3> create_landmarks(double radius);
 
 
 /*

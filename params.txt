@@ -32,7 +32,7 @@ bearing_noise_sigma = 0.05233333333 # (3 deg)
 
 # default simulation time [sec] 
 # (to increase the simulation time: "--sim_time <time_in_secs>"
-sim_time= 2
+sim_time= 10
 
 # prob allocation for the upper bound of lambda
 P_lambda= 1e-5
@@ -66,7 +66,7 @@ prior_bias_acc_noise_sigma= 0.05
 prior_bias_gyro_noise_sigma= 0.01744444444 # (1 deg)
 
 # noise generator seed
-seed= 0
+seed= -1
 
 # fixed-lag smoother lag time
 lag= 3

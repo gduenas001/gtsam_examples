@@ -7,6 +7,19 @@ using namespace gtsam;
 
 
 // -------------------------------------------------------
+default_random_engine 
+initialize_noise_generator(int seed){
+  default_random_engine noise_generator;
+  if (seed == -1) {
+    noise_generator.seed(std::chrono::system_clock::now().time_since_epoch().count());
+  } else {
+    noise_generator.seed(seed);
+  }
+  return noise_generator;
+}
+
+
+// -------------------------------------------------------
 void save_data(Values result,
               std::vector<Point3> true_positions,
               std::vector<Point3> landmarks,
@@ -120,7 +133,7 @@ ConstantTwistScenario createConstantTwistScenario(double radius, double linear_v
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-std::vector<Point3> createLandmarks(double radius){
+std::vector<Point3> create_landmarks(double radius){
 
   double distance = radius + radius/10;
   std::vector<Point3> landmarks;
