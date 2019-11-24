@@ -53,7 +53,8 @@ void add_lidar_factor(
       RangeBearingFactorMap &range_bearing_factor,
       std::map<string, vector<int>> &A_rows_per_type, 
       int &A_rows_count,
-      Counters &counters);
+      Counters &counters,
+      bool is_verbose);
 
 
 
@@ -66,7 +67,8 @@ void add_gps_factor(
       GPSFactor &gps_factor,
       std::map<string, vector<int>> &A_rows_per_type, 
       int &A_rows_count,
-      Counters &counters);
+      Counters &counters,
+      bool is_verbose);
 
 
 
@@ -80,6 +82,7 @@ void addOdomFactor(
       gtsam::CombinedImuFactor &imufac,
       std::map<string, vector<int>> &A_rows_per_type, 
       int &A_rows_count,
-      Counters &counters);
+      Counters &counters,
+      bool is_verbose);
 
 

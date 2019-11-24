@@ -1,20 +1,18 @@
+# for debugging
+is_verbose= 0
+
 # IMU noise specs
 # TODO: investigate what this units are. 
-#0.1; # default: 0003924
-accel_noise_sigma= 0.0003924
-# 0.1; # default: 000205689024915
-gyro_noise_sigma= 0.000205689024915
-# default: 0.004905
-accel_bias_rw_sigma = 0.004905
-# default: 0.000001454441043
-gyro_bias_rw_sigma = 0.000001454441043
+accel_noise_sigma= 0.0003924 #0.1; # default: 0003924
+gyro_noise_sigma= 0.000205689024915 # 0.1; # default: 000205689024915
+accel_bias_rw_sigma = 0.004905 # default: 0.004905
+gyro_bias_rw_sigma = 0.000001454441043 # default: 0.000001454441043
 
 # GPS position noise spec [meters]
 gps_noise_sigma = 1.0
 
 # IMU freq
-# default 125HZ -- makes for 10 degrees per step (1.0 / 18)
-dt_imu = 1.0 / 200
+dt_imu = 0.005 # (200Hz) # default 125HZ -- makes for 10 degrees per step (1.0 / 18)
 
 # GPS freq [sec] (at the moment GPS and lidar are sync)
 # TODO: add functionality to have asynchronous GPS and lidar measurements
@@ -24,37 +22,34 @@ dt_gps = 1.0
 # this is the radius of such movement [meters]
 scenario_radius = 30
 # and the linear velocity [m/s]
-scenario_linear_vel = 50 / 3.6
+scenario_linear_vel = 13.9 # 50kph
 
 # lidar feature detections noise specs
 # range standard deviation [meters]
 range_noise_sigma = 0.20
 # bearing standard dev [rads]
-bearing_noise_sigma = 3 * M_PI / 180
+bearing_noise_sigma = 0.05233333333 # (3 deg)
 
 # default simulation time [sec] 
-# (to increase the simulation time: "--sim_time <time_in_secs>")
+# (to increase the simulation time: "--sim_time <time_in_secs>"
 sim_time= 2
-
-# deprecated
-bool evaluate_nonlinear_error= true
 
 # prob allocation for the upper bound of lambda
 P_lambda= 1e-5
 
 # Alert limits [meters]
-alert limit in x-coord
+# alert limit in x-coord
 AL_x= 1
-alert limit in y-coord
+# alert limit in y-coord
 AL_y= 1
-alert limit in z-coord
+# alert limit in z-coord
 AL_z= 1
 
 # if set to false, the measurements are perfect
-bool is_noisy_gps= true
-bool is_noisy_lidar= true
-bool is_noisy_imu= true
-bool is_noisy_prior= true
+is_noisy_gps= 1
+is_noisy_lidar= 1
+is_noisy_imu= 1
+is_noisy_prior= 1
 
 # prior position noise [meters]
 prior_position_noise_sigma= 0.01
@@ -68,13 +63,15 @@ prior_vel_noise_sigma= 0.01
 # prior IMU bias noise [m/s2]
 prior_bias_acc_noise_sigma= 0.05
 # [rads]
-prior_bias_gyro_noise_sigma= 1 * M_PI / 180
+prior_bias_gyro_noise_sigma= 0.01744444444 # (1 deg)
 
 # noise generator seed
-int seed= 0
+seed= 0
 
 # fixed-lag smoother lag time
 lag= 3
 
 
 
+# --------------- deprecated ---------------
+evaluate_nonlinear_error= 0

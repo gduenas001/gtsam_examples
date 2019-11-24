@@ -11,6 +11,7 @@ void Counters::add_factor(string type){
 	this->types.push_back(type);
 }
 
+
 // ----------------------------------------------------
 void Counters::update_A_rows(double lag){
 	// if there has not being marginalization -> return

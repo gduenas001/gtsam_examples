@@ -20,9 +20,20 @@ using namespace std;
 
 
 /*
-Function to parse the options at runtime
+loads the params from "params.txt" into a Params struct
+TODO: remove default values from the params initilization
 */
-int optionsParser (int argc, char **argv, Params &params);
+Params load_params_from_file();
+
+
+/*
+adds the parameter read from the text file to the Params
+struct
+*/
+bool add_parameter(std::string name, 
+				   std::string value, 
+				   Params &params);
+
 
 /*
 This function builds the parameters from the inputs given, 
@@ -33,12 +44,16 @@ void build_variables(Params &params);
 
 
 /*
-Load parameters from text file into params struct
+Function to parse the options at runtime
 */
-void load_params(Params &params);
+int params_parser(int argc, char **argv, Params &params);
+
 
 /*
+Prints the params struct
+NOTE: if you add a new value, you have to add it to
+this function too b/c it doesn't automatically 
+iterate through the parameters
 */
-bool add_option(std::string name, std::string value, Params &params);
-
+void print_params(const Params &params);
 

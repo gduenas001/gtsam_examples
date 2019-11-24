@@ -33,15 +33,13 @@ using namespace std;
 using namespace gtsam;
 
 
-/* ************************************************************************* */
+// ----------------------------------------------------
 int main(int argc, char** argv) {
 
   // parse the options
-  Params params;
-  load_params(params);
-
-
-  optionsParser(argc, argv, params);
+  Params params= load_params_from_file();
+  if (params.is_verbose){print_params(params);}
+  params_parser(argc, argv, params);
 
   // build variable from params
   build_variables(params);
@@ -98,9 +96,11 @@ int main(int argc, char** argv) {
   newgraph= NonlinearFactorGraph();
   initial_estimate.clear();
   new_timestamps.clear();
+  if (params.is_verbose){cout<< "Graph initilized"<< '\n';}
 
   // Simulate poses and imu measurements, adding them to the factor graph
   while (counters.current_time < params.sim_time){
+
     counters.increase_time();
       
     // Simulate acceleration and gyro measurements in (actual) body frame
@@ -123,6 +123,7 @@ int main(int argc, char** argv) {
 
     // GPS update
     if (counters.gps_time_accum > params.dt_gps) {
+      if (params.is_verbose) {cout<< "GPS update"<< '\n';}
 
       counters.increase_factors_count();
       new_timestamps[X(counters.current_factor)]= counters.current_time;
@@ -153,7 +154,8 @@ int main(int argc, char** argv) {
                     imu_factor,
                     A_rows_per_type, 
                     A_rows_count,
-                    counters);
+                    counters,
+                    params.is_verbose);
 
    
       // Adding GPS factor
@@ -168,10 +170,11 @@ int main(int argc, char** argv) {
                           params.gps_cov);
 
       add_gps_factor(newgraph,
-                   gps_factor,
-                   A_rows_per_type,
-                   A_rows_count,
-                   counters);
+                    gps_factor,
+                    A_rows_per_type,
+                    A_rows_count,
+                    counters,
+                    params.is_verbose);
 
       // lidar measurements
       for (int j = 0; j < landmarks.size(); ++j) {
@@ -193,10 +196,11 @@ int main(int argc, char** argv) {
                              params.lidar_cov);
 
         add_lidar_factor(newgraph,
-                       range_bearing_factor,
-                       A_rows_per_type, 
-                       A_rows_count,
-                       counters);
+                        range_bearing_factor,
+                        A_rows_per_type, 
+                        A_rows_count,
+                        counters,
+                        params.is_verbose);
       }      
       
       // Incremental solution

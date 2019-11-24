@@ -15,6 +15,8 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
                      Counters &counters,
                      Params &params){
 
+  if (params.is_verbose) {cout<< "Adding prior factors..."<< '\n';}
+
   // initialize the count on the rows of A
   int A_rows_count = 0;
 
@@ -140,6 +142,7 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
   // keep track of the factor types inserted
   counters.add_factor("prior_bias");
   
+  if (params.is_verbose) {cout<< "...prior factor added"<< '\n';}
 
   // return the count of the rows of A
   return A_rows_count;
@@ -152,7 +155,10 @@ void add_lidar_factor(NonlinearFactorGraph &newgraph,
 					RangeBearingFactorMap &range_bearing_factor,
 					map<string, vector<int>> &A_rows_per_type, 
 					int &A_rows_count,
-          Counters &counters){
+          Counters &counters,
+          bool is_verbose){
+
+  if (is_verbose) {cout<< "Adding lidar factor..."<< '\n';}
 
   newgraph.add(range_bearing_factor);
   vector<int> lidar_rows= returnIncrVector(A_rows_count, 3);
@@ -171,6 +177,8 @@ void add_lidar_factor(NonlinearFactorGraph &newgraph,
 
   // keep track of the factor types inserted
   counters.add_factor("lidar");
+
+  if (is_verbose) {cout<< "...lidar factor added"<< '\n';}
 }
 
 
@@ -180,7 +188,10 @@ void add_gps_factor(NonlinearFactorGraph &newgraph,
 			   GPSFactor &gps_factor,
 				 map<string, vector<int>> &A_rows_per_type, 
 				 int &A_rows_count,
-         Counters &counters) {
+         Counters &counters,
+         bool is_verbose) {
+
+  if (is_verbose) {cout<< "Adding GPS factor..."<< '\n';}
 
 	newgraph.add(gps_factor);
 	vector<int> gps_rows=  returnIncrVector(A_rows_count, 3);
@@ -199,6 +210,7 @@ void add_gps_factor(NonlinearFactorGraph &newgraph,
   // keep track of the factor types inserted
   counters.add_factor("gps");
   
+  if (is_verbose) {cout<< "...GPS factor added"<< '\n';}
 }
 
 
@@ -208,7 +220,10 @@ void addOdomFactor(NonlinearFactorGraph &newgraph,
 		    CombinedImuFactor &imufac,
 			  map<string, vector<int>> &A_rows_per_type, 
 			  int &A_rows_count,
-        Counters &counters) {
+        Counters &counters,
+        bool is_verbose) {
+
+  if (is_verbose) {cout<< "Adding odom factor"<< '\n';}
 
 	newgraph.add(imufac);
 	vector<int> odom_rows= returnIncrVector(A_rows_count, 15);
@@ -227,5 +242,6 @@ void addOdomFactor(NonlinearFactorGraph &newgraph,
   // keep track of the factor types inserted
   counters.add_factor("odom");
   
+  if (is_verbose) {cout<< "...odom factor added"<< '\n';}
 }
 
