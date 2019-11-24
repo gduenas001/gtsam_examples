@@ -1,5 +1,5 @@
 
-#include "optionsParser.h"
+#include "parser.h"
 
 using namespace std;
 using namespace gtsam;

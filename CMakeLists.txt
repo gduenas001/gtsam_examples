@@ -15,7 +15,7 @@ add_executable(main
   			   scenario_isam.cpp
   			   helpers.cpp
   			   RangeBearingFactorMap.cpp
-  			   optionsParser.cpp
+  			   parser.cpp
   			   post_process.cpp
   			   Counters.cpp
   			   add_factors.cpp

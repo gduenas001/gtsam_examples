@@ -25,7 +25,7 @@
 
 #include "helpers.h"
 #include "post_process.h"
-#include "optionsParser.h"
+#include "parser.h"
 #include "Counters.h"
 #include "add_factors.h"
 
