@@ -74,11 +74,18 @@ public:
 		this->current_factor += 1;
 		this->prev_factor += 1;
 	}
-	// ----------------------------------------------------
+
+
+	/*
+	add an estry with the name of the factor to 
+	"types" field
+	*/
 	void add_factor(std::string type);
 
-	// ----------------------------------------------------
-	void update_A_rows(double lag);
+
+	/*
+	*/
+	void update_A_rows(const double lag);
 };
 
 

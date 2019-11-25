@@ -11,8 +11,8 @@ gyro_bias_rw_sigma = 0.000001454441043 # default: 0.000001454441043
 # GPS position noise spec [meters]
 gps_noise_sigma = 1.0
 
-# IMU freq
-dt_imu = 0.005 # (200Hz) # default 125HZ -- makes for 10 degrees per step (1.0 / 18)
+# IMU freq (add small number for numberical reasons)
+dt_imu = 0.00500000001 # (200Hz) # default 125HZ -- makes for 10 degrees per step (1.0 / 18)
 
 # GPS freq [sec] (at the moment GPS and lidar are sync)
 # TODO: add functionality to have asynchronous GPS and lidar measurements
@@ -32,7 +32,7 @@ bearing_noise_sigma = 0.05233333333 # (3 deg)
 
 # default simulation time [sec] 
 # (to increase the simulation time: "--sim_time <time_in_secs>"
-sim_time= 10
+sim_time= 16
 
 # prob allocation for the upper bound of lambda
 P_lambda= 1e-5

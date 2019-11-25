@@ -123,7 +123,12 @@ int main(int argc, char** argv) {
 
     // GPS update
     if (counters.gps_time_accum > params.dt_gps) {
-      if (params.is_verbose) {cout<< "GPS update"<< '\n';}
+      if (params.is_verbose) {
+        cout<< "GPS update"<< '\n';
+        cout<< "Time: "<< counters.current_time
+            << "\tAccum time: "<< counters.gps_time_accum<< '\n';
+      }
+
 
       counters.increase_factors_count();
       new_timestamps[X(counters.current_factor)]= counters.current_time;
@@ -205,8 +210,8 @@ int main(int argc, char** argv) {
       
       // Incremental solution
       isam_result= fixed_lag_smoother.update(newgraph, 
-                                                initial_estimate, 
-                                                new_timestamps);
+                                             initial_estimate, 
+                                             new_timestamps);
       for (int i = 0; i < 3; ++i) {
         isam_result= fixed_lag_smoother.update();
       }

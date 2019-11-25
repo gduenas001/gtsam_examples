@@ -13,15 +13,15 @@ void Counters::add_factor(string type){
 
 
 // ----------------------------------------------------
-void Counters::update_A_rows(double lag){
+void Counters::update_A_rows(const double lag){
 	// if there has not being marginalization -> return
 	if (this->current_time <= lag){ return; }
 
 	// time at the beggining of the sliding window
 	double time_threshold= this->current_time - lag;
 
-	// cout<< "Remove rows!\nCurrent time: "<< this->current_time
-	// 	<< "\nTime threshold: "<< time_threshold<< endl;
+	cout<< "Remove rows!\nCurrent time: "<< this->current_time
+		<< "\nTime threshold: "<< time_threshold<< endl;
 
 
 	int num_erased_rows= 0;

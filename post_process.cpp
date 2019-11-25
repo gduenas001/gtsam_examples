@@ -209,6 +209,16 @@ void post_process(
   }
 
 
+  // write r into file
+  string filename = "../results/residuals/time" + 
+                    to_string(int(counters.current_time)) + 
+                    "_lag" + to_string(int(params.lag)) + 
+                    ".csv";
+  fstream stream;
+  stream.open(filename.c_str(), fstream::app); 
+  stream <<  r << '\n';
+  stream.close();
+
 
   // // ----------- reduced factor graph --------------
   // {

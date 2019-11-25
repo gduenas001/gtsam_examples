@@ -110,8 +110,6 @@ Vector6 error_average(std::vector<Pose3> poses){
 
 
 
-
-
 // -------------------------------------------------------
 // -------------------------------------------------------
 ConstantTwistScenario createConstantTwistScenario(double radius, double linear_velocity) {
@@ -294,9 +292,9 @@ double get_dof_from_graph(const NonlinearFactorGraph &graph,
     if (!factor) {continue;}
 
     if (counters.types[factor_count] == "odom"){
-      dim += 6;
+      dim += 12;
     }else if(counters.types[factor_count] == "marginalized_prior"){
-      dim += 15;
+      dim += 0;
     }else{
       dim += factor->dim();
     }
@@ -321,21 +319,6 @@ map<string, Vector> buildt_vector(int size){
 }
 
 
-// -------------------------------------------------------
-// -------------------------------------------------------
-map<string,double> getVariancesForLastPose(ISAM2 &isam,
-										   Counters &counters){
-	map<string,double> var;
-	Matrix P_x= isam.marginalCovariance(X(counters.current_factor));
-	var["roll"]= P_x(0,0);
-	var["pitch"]= P_x(1,1);
-	var["yaw"]= P_x(2,2);
-	var["x"]= P_x(3,3);
-	var["y"]= P_x(4,4);
-	var["z"]= P_x(5,5);
-
-	return var;
-}
 
 
 // -------------------------------------------------------
@@ -498,4 +481,21 @@ double getDOFfromFactorType(int n, string type){
     }else{
       return n;
     }
+}
+
+
+// -------------------------------------------------------
+// -------------------------------------------------------
+map<string,double> getVariancesForLastPose(ISAM2 &isam,
+                       Counters &counters){
+  map<string,double> var;
+  Matrix P_x= isam.marginalCovariance(X(counters.current_factor));
+  var["roll"]= P_x(0,0);
+  var["pitch"]= P_x(1,1);
+  var["yaw"]= P_x(2,2);
+  var["x"]= P_x(3,3);
+  var["y"]= P_x(4,4);
+  var["z"]= P_x(5,5);
+
+  return var;
 }

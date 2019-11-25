@@ -8,7 +8,13 @@
 using namespace gtsam;
 using namespace std;
 
-// Factor for range bearing measurements to a map (no key for the landmarks)
+/*
+ Factor for range-bearing measurements to a landmark
+ in the prior map.
+ It's different from the ones already implemented in 
+ that there is no key for the landmarks here b/c they 
+ are in the map and thus not estimated
+*/
 class RangeBearingFactorMap: public NoiseModelFactor1<Pose3> {
   public:
     double range_msmt;
@@ -22,10 +28,10 @@ class RangeBearingFactorMap: public NoiseModelFactor1<Pose3> {
                           Unit3 bearing,
                           Point3 landmark, 
                           const SharedNoiseModel& noise_model):
-      range_msmt(range), 
-      bearing_msmt(bearing),
-      landmark_(landmark),
-      NoiseModelFactor1<Pose3>(noise_model, j) {}
+    range_msmt(range), 
+    bearing_msmt(bearing),
+    landmark_(landmark),
+    NoiseModelFactor1<Pose3>(noise_model, j) {}
 
     virtual ~RangeBearingFactorMap() {}
 
