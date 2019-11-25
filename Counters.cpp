@@ -13,16 +13,19 @@ void Counters::add_factor(string type){
 
 
 // ----------------------------------------------------
-void Counters::update_A_rows(const double lag){
+void Counters::update_A_rows(const double lag,
+							 const bool is_verbose){
+
 	// if there has not being marginalization -> return
 	if (this->current_time <= lag){ return; }
 
 	// time at the beggining of the sliding window
 	double time_threshold= this->current_time - lag;
 
-	cout<< "Remove rows!\nCurrent time: "<< this->current_time
-		<< "\nTime threshold: "<< time_threshold<< endl;
-
+	if (is_verbose){
+	cout<< "Remove factors from time"<< time_threshold
+		<< "until current time: "<< this->current_time<< '\n';
+	}
 
 	int num_erased_rows= 0;
 	for (map<string, pair_vector>::iterator

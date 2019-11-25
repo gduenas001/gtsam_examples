@@ -58,18 +58,27 @@ public:
 	// to keep track of factor types
 	std::vector<std::string> types;
 
-	// ----------------------------------------------------
+
+	/*
+	increase time by dt_imu
+	*/
 	void increase_time(){
 		this->current_time   += this->dt_imu;
 		this->gps_time_accum += this->dt_imu;
 	}
 
-	// ----------------------------------------------------
+
+	/*
+	set the accumulation time to zero
+	This is done after the update
+	*/
 	void reset_timer(){
 		this->gps_time_accum= 0;
 	}
 
-	// ----------------------------------------------------
+	/*
+	increase the number of factor by one
+	*/
 	void increase_factors_count(){
 		this->current_factor += 1;
 		this->prev_factor += 1;
@@ -84,8 +93,11 @@ public:
 
 
 	/*
+	removes rows corresponding to factors that were
+	factorized
 	*/
-	void update_A_rows(const double lag);
+	void update_A_rows(const double lag,
+					   const bool is_verbose);
 };
 
 

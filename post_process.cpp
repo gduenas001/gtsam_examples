@@ -29,7 +29,12 @@ void post_process(
   boost::shared_ptr<GaussianFactorGraph> 
                   lin_graph= factor_graph.linearize(result_fl);
 
-  // --------------- print factors --------------------
+  
+  map<string, double> r_type;
+  r_type.insert({"odom", 0});
+  r_type.insert({"gps", 0});
+  r_type.insert({"lidar", 0});
+
   {
     int factor_count= -1;
     for (auto factor : factor_graph){
@@ -39,6 +44,15 @@ void post_process(
       double factor_error= 2 * factor->error(result_fl);
       double factor_dim= factor->dim();
       
+      if (counters.types[factor_count] == "odom"){
+        r_type["odom"] += factor_error;
+      } else if (counters.types[factor_count] == "gps"){
+        r_type["gps"] += factor_error;
+      } else if (counters.types[factor_count] == "lidar"){
+        r_type["lidar"] += factor_error;
+      }
+
+
       cout<< "factor # "<< factor_count<< "\t"
           << "type: "<< counters.types[factor_count]<< "\t\t"
           << "dim: "<< factor_dim<< "\t"
@@ -48,7 +62,7 @@ void post_process(
 
     cout<< "----------------------"<< endl;
   }
-  // -----------------------------------
+  
 
 
  
@@ -210,14 +224,20 @@ void post_process(
 
 
   // write r into file
-  string filename = "../results/residuals/time" + 
+  string filename = "../results/residuals/types_time" + 
                     to_string(int(counters.current_time)) + 
                     "_lag" + to_string(int(params.lag)) + 
                     ".csv";
   fstream stream;
   stream.open(filename.c_str(), fstream::app); 
-  stream <<  r << '\n';
+  stream<< r_type["odom"]<< " "
+        << r_type["gps"]<< " "
+        << r_type["lidar"]<< " "
+        << '\n';
   stream.close();
+
+
+
 
 
   // // ----------- reduced factor graph --------------

@@ -4,9 +4,10 @@
 // - different frequencies for GPS and lidar
 // - Change naming convention of functions -> use underscores, not capital letters
 // - save_data to support fixed-lag smoother
-// - predict the initial estimate for the bias from the previous state (currently using a zero bias as init state)
 // - add option for the python plot
-// - remove random seed and check that r values coincide with dof
+// - predict the initial estimate for the bias from the previous state (currently using a zero bias as init state)
+
+
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -125,8 +126,7 @@ int main(int argc, char** argv) {
     if (counters.gps_time_accum > params.dt_gps) {
       if (params.is_verbose) {
         cout<< "GPS update"<< '\n';
-        cout<< "Time: "<< counters.current_time
-            << "\tAccum time: "<< counters.gps_time_accum<< '\n';
+        cout<< "Time: "<< counters.current_time<< '\n';
       }
 
 
@@ -228,7 +228,7 @@ int main(int argc, char** argv) {
       }
 
 	    // reset variables
-      counters.update_A_rows(params.lag);
+      counters.update_A_rows(params.lag, params.is_verbose);
       newgraph= NonlinearFactorGraph();
       params.accum.resetIntegration();
       initial_estimate.clear();

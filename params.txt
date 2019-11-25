@@ -3,8 +3,8 @@ is_verbose= 0
 
 # IMU noise specs
 # TODO: investigate what this units are. 
-accel_noise_sigma= 0.0003924 #0.1; # default: 0003924
-gyro_noise_sigma= 0.000205689024915 # 0.1; # default: 000205689024915
+accel_noise_sigma= 0.1; # default: 0003924
+gyro_noise_sigma= 0.1; # default: 000205689024915
 accel_bias_rw_sigma = 0.004905 # default: 0.004905
 gyro_bias_rw_sigma = 0.000001454441043 # default: 0.000001454441043
 
@@ -32,7 +32,7 @@ bearing_noise_sigma = 0.05233333333 # (3 deg)
 
 # default simulation time [sec] 
 # (to increase the simulation time: "--sim_time <time_in_secs>"
-sim_time= 16
+sim_time= 10
 
 # prob allocation for the upper bound of lambda
 P_lambda= 1e-5

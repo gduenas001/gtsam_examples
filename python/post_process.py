@@ -7,7 +7,7 @@ import scipy.stats as scipy
 
 
 # read residuals form csv
-r= np.genfromtxt('../results/residuals/time20_lag3.csv', delimiter='\n')
+r= np.genfromtxt('../results/residuals/odom_time10_lag3.csv', delimiter='\n')
 
 
 # chi-squared
