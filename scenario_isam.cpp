@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
       // predicted init values
       initial_estimate.insert(X(counters.current_factor), predict_state.pose());
       initial_estimate.insert(V(counters.current_factor), predict_state.velocity());
-      initial_estimate.insert(B(counters.current_factor), imuBias::ConstantBias());  
+      initial_estimate.insert(B(counters.current_factor), prev_bias);  
 
       // Add Imu Factor
       CombinedImuFactor imu_factor(X(counters.prev_factor),    V(counters.prev_factor), 

@@ -69,7 +69,7 @@ prior_bias_gyro_noise_sigma= 0.01744444444 # (1 deg)
 seed= -1
 
 # fixed-lag smoother lag time
-lag= 3
+lag= 4
 
 
 

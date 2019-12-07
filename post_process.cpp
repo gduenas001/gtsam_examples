@@ -30,11 +30,12 @@ void post_process(
                   lin_graph= factor_graph.linearize(result_fl);
 
   
+  // save the sum of residuals per type
   map<string, double> r_type;
   r_type.insert({"odom", 0});
   r_type.insert({"gps", 0});
   r_type.insert({"lidar", 0});
-
+  r_type.insert({"sum", 0});
   {
     int factor_count= -1;
     for (auto factor : factor_graph){
@@ -52,18 +53,36 @@ void post_process(
         r_type["lidar"] += factor_error;
       }
 
-
+      // print the factor residual info
       cout<< "factor # "<< factor_count<< "\t"
           << "type: "<< counters.types[factor_count]<< "\t\t"
           << "dim: "<< factor_dim<< "\t"
           << "error: "<< 2 * factor_error<< "\t";
       factor->printKeys();
     }
+    // the sum of residuals
+    r_type["sum"]= r_type["odom"] + 
+                   r_type["gps"] + 
+                   r_type["lidar"] +
+                   15; // for the prior
 
+    // write r into file
+    string filename = "../results/residuals/types_time" + 
+                      to_string(int(counters.current_time)) + 
+                      "_lag" + to_string(int(params.lag)) + 
+                      ".csv";
+    fstream stream;
+    stream.open(filename.c_str(), fstream::app); 
+    stream<< r_type["odom"]<< " "
+          << r_type["gps"]<< " "
+          << r_type["lidar"]<< " "
+          << r_type["sum"]<< " "
+          << '\n';
+    stream.close();
     cout<< "----------------------"<< endl;
   }
   
-
+  return;
 
  
   Matrix hessian= (lin_graph->hessian()).first;
@@ -223,18 +242,6 @@ void post_process(
   }
 
 
-  // write r into file
-  string filename = "../results/residuals/types_time" + 
-                    to_string(int(counters.current_time)) + 
-                    "_lag" + to_string(int(params.lag)) + 
-                    ".csv";
-  fstream stream;
-  stream.open(filename.c_str(), fstream::app); 
-  stream<< r_type["odom"]<< " "
-        << r_type["gps"]<< " "
-        << r_type["lidar"]<< " "
-        << '\n';
-  stream.close();
 
 
 
