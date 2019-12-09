@@ -57,7 +57,7 @@ void post_process(
       cout<< "factor # "<< factor_count<< "\t"
           << "type: "<< counters.types[factor_count]<< "\t\t"
           << "dim: "<< factor_dim<< "\t"
-          << "error: "<< 2 * factor_error<< "\t";
+          << "error: "<< factor_error<< "\t";
       factor->printKeys();
     }
     // the sum of residuals
