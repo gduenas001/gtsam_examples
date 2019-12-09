@@ -6,7 +6,10 @@
 // - save_data to support fixed-lag smoother
 // - add option for the python plot
 // - predict the initial estimate for the bias from the previous state (currently using a zero bias as init state)
-
+// - write function that writes:
+//  -- time + epoch + 15dof (estimate & ground truth)
+//  -- time + epoch + residuals
+//  -- 
 
 
 #include <gtsam/slam/dataset.h>
@@ -15,7 +18,6 @@
 #include <boost/math/distributions/chi_squared.hpp>
 #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 #include <gtsam_unstable/nonlinear/BatchFixedLagSmoother.h>
-
 
 
 
@@ -39,6 +41,9 @@ int main(int argc, char** argv) {
 
   // build variable from params
   build_variables(params);
+
+  // prepare logs
+  prepare_log(params);
 
   // initilize random engine for noise generation
   default_random_engine

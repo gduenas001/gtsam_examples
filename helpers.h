@@ -22,6 +22,7 @@ Helper functions for the main code.
 #include <vector>
 #include <string>
 #include <chrono> 
+#include <ctime>
 
 
 #include "RangeBearingFactorMap.h"
@@ -251,6 +252,12 @@ std::vector<T> return_unique_vector(std::vector<T> vec){
     
   return vec;
 };
+
+/*
+creates a folder with the current date + time
+creates and opens the following files inisde the folder
+*/
+bool prepare_log(const Params &params);
 
 
 

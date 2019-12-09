@@ -403,6 +403,33 @@ int return_first_element(const pair<int, double> &p){
 
 // -------------------------------------------------------
 // -------------------------------------------------------
+bool prepare_log(const Params &params){
+  time_t rawtime;
+  struct tm * timeinfo;
+  char buffer[80];
+  time (&rawtime);
+  timeinfo = localtime(&rawtime);
+
+  strftime(buffer, sizeof(buffer), "%d-%m-%Y-%H-%M-%S", timeinfo);
+  string workspace(buffer);
+
+  // create the folder
+  if (params.is_verbose){
+    cout<< "creating folder "<< workspace<< endl;
+  }
+  string cmd("mkdir -p ../results/" + workspace);
+  system(cmd.c_str());
+
+  // copy the params
+  cmd= "cp ../params.txt ../results/" + workspace;
+  system(cmd.c_str());
+
+  return true;
+}
+
+
+// -------------------------------------------------------
+// -------------------------------------------------------
 // std::vector<std::string> return_unique_vector(std::vector<string> vec){
 
 //   sort( vec.begin(), vec.end() );
