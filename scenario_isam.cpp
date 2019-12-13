@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   build_variables(params);
 
   // prepare logs
-  prepare_log(params);
+  params.workspace= prepare_log(params);
 
   // initilize random engine for noise generation
   default_random_engine
@@ -105,7 +105,8 @@ int main(int argc, char** argv) {
   solutions.push_back(Solution(fixed_lag_smoother, 
                                result, 
                                counters, 
-                               scenario) );
+                               scenario,
+                               params.workspace) );
   newgraph= NonlinearFactorGraph();
   initial_estimate.clear();
   new_timestamps.clear();
@@ -231,7 +232,11 @@ int main(int argc, char** argv) {
       }
 
       result= fixed_lag_smoother.calculateEstimate();
-      solutions.push_back(Solution(fixed_lag_smoother, result, counters, scenario));
+      solutions.push_back(Solution(fixed_lag_smoother, 
+                                   result, 
+                                   counters, 
+                                   scenario,
+                                   params.workspace));
 
       // compute error
       online_error.push_back(compute_error(

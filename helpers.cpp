@@ -403,7 +403,7 @@ int return_first_element(const pair<int, double> &p){
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-bool prepare_log(const Params &params){
+string prepare_log(const Params &params){
 
   // create a string with todays day + time
   time_t rawtime;
@@ -413,19 +413,20 @@ bool prepare_log(const Params &params){
   timeinfo = localtime(&rawtime);
   strftime(buffer, sizeof(buffer), "%d-%m-%Y-%H-%M-%S", timeinfo);
   string workspace(buffer);
+  workspace= "../results/" + workspace;
 
   // create the folder
   if (params.is_verbose){
     cout<< "creating folder "<< workspace<< endl;
   }
-  string cmd("mkdir -p ../results/" + workspace);
+  string cmd("mkdir -p " + workspace);
   system(cmd.c_str());
 
   // copy the params
-  cmd= "cp ../params.txt ../results/" + workspace;
+  cmd= "cp ../params.txt " + workspace;
   system(cmd.c_str());
 
-  return true;
+  return workspace;
 }
 
 

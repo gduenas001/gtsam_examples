@@ -96,6 +96,8 @@ bool add_parameter(string name, string value, Params &params){
     params.seed= atoi(value.c_str());
   } else if (name == "lag") {
     params.lag= atof(value.c_str());
+  } else if (name == "workspace") {
+    params.workspace= string(value.c_str());
 
     // name doesn't exist -> return false
   } else {

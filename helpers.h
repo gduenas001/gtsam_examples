@@ -254,10 +254,10 @@ std::vector<T> return_unique_vector(std::vector<T> vec){
 };
 
 /*
-creates a folder with the current date + time
-creates and opens the following files inisde the folder
+creates a folder with the current date + time, i.e.
+the workspace and returns the path to the workspace
 */
-bool prepare_log(const Params &params);
+std::string prepare_log(const Params &params);
 
 
 

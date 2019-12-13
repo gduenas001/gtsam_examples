@@ -10,7 +10,8 @@ using namespace gtsam;
 Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 				   const gtsam::Values &result, 
 				   const Counters &counters,
-				   const ConstantTwistScenario &scenario){
+				   const ConstantTwistScenario &scenario,
+				   const string &workspace){
 
 	// time
 	this->time= counters.current_time;
@@ -64,7 +65,6 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 		this->residuals.sum.value += factor_error;
 		this->residuals.sum.num_factors++;
 
-
 		// // print the factor residual info
 		// cout<< "factor # "<< factor_count<< "\t"
 		// 	<< "type: "<< counters.types[factor_count]<< "\t\t"
@@ -73,8 +73,48 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 		// factor->printKeys();
     }
 
-
+    // write solution to file
+    this->write_to_file(workspace);
 }
+
+
+// -------------------------------------------------------
+bool Solution::write_to_file(const string &workspace){
+
+	// initialize stream
+	fstream stream;
+	string filename= "";
+
+	// write estimated state (15dof) to a file
+	filename= workspace + "/estimate_state.csv";
+	stream.open(filename.c_str(), fstream::app);
+	stream << this->time << "," 
+		   << this->nav_state.pose().x() << "," 
+    	   << this->nav_state.pose().y() << "," 
+    	   << this->nav_state.pose().z() << "," 
+    	   << this->nav_state.pose().rotation().roll() << "," 
+    	   << this->nav_state.pose().rotation().pitch() << "," 
+    	   << this->nav_state.pose().rotation().yaw() << "," 
+    	   << Point3(this->imu_bias.accelerometer()).x() << "," 
+    	   << Point3(this->imu_bias.accelerometer()).y() << "," 
+    	   << Point3(this->imu_bias.accelerometer()).z() << "," 
+    	   << Point3(this->imu_bias.gyroscope()).x() << "," 
+    	   << Point3(this->imu_bias.gyroscope()).y() << "," 
+    	   << Point3(this->imu_bias.gyroscope()).z() << "," 
+    	   << endl;
+	stream.close();
+
+
+	return true;
+}
+
+
+
+
+
+
+
+
 
 
 

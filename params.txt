@@ -71,7 +71,8 @@ seed= -1
 # fixed-lag smoother lag time
 lag= 10
 
-
+# workspace folder
+workspace=""
 
 # --------------- deprecated ---------------
 evaluate_nonlinear_error= 0

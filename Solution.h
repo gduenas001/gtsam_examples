@@ -5,6 +5,7 @@
 #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/navigation/Scenario.h>
+#include <fstream>
 
 
 #include "Counters.h"
@@ -43,12 +44,17 @@ public:
 
 // -------------------------------------------------------
 class Solution{
+	/*
+	Object that stores one solution of the solver.
+	It can also print the solution and write it to a file
+	*/
 
 public:
 	Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 			 const gtsam::Values &result, 
 			 const Counters &counters,
-			 const ConstantTwistScenario &scenario);
+			 const ConstantTwistScenario &scenario,
+			 const std::string &workspace);
 
 	// time of the solution
 	double time;
@@ -65,6 +71,11 @@ public:
 
 	// residuals
 	Residuals residuals;
+
+	/*
+	writes the solution to this file
+	*/
+	bool write_to_file(const std::string &workspace);
 
 };
 

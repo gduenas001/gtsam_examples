@@ -112,6 +112,9 @@ struct Params{
 
   // fixed-lag smoother lag time
   double lag= 3;
+
+  // workspace folder
+  std::string workspace;
 };
 
 
