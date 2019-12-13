@@ -19,6 +19,7 @@ add_executable(main
   			   post_process.cpp
   			   Counters.cpp
   			   add_factors.cpp
+  			   Solution.cpp
 )
 
 # By using CMake exported targets, a simple "link" dependency introduces the

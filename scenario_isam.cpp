@@ -5,7 +5,6 @@
 // - Change naming convention of functions -> use underscores, not capital letters
 // - save_data to support fixed-lag smoother
 // - add option for the python plot
-// - predict the initial estimate for the bias from the previous state (currently using a zero bias as init state)
 // - write function that writes:
 //  -- time + epoch + 15dof (estimate & ground truth)
 //  -- time + epoch + residuals
@@ -26,6 +25,7 @@
 #include "parser.h"
 #include "Counters.h"
 #include "add_factors.h"
+#include "Solution.h"
 
 using namespace std;
 using namespace gtsam;
@@ -58,6 +58,9 @@ int main(int argc, char** argv) {
   ConstantTwistScenario 
   scenario= createConstantTwistScenario(params.scenario_radius,
                                         params.scenario_linear_vel);
+
+  // save data - initilize vector of solutions
+  vector<Solution> solutions;
 
   // Create factor graph & timestamps to update ISAM2 fixed-lag smoother
   NonlinearFactorGraph newgraph;
@@ -99,6 +102,10 @@ int main(int argc, char** argv) {
                             initial_estimate, 
                             new_timestamps);
   result= fixed_lag_smoother.calculateEstimate();
+  solutions.push_back(Solution(fixed_lag_smoother, 
+                               result, 
+                               counters, 
+                               scenario) );
   newgraph= NonlinearFactorGraph();
   initial_estimate.clear();
   new_timestamps.clear();
@@ -134,8 +141,10 @@ int main(int argc, char** argv) {
         cout<< "Time: "<< counters.current_time<< '\n';
       }
 
-
+      // increase the factor count
       counters.increase_factors_count();
+
+      // set the time stamp for the new factor
       new_timestamps[X(counters.current_factor)]= counters.current_time;
       new_timestamps[V(counters.current_factor)]= counters.current_time;
       new_timestamps[B(counters.current_factor)]= counters.current_time;
@@ -154,7 +163,7 @@ int main(int argc, char** argv) {
       initial_estimate.insert(V(counters.current_factor), predict_state.velocity());
       initial_estimate.insert(B(counters.current_factor), prev_bias);  
 
-      // Add Imu Factor
+      // Add IMU Factor
       CombinedImuFactor imu_factor(X(counters.prev_factor),    V(counters.prev_factor), 
                                    X(counters.current_factor), V(counters.current_factor), 
                                    B(counters.prev_factor),    B(counters.current_factor), 
@@ -222,15 +231,19 @@ int main(int argc, char** argv) {
       }
 
       result= fixed_lag_smoother.calculateEstimate();
+      solutions.push_back(Solution(fixed_lag_smoother, result, counters, scenario));
 
       // compute error
-      online_error.push_back(compute_error(scenario.pose(counters.current_time),
+      online_error.push_back(compute_error(
+                            scenario.pose(counters.current_time),
                             result.at<Pose3>(X(counters.current_factor)) ));
 
       // if there's been marginalization -> add factor
       if (counters.current_time  > params.lag){
         counters.add_factor("marginalized_prior");
       }
+
+
 
 	    // reset variables
       counters.update_A_rows(params.lag, params.is_verbose);
@@ -248,13 +261,13 @@ int main(int argc, char** argv) {
            landmarks,
            online_error);
   
-  // post process data showing each hypothesis
-  post_process(result,
-               isam_result,
-               fixed_lag_smoother,
-               A_rows_per_type,
-               counters,
-               params);
+  // // post process data showing each hypothesis
+  // post_process(result,
+  //              isam_result,
+  //              fixed_lag_smoother,
+  //              A_rows_per_type,
+  //              counters,
+  //              params);
 
   return 0;
 }
