@@ -5,10 +5,7 @@
 // - Change naming convention of functions -> use underscores, not capital letters
 // - save_data to support fixed-lag smoother
 // - add option for the python plot
-// - write function that writes:
-//  -- time + epoch + 15dof (estimate & ground truth)
-//  -- time + epoch + residuals
-//  -- 
+
 
 
 #include <gtsam/slam/dataset.h>

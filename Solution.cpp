@@ -51,26 +51,38 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
       
 		if (counters.types[factor_count] == "odom"){
 			this->residuals.odom.value += factor_error;
-			this->residuals.odom.num_factors++;
+			++this->residuals.odom.num_factors;
 		} else if (counters.types[factor_count] == "gps"){
 			this->residuals.gps.value += factor_error;
-			this->residuals.gps.num_factors++;
+			++this->residuals.gps.num_factors;
 		} else if (counters.types[factor_count] == "lidar"){
 			this->residuals.lidar.value += factor_error;
-			this->residuals.lidar.num_factors++;
-		}
+			++this->residuals.lidar.num_factors;
+		} else if (counters.types[factor_count] == "prior_pose"){
+			this->residuals.prior_pose.value += factor_error;
+			++this->residuals.prior_pose.num_factors;
+		} else if (counters.types[factor_count] == "prior_vel"){
+			this->residuals.prior_vel.value += factor_error;
+			++this->residuals.prior_vel.num_factors;
+		} else if (counters.types[factor_count] == "prior_bias"){
+			this->residuals.prior_bias.value += factor_error;
+			++this->residuals.prior_bias.num_factors;
+		} 
+		// else {
+		// 	cout<< "Type " + counters.types[factor_count] + " not added"<< endl;
+		// }
 
+		// print the factor info
+		cout<< "factor # "<< factor_count<< "\t"
+		    << "type: "<< counters.types[factor_count]<< "\t\t"
+		    << "dim: "<< factor_dim<< "\t"
+		    << "error: "<< factor_error<< "\t";
+		    factor->printKeys();
 
 		// TODO: check that this is the same as the error for the graph
 		this->residuals.sum.value += factor_error;
-		this->residuals.sum.num_factors++;
+		++this->residuals.sum.num_factors;
 
-		// // print the factor residual info
-		// cout<< "factor # "<< factor_count<< "\t"
-		// 	<< "type: "<< counters.types[factor_count]<< "\t\t"
-		// 	<< "dim: "<< factor_dim<< "\t"
-		// 	<< "error: "<< factor_error<< "\t";
-		// factor->printKeys();
     }
 
     // write solution to file
@@ -85,7 +97,7 @@ bool Solution::write_to_file(const string &workspace){
 	fstream stream;
 	string filename= "";
 
-	// write estimated state (15dof) to a file
+	// write time + estimated state (15dof) to a file
 	filename= workspace + "/estimate_state.csv";
 	stream.open(filename.c_str(), fstream::app);
 	stream << this->time << "," 
@@ -101,6 +113,21 @@ bool Solution::write_to_file(const string &workspace){
     	   << Point3(this->imu_bias.gyroscope()).x() << "," 
     	   << Point3(this->imu_bias.gyroscope()).y() << "," 
     	   << Point3(this->imu_bias.gyroscope()).z() << "," 
+    	   << endl;
+	stream.close();
+
+	// write time + residuals to a file
+	filename= workspace + "/residuals.csv";
+	stream.open(filename.c_str(), fstream::app);
+	stream << this->time << "," 
+		   << this->residuals.odom.value << "," 
+    	   << this->residuals.gps.value << "," 
+    	   << this->residuals.lidar.value << "," 
+    	   << this->residuals.sum.value << "," 
+    	   << this->residuals.odom.num_factors << "," 
+    	   << this->residuals.gps.num_factors << "," 
+    	   << this->residuals.lidar.num_factors << "," 
+    	   << this->residuals.sum.num_factors << "," 
     	   << endl;
 	stream.close();
 

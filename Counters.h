@@ -10,7 +10,7 @@ typedef std::vector< std::pair<int, double> > pair_vector;
 
 class Counters{
 	/*
-	Counters class that contains variables related to time
+	Counters class that contains variables related to time and
 	number of elements. It also keeps track of the added and
 	removed rows in the Jacobian A.
 	*/
@@ -48,6 +48,7 @@ public:
 	double dt_imu;
 	double dt_gps;
 
+	// state factors, i.e. X(#factor), V(#factor), and B(#factor)
 	int current_factor;
 	int prev_factor;
 

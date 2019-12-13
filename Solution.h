@@ -37,6 +37,9 @@ public:
 	Residual odom;
 	Residual gps;
 	Residual lidar;
+	Residual prior_pose;
+	Residual prior_vel;
+	Residual prior_bias;
 	Residual sum;
 };
 
