@@ -115,6 +115,9 @@ struct Params{
 
   // workspace folder
   std::string workspace;
+
+  // landmarks
+  std::vector<gtsam::Point3> landmarks;
 };
 
 

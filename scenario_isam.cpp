@@ -46,10 +46,9 @@ int main(int argc, char** argv) {
   default_random_engine
   noise_generator= initialize_noise_generator(params.seed);
   
-
   // landmarks
-  vector<Point3> 
-  landmarks= create_landmarks(params.scenario_radius);
+  // vector<Point3> 
+  // landmarks= create_landmarks(params.scenario_radius);
 
   // scenario to simulate measurements and ground truth
   ConstantTwistScenario 
@@ -194,11 +193,11 @@ int main(int argc, char** argv) {
                     params.is_verbose);
 
       // lidar measurements
-      for (int j = 0; j < landmarks.size(); ++j) {
+      for (int j = 0; j < params.landmarks.size(); ++j) {
         
         RangeBearingMeasurement 
         range_bearing_msmt= sim_lidar_msmt(scenario,
-                                           landmarks[j],
+                                           params.landmarks[j],
                                            counters.current_time,
                                            params,
                                            noise_generator,
@@ -209,7 +208,7 @@ int main(int argc, char** argv) {
         range_bearing_factor(X(counters.current_factor), 
                              range_bearing_msmt.range,
                              range_bearing_msmt.bearing,
-                             landmarks[j], 
+                             params.landmarks[j], 
                              params.lidar_cov);
 
         add_lidar_factor(newgraph,
@@ -257,10 +256,12 @@ int main(int argc, char** argv) {
     }
   } // end for loop
 
-  // save the data TODO: give option to save in different folder
+  // save the data 
+  // TODO: save in solutions
+  // TODO: give option to save in different folder
   save_data(result,
            true_positions,
-           landmarks,
+           params.landmarks,
            online_error);
   
   // // post process data showing each hypothesis

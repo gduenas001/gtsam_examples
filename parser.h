@@ -36,6 +36,13 @@ bool add_parameter(std::string name,
 
 
 /*
+reads a line with the x y z for a landmark and 
+returns it as a Point3
+*/
+gtsam::Point3 read_landmark(string line);
+
+
+/*
 This function builds the parameters from the inputs given, 
 e.g. from the inputs "AL_x", "AL_y", and "AL_z" it builds a 
 map to access them as "params.AL["x"]", "params.AL["y"]", and "params.AL["z"]".

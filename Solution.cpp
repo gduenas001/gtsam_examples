@@ -72,12 +72,12 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 		// 	cout<< "Type " + counters.types[factor_count] + " not added"<< endl;
 		// }
 
-		// print the factor info
-		cout<< "factor # "<< factor_count<< "\t"
-		    << "type: "<< counters.types[factor_count]<< "\t\t"
-		    << "dim: "<< factor_dim<< "\t"
-		    << "error: "<< factor_error<< "\t";
-		    factor->printKeys();
+		// // print the factor info
+		// cout<< "factor # "<< factor_count<< "\t"
+		//     << "type: "<< counters.types[factor_count]<< "\t\t"
+		//     << "dim: "<< factor_dim<< "\t"
+		//     << "error: "<< factor_error<< "\t";
+		//     factor->printKeys();
 
 		// TODO: check that this is the same as the error for the graph
 		this->residuals.sum.value += factor_error;

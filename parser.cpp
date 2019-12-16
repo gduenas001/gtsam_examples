@@ -98,6 +98,8 @@ bool add_parameter(string name, string value, Params &params){
     params.lag= atof(value.c_str());
   } else if (name == "workspace") {
     params.workspace= string(value.c_str());
+  } else if (name == "landmark") {
+    params.landmarks.push_back(read_landmark(value));
 
     // name doesn't exist -> return false
   } else {
@@ -108,6 +110,17 @@ bool add_parameter(string name, string value, Params &params){
   return true;
 }
 
+
+// ----------------------------------------------------
+Point3 read_landmark(string line){
+    auto delimiterPos = line.find(",");
+    float x = atof( line.substr(0, delimiterPos).c_str() );
+    line = line.substr(delimiterPos + 1);
+    float y = atof( line.substr(0, delimiterPos).c_str() );
+    line = line.substr(delimiterPos + 1);
+    float z = atof( line.substr(0, delimiterPos).c_str() );
+    return Point3(x,y,z);
+}
 
 
 // ----------------------------------------------------

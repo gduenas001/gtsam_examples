@@ -74,5 +74,11 @@ lag= 10
 # workspace folder
 workspace=""
 
+# landmarks
+landmark= 33, 0, 33
+landmark= 0, 33, -33
+landmark= -33, 0, 33
+landmark= 0, -33, -33
+
 # --------------- deprecated ---------------
 evaluate_nonlinear_error= 0
