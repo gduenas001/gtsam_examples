@@ -229,13 +229,8 @@ int main(int argc, char** argv) {
       }
 
       result= fixed_lag_smoother.calculateEstimate();
-      solutions.push_back(Solution(fixed_lag_smoother, 
-                                   result, 
-                                   counters, 
-                                   scenario,
-                                   params.workspace));
-
-      // compute error
+      
+      // compute error TODO: compute error inside solutions
       online_error.push_back(compute_error(
                             scenario.pose(counters.current_time),
                             result.at<Pose3>(X(counters.current_factor)) ));
@@ -245,7 +240,12 @@ int main(int argc, char** argv) {
         counters.add_factor("marginalized_prior");
       }
 
-
+      // save the solution
+      solutions.push_back(Solution(fixed_lag_smoother, 
+                                   result, 
+                                   counters, 
+                                   scenario,
+                                   params.workspace));
 
 	    // reset variables
       counters.update_A_rows(params.lag, params.is_verbose);
