@@ -216,14 +216,14 @@ void add_gps_factor(NonlinearFactorGraph &newgraph,
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-void addOdomFactor(NonlinearFactorGraph &newgraph,
+void add_imu_factor(NonlinearFactorGraph &newgraph,
 		    CombinedImuFactor &imufac,
 			  map<string, vector<int>> &A_rows_per_type, 
 			  int &A_rows_count,
         Counters &counters,
         bool is_verbose) {
 
-  if (is_verbose) {cout<< "Adding odom factor"<< '\n';}
+  if (is_verbose) {cout<< "Adding imu factor"<< '\n';}
 
 	newgraph.add(imufac);
 	vector<int> odom_rows= returnIncrVector(A_rows_count, 15);
@@ -242,6 +242,6 @@ void addOdomFactor(NonlinearFactorGraph &newgraph,
   // keep track of the factor types inserted
   counters.add_factor("odom");
   
-  if (is_verbose) {cout<< "...odom factor added"<< '\n';}
+  if (is_verbose) {cout<< "...imu factor added"<< '\n';}
 }
 

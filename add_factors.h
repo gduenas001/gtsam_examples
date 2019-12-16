@@ -77,7 +77,7 @@ void add_gps_factor(
 Add IMU factor to factor graph.
 It also keep A_rows_per_type updated.
 */
-void addOdomFactor(
+void add_imu_factor(
       gtsam::NonlinearFactorGraph &newgraph,
       gtsam::CombinedImuFactor &imufac,
       std::map<string, vector<int>> &A_rows_per_type, 

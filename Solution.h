@@ -40,6 +40,7 @@ public:
 	Residual prior_pose;
 	Residual prior_vel;
 	Residual prior_bias;
+	Residual marginalized_prior;
 	Residual sum;
 };
 

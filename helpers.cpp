@@ -19,71 +19,6 @@ initialize_noise_generator(int seed){
 }
 
 
-// -------------------------------------------------------
-void save_data(Values result,
-              std::vector<Point3> true_positions,
-              std::vector<Point3> landmarks,
-              std::vector<Pose3> online_error){
-
-  // initialize variables
-  string filename = "";
-  fstream stream;
-
-  // write estimated poses into file
-  filename = "../results/estimated_positions.csv";
-  stream.open(filename.c_str(), fstream::out);
-  stream << "--------------- Estimated Positions ---------------"<< endl;
-  for(const Values::ConstKeyValuePair& key_value: result) {
-    if ( typeid(key_value.value) == typeid(gtsam::GenericValue<gtsam::Pose3>) ) {
-      const Pose3& write_pose = key_value.value.cast<Pose3>();
-      stream << write_pose.x() << "," << write_pose.y() << "," << write_pose.z() << endl;
-    }
-  }
-  stream.close();
-
-  // write true poses into a file
-  filename = "../results/true_positions.csv";
-  stream.open(filename.c_str(), fstream::out);
-  stream << "--------------- True Positions ---------------"<< endl;
-  for (std::vector<Point3>::iterator it = true_positions.begin() ; it != true_positions.end(); ++it) {
-    stream << it->x() << "," << it->y() << "," << it->z() << endl;
-  }
-  stream.close();
-
-  // write landmark into a file
-  filename = "../results/landmarks.csv";
-  stream.open(filename.c_str(), fstream::out);
-  for (std::vector<Point3>::iterator it = landmarks.begin() ; it != landmarks.end(); ++it) {
-    stream << it->x() << "," << it->y() << "," << it->z() << endl;
-  }
-  stream.close();
-
-  // write errors into a file
-  filename = "../results/errors.csv";
-  stream.open(filename.c_str(), fstream::out);
-  stream << "--------------- Errors ---------------"<< endl;
-  stream << "x[m] \t y[m] \t z[m] \t rho[deg] \t pitch[deg] \t yaw[deg]"<< endl;
-  for (std::vector<Pose3>::iterator it = online_error.begin() ; it != online_error.end(); ++it) {
-    stream << it->translation().x() <<","
-           << it->translation().y() <<","
-           << it->translation().z() <<","
-           << (it->rotation()).roll() <<"," 
-           << (it->rotation()).pitch() << "," 
-           << (it->rotation()).yaw() << endl;
-  }
-  stream.close();
-
-  // write the average errors
-  filename = "../results/average_errors.csv";
-  stream.open(filename.c_str(), fstream::out);
-  stream << "--------------- Average Error ---------------"<< endl;
-  Vector6 ave_error = error_average(online_error);
-  stream << ave_error[0] * 180/M_PI <<","<< ave_error[1] * 180/M_PI <<","<< ave_error[2] * 180/M_PI<<","
-         << ave_error[3] <<","<< ave_error[4] <<","<< ave_error[5]<< endl;
-         
-  stream.close();
-}
-
 
 // -------------------------------------------------------
 Point3 generate_random_point(std::default_random_engine &generator, std::normal_distribution<double> &distribution) {
@@ -426,6 +361,15 @@ string prepare_log(const Params &params){
   cmd= "cp ../params.txt " + workspace;
   system(cmd.c_str());
 
+  // create residuals file with names in first line
+  fstream stream;
+  string filename= workspace + "/residuals.csv";
+  stream.open(filename.c_str(), fstream::out);
+  stream << "time    imu    gps    lidar    sum    ";
+  stream << "#imu    #gps    #lidar    #sum\n";
+  stream.close();
+
+
   return workspace;
 }
 
@@ -447,6 +391,65 @@ string prepare_log(const Params &params){
 deprecated
 */
 // -------------------------------------------------------
+
+
+// -------------------------------------------------------
+// -------------------------------------------------------
+void save_data(Values result,
+              std::vector<Point3> true_positions,
+              std::vector<Point3> landmarks,
+              std::vector<Pose3> online_error){
+
+  // initialize variables
+  string filename = "";
+  fstream stream;
+
+  // write estimated poses into file
+  filename = "../results/estimated_positions.csv";
+  stream.open(filename.c_str(), fstream::out);
+  stream << "--------------- Estimated Positions ---------------"<< endl;
+  for(const Values::ConstKeyValuePair& key_value: result) {
+    if ( typeid(key_value.value) == typeid(gtsam::GenericValue<gtsam::Pose3>) ) {
+      const Pose3& write_pose = key_value.value.cast<Pose3>();
+      stream << write_pose.x() << "," << write_pose.y() << "," << write_pose.z() << endl;
+    }
+  }
+  stream.close();
+
+  // write true poses into a file
+  filename = "../results/true_positions.csv";
+  stream.open(filename.c_str(), fstream::out);
+  stream << "--------------- True Positions ---------------"<< endl;
+  for (std::vector<Point3>::iterator it = true_positions.begin() ; it != true_positions.end(); ++it) {
+    stream << it->x() << "," << it->y() << "," << it->z() << endl;
+  }
+  stream.close();
+
+  // write errors into a file
+  filename = "../results/errors.csv";
+  stream.open(filename.c_str(), fstream::out);
+  stream << "--------------- Errors ---------------"<< endl;
+  stream << "x[m] \t y[m] \t z[m] \t rho[deg] \t pitch[deg] \t yaw[deg]"<< endl;
+  for (std::vector<Pose3>::iterator it = online_error.begin() ; it != online_error.end(); ++it) {
+    stream << it->translation().x() <<","
+           << it->translation().y() <<","
+           << it->translation().z() <<","
+           << (it->rotation()).roll() <<"," 
+           << (it->rotation()).pitch() << "," 
+           << (it->rotation()).yaw() << endl;
+  }
+  stream.close();
+
+  // write the average errors
+  filename = "../results/average_errors.csv";
+  stream.open(filename.c_str(), fstream::out);
+  stream << "--------------- Average Error ---------------"<< endl;
+  Vector6 ave_error = error_average(online_error);
+  stream << ave_error[0] * 180/M_PI <<","<< ave_error[1] * 180/M_PI <<","<< ave_error[2] * 180/M_PI<<","
+         << ave_error[3] <<","<< ave_error[4] <<","<< ave_error[5]<< endl;
+         
+  stream.close();
+}
 
 
 // -------------------------------------------------------

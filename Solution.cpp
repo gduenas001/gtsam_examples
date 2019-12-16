@@ -29,9 +29,9 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 	
 	// error (15dof)
 	this->error.segment<3>(0)= 
-			abs(nav_state.pose().translation() - true_nav_state.pose().translation());
+			nav_state.pose().translation() - true_nav_state.pose().translation();
 	this->error.segment<3>(3)= 
-			abs(nav_state.pose().rotation().rpy() - true_nav_state.pose().rotation().rpy());
+			(nav_state.pose().rotation() * Rot3(true_nav_state.pose().rotation().transpose())).rpy();
 	this->error.segment<3>(6)= 
 			abs(nav_state.v() - true_nav_state.v());
 	this->error.segment<6>(9)= 
@@ -67,10 +67,12 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 		} else if (counters.types[factor_count] == "prior_bias"){
 			this->residuals.prior_bias.value += factor_error;
 			++this->residuals.prior_bias.num_factors;
-		} 
-		// else {
-		// 	cout<< "Type " + counters.types[factor_count] + " not added"<< endl;
-		// }
+		} else if (counters.types[factor_count] == "marginalized_prior"){
+			this->residuals.marginalized_prior.value += factor_error;
+			++this->residuals.marginalized_prior.num_factors;
+		} else {
+			cout<< "Type " + counters.types[factor_count] + " not added"<< endl;
+		}
 
 		// // print the factor info
 		// cout<< "factor # "<< factor_count<< "\t"
@@ -115,7 +117,20 @@ bool Solution::write_to_file(const string &workspace){
     	   << Point3(this->imu_bias.gyroscope()).z() << "," 
     	   << endl;
 	stream.close();
-
+	
+	// write time + true state (15dof) to a file
+	filename= workspace + "/true_state.csv";
+	stream.open(filename.c_str(), fstream::app);
+	stream << this->time << "," 
+		   << this->true_nav_state.pose().x() << "," 
+    	   << this->true_nav_state.pose().y() << "," 
+    	   << this->true_nav_state.pose().z() << "," 
+    	   << this->true_nav_state.pose().rotation().roll() << "," 
+    	   << this->true_nav_state.pose().rotation().pitch() << "," 
+    	   << this->true_nav_state.pose().rotation().yaw() << "," 
+    	   << endl;
+	stream.close();
+	
 	// write time + residuals to a file
 	filename= workspace + "/residuals.csv";
 	stream.open(filename.c_str(), fstream::app);
@@ -130,8 +145,17 @@ bool Solution::write_to_file(const string &workspace){
     	   << this->residuals.sum.num_factors << "," 
     	   << endl;
 	stream.close();
-
-
+	
+	// write time + error (15dof) to a file
+	filename= workspace + "/error.csv";
+	stream.open(filename.c_str(), fstream::app);
+	stream << this->time << ",";
+	for (int i = 0; i < 15; ++i) {
+		stream << this->error[i] << ",";
+	}
+	stream << '\n';
+	stream.close();
+	
 	return true;
 }
 

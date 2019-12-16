@@ -46,10 +46,6 @@ int main(int argc, char** argv) {
   default_random_engine
   noise_generator= initialize_noise_generator(params.seed);
   
-  // landmarks
-  // vector<Point3> 
-  // landmarks= create_landmarks(params.scenario_radius);
-
   // scenario to simulate measurements and ground truth
   ConstantTwistScenario 
   scenario= createConstantTwistScenario(params.scenario_radius,
@@ -74,9 +70,6 @@ int main(int argc, char** argv) {
   Counters counters(params);
   NavState prev_state, predict_state;
   imuBias::ConstantBias prev_bias;
-  vector<Point3> true_positions;
-  vector<Pose3> online_error; // error when computed online
-  true_positions.push_back( scenario.pose(0).translation() );
   FixedLagSmoother::Result isam_result;
   map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
   A_rows_per_type.insert( pair<string, vector<int>> ("lidar", {}) );
@@ -145,10 +138,7 @@ int main(int argc, char** argv) {
       new_timestamps[X(counters.current_factor)]= counters.current_time;
       new_timestamps[V(counters.current_factor)]= counters.current_time;
       new_timestamps[B(counters.current_factor)]= counters.current_time;
-
-      // save the current position
-      true_positions.push_back( scenario.pose(counters.current_time).translation() );
-
+      
       // predict from IMU accumulated msmts
       prev_state= NavState(result.at<Pose3>  (X(counters.prev_factor)), 
                            result.at<Vector3>(V(counters.prev_factor)));
@@ -166,7 +156,7 @@ int main(int argc, char** argv) {
                                    B(counters.prev_factor),    B(counters.current_factor), 
                                    params.accum);
 
-      addOdomFactor(newgraph,
+      add_imu_factor(newgraph,
                     imu_factor,
                     A_rows_per_type, 
                     A_rows_count,
@@ -229,11 +219,6 @@ int main(int argc, char** argv) {
 
       result= fixed_lag_smoother.calculateEstimate();
       
-      // compute error TODO: compute error inside solutions
-      online_error.push_back(compute_error(
-                            scenario.pose(counters.current_time),
-                            result.at<Pose3>(X(counters.current_factor)) ));
-
       // if there's been marginalization -> add factor
       if (counters.current_time  > params.lag){
         counters.add_factor("marginalized_prior");
@@ -246,7 +231,7 @@ int main(int argc, char** argv) {
                                    scenario,
                                    params.workspace));
 
-	    // reset variables
+	  // reset variables
       counters.update_A_rows(params.lag, params.is_verbose);
       newgraph= NonlinearFactorGraph();
       params.accum.resetIntegration();
@@ -256,13 +241,6 @@ int main(int argc, char** argv) {
     }
   } // end for loop
 
-  // save the data 
-  // TODO: save in solutions
-  // TODO: give option to save in different folder
-  save_data(result,
-           true_positions,
-           params.landmarks,
-           online_error);
   
   // // post process data showing each hypothesis
   // post_process(result,

@@ -48,22 +48,6 @@ initialize_noise_generator(int seed);
 
 
 /*
-Saves the following .csv files in the results folder:
-- estimated_positions
-- true_positions
-- errors
-- average_errors
-- landmarks
-Note that each time the simulation is run, this files get
-overwritten.
-*/
-void save_data(gtsam::Values result,
-              std::vector<Point3> true_positions,
-              std::vector<Point3> landmarks,
-              std::vector<Pose3> online_error);
-
-
-/*
 Generate a random 3D point from the given distribution
 */
 gtsam::Point3 
@@ -267,6 +251,24 @@ std::string prepare_log(const Params &params);
 DEPRECATED
 */
 // -------------------------------------------------------
+
+
+/*
+Saves the following .csv files in the results folder:
+- estimated_positions
+- true_positions
+- errors
+- average_errors
+- landmarks
+Note that each time the simulation is run, this files get
+overwritten.
+*/
+void save_data(gtsam::Values result,
+              std::vector<Point3> true_positions,
+              std::vector<Point3> landmarks,
+              std::vector<Pose3> online_error);
+
+
 void eliminateFactorsByType_old(
           boost::shared_ptr<GaussianFactorGraph> &lin_graph,
           vector<string> factor_types,
