@@ -5,7 +5,9 @@
 // - Change naming convention of functions -> use underscores, not capital letters
 // - save_data to support fixed-lag smoother
 // - add option for the python plot
-
+// - check if the multiple iterations make any difference
+// - write python post-process data
+// - change "odom" by "imu"
 
 
 #include <gtsam/slam/dataset.h>
@@ -14,7 +16,6 @@
 #include <boost/math/distributions/chi_squared.hpp>
 #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 #include <gtsam_unstable/nonlinear/BatchFixedLagSmoother.h>
-
 
 
 #include "helpers.h"
@@ -242,13 +243,13 @@ int main(int argc, char** argv) {
   } // end for loop
 
   
-  // // post process data showing each hypothesis
-  // post_process(result,
-  //              isam_result,
-  //              fixed_lag_smoother,
-  //              A_rows_per_type,
-  //              counters,
-  //              params);
+  // post process data showing each hypothesis
+  post_process(result,
+               isam_result,
+               fixed_lag_smoother,
+               A_rows_per_type,
+               counters,
+               params);
 
   return 0;
 }

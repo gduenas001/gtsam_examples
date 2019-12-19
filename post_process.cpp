@@ -16,9 +16,9 @@ typedef std::vector< std::pair<int, double> > pair_vector;
 
 void post_process(
           Values result_fl,
-		  FixedLagSmoother::Result isam_result_fl, // TODO: is this used?
+		      FixedLagSmoother::Result isam_result_fl, // TODO: is this used?
           IncrementalFixedLagSmoother &fixed_lag_smoother,
-		  map<string, vector<int>> A_rows_per_type,
+		      map<string, vector<int>> A_rows_per_type,
           Counters &counters,
           Params &params){
 
@@ -27,63 +27,7 @@ void post_process(
 
   // get the linear graph
   boost::shared_ptr<GaussianFactorGraph> 
-                  lin_graph= factor_graph.linearize(result_fl);
-
-  
-  // save the sum of residuals per type
-  map<string, double> r_type;
-  r_type.insert({"odom", 0});
-  r_type.insert({"gps", 0});
-  r_type.insert({"lidar", 0});
-  r_type.insert({"sum", 0});
-  {
-    int factor_count= -1;
-    for (auto factor : factor_graph){
-      ++factor_count;
-      if (!factor) {continue;}
-
-      double factor_error= 2 * factor->error(result_fl);
-      double factor_dim= factor->dim();
-      
-      if (counters.types[factor_count] == "odom"){
-        r_type["odom"] += factor_error;
-      } else if (counters.types[factor_count] == "gps"){
-        r_type["gps"] += factor_error;
-      } else if (counters.types[factor_count] == "lidar"){
-        r_type["lidar"] += factor_error;
-      }
-
-      // print the factor residual info
-      cout<< "factor # "<< factor_count<< "\t"
-          << "type: "<< counters.types[factor_count]<< "\t\t"
-          << "dim: "<< factor_dim<< "\t"
-          << "error: "<< factor_error<< "\t";
-      factor->printKeys();
-    }
-    // the sum of residuals
-    r_type["sum"]= r_type["odom"] + 
-                   r_type["gps"] + 
-                   r_type["lidar"] +
-                   15; // for the prior
-
-    // write r into file
-    string filename = "../results/residuals/types_time" + 
-                      to_string(int(counters.current_time)) + 
-                      "_lag" + to_string(int(params.lag)) + 
-                      ".csv";
-    fstream stream;
-    stream.open(filename.c_str(), fstream::app); 
-    stream<< r_type["odom"]<< " "
-          << r_type["gps"]<< " "
-          << r_type["lidar"]<< " "
-          << r_type["sum"]<< " "
-          << '\n';
-    stream.close();
-    cout<< "----------------------"<< endl;
-  }
-  
-  return;
-
+                  lin_graph= factor_graph.linearize(fixed_lag_smoother.getLinearizationPoint());
  
   Matrix hessian= (lin_graph->hessian()).first;
   Matrix A= (lin_graph->jacobian()).first;
@@ -124,8 +68,6 @@ void post_process(
   cout<< "DOF of the chi-squared: "<< chi_squared_dof<< endl;
   cout<< "r: "<< r<< endl;
   cout<< "Non-centrality parameter upper bound, lambda: "<< lambda<< endl;
-
-
 
   cout<< "----------- Hypothesis 0 ----------"<< "\n\n";
   

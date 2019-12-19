@@ -227,7 +227,7 @@ double get_dof_from_graph(const NonlinearFactorGraph &graph,
     if (!factor) {continue;}
 
     if (counters.types[factor_count] == "odom"){
-      dim += 12;
+      dim += 6;
     }else if(counters.types[factor_count] == "marginalized_prior"){
       dim += 0;
     }else{
@@ -271,6 +271,12 @@ map<string,double> get_variances_for_last_pose(
   var["x"]= P_x(3,3);
   var["y"]= P_x(4,4);
   var["z"]= P_x(5,5);
+
+  Matrix P_v= fixed_lag_smoother.marginalCovariance(V(counters.current_factor));
+  var["vx"]= P_v(0,0);
+  var["vy"]= P_v(1,1);
+  var["vz"]= P_v(2,2);
+
 
   return var;
 }
