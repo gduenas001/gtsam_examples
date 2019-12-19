@@ -29,13 +29,13 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 	
 	// error (15dof)
 	this->error.segment<3>(0)= 
-			nav_state.pose().translation() - true_nav_state.pose().translation();
+		    (nav_state.pose().rotation() * Rot3(true_nav_state.pose().rotation().transpose())).rpy();
 	this->error.segment<3>(3)= 
-			(nav_state.pose().rotation() * Rot3(true_nav_state.pose().rotation().transpose())).rpy();
+			nav_state.pose().translation() - true_nav_state.pose().translation();
 	this->error.segment<3>(6)= 
-			abs(nav_state.v() - true_nav_state.v());
+			nav_state.bodyVelocity() - true_nav_state.bodyVelocity();
 	this->error.segment<6>(9)= 
-			abs(this->imu_bias.vector());
+			this->imu_bias.vector();
 
 	// get the factor graph & Jacobian from isam
 	NonlinearFactorGraph factor_graph= fixed_lag_smoother.getFactors();
@@ -100,7 +100,7 @@ bool Solution::write_to_file(const string &workspace){
 	string filename= "";
 
 	// write time + estimated state (15dof) to a file
-	filename= workspace + "/estimate_state.csv";
+	filename= workspace + "/estimated_states.csv";
 	stream.open(filename.c_str(), fstream::app);
 	stream << this->time << "," 
 		   << this->nav_state.pose().x() << "," 
@@ -109,6 +109,9 @@ bool Solution::write_to_file(const string &workspace){
     	   << this->nav_state.pose().rotation().roll() << "," 
     	   << this->nav_state.pose().rotation().pitch() << "," 
     	   << this->nav_state.pose().rotation().yaw() << "," 
+    	   << this->nav_state.bodyVelocity()[0] << ","
+    	   << this->nav_state.bodyVelocity()[1] << ","
+    	   << this->nav_state.bodyVelocity()[2] << ","
     	   << Point3(this->imu_bias.accelerometer()).x() << "," 
     	   << Point3(this->imu_bias.accelerometer()).y() << "," 
     	   << Point3(this->imu_bias.accelerometer()).z() << "," 
@@ -119,7 +122,7 @@ bool Solution::write_to_file(const string &workspace){
 	stream.close();
 	
 	// write time + true state (15dof) to a file
-	filename= workspace + "/true_state.csv";
+	filename= workspace + "/true_states.csv";
 	stream.open(filename.c_str(), fstream::app);
 	stream << this->time << "," 
 		   << this->true_nav_state.pose().x() << "," 
@@ -128,6 +131,9 @@ bool Solution::write_to_file(const string &workspace){
     	   << this->true_nav_state.pose().rotation().roll() << "," 
     	   << this->true_nav_state.pose().rotation().pitch() << "," 
     	   << this->true_nav_state.pose().rotation().yaw() << "," 
+    	   << this->true_nav_state.bodyVelocity()[0] << ","
+    	   << this->true_nav_state.bodyVelocity()[1] << ","
+    	   << this->true_nav_state.bodyVelocity()[2] << ","
     	   << endl;
 	stream.close();
 	
@@ -138,16 +144,23 @@ bool Solution::write_to_file(const string &workspace){
 		   << this->residuals.odom.value << "," 
     	   << this->residuals.gps.value << "," 
     	   << this->residuals.lidar.value << "," 
+    	   << this->residuals.prior_pose.value << ","
+    	   << this->residuals.prior_vel.value << ","
+    	   << this->residuals.prior_bias.value << ","
+    	   << this->residuals.marginalized_prior.value << "," 
     	   << this->residuals.sum.value << "," 
     	   << this->residuals.odom.num_factors << "," 
     	   << this->residuals.gps.num_factors << "," 
     	   << this->residuals.lidar.num_factors << "," 
+    	   << this->residuals.prior_pose.num_factors << "," 
+    	   << this->residuals.prior_vel.num_factors << "," 
+    	   << this->residuals.marginalized_prior.num_factors << "," 
     	   << this->residuals.sum.num_factors << "," 
     	   << endl;
 	stream.close();
 	
 	// write time + error (15dof) to a file
-	filename= workspace + "/error.csv";
+	filename= workspace + "/errors.csv";
 	stream.open(filename.c_str(), fstream::app);
 	stream << this->time << ",";
 	for (int i = 0; i < 15; ++i) {
