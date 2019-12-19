@@ -92,7 +92,7 @@ Extracts the rows from the matrix and return a new matrix
 TODO: check if there is an inbuilt function
 */
 gtsam::Matrix 
-extractMatrixRows(gtsam::Matrix &A, 
+extract_matrix_rows(gtsam::Matrix &A, 
                   std::vector<int> &row_inds);
 
 /*
@@ -100,14 +100,14 @@ Extracts the columns from the matrix and return a new matrix
 TODO: check if there is an inbuilt function
 */
 gtsam::Matrix 
-extractMatrixColumns(gtsam::Matrix &A, 
+extract_matrix_columns(gtsam::Matrix &A, 
                      std::vector<int> &col_inds);
 
 /*
 Extract matrix rows and columns and return matrix
 */
 gtsam::Matrix 
-extractMatrixRowsAndColumns(
+extract_matrix_rows_and_columns(
                    gtsam::Matrix &A, 
                    std::vector<int> &row_inds, 
                    std::vector<int> &col_inds);

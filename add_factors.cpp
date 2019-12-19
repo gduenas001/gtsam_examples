@@ -19,21 +19,22 @@ void add_prior_factor(NonlinearFactorGraph &new_graph,
   // Add a prior on pose x0. This indirectly specifies where the origin is.
   noiseModel::Diagonal::shared_ptr
   pose_noise_model= 
-  noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(0.01), 
-                                Vector3::Constant(0.1) ).finished() );
+  noiseModel::Diagonal::Sigmas((Vector(6) << 
+                          Vector3::Constant(0.01), 
+                          Vector3::Constant(0.1) ).finished() );
 
   // simulate a prior pose measurement
   Rot3 prior_orientation_msmt= scenario.pose(0).rotation();
   Point3 prior_position_msmt= scenario.pose(0).translation();
   if (params.is_noisy["prior"]){
     Point3 prior_orientation_noise= 
-    generate_random_point(noise_generator, 
-                          params.noise_dist["prior_orientation"]);
+          generate_random_point(noise_generator, 
+                                params.noise_dist["prior_orientation"]);
     prior_orientation_msmt.RzRyRx(prior_orientation_noise);
 
     Point3 prior_position_noise= 
-    generate_random_point(noise_generator, 
-                          params.noise_dist["prior_position"]);
+          generate_random_point(noise_generator, 
+                                params.noise_dist["prior_position"]);
     prior_position_msmt= prior_position_msmt + prior_position_noise;
     
   }

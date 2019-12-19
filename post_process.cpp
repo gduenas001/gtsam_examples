@@ -15,19 +15,19 @@ typedef std::vector< std::pair<int, double> > pair_vector;
 
 
 void post_process(
-          Values result_fl,
-		      FixedLagSmoother::Result isam_result_fl, // TODO: is this used?
+          Values result,
           IncrementalFixedLagSmoother &fixed_lag_smoother,
           Counters &counters,
           Params &params){
 
- // get the factor graph & Jacobian from isam
+  // get the factor graph & Jacobian from isam
   NonlinearFactorGraph factor_graph= fixed_lag_smoother.getFactors();
 
   // get the linear graph
   boost::shared_ptr<GaussianFactorGraph> 
                   lin_graph= factor_graph.linearize(fixed_lag_smoother.getLinearizationPoint());
  
+  // get matrices
   Matrix hessian= (lin_graph->hessian()).first;
   Matrix A= (lin_graph->jacobian()).first;
   Matrix P= hessian.inverse();
@@ -41,7 +41,7 @@ void post_process(
   
   // number of measurements and states
   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
-  cout<< "rank of A: "<< A_rank<< endl;
+  cout<< "rank(A): "<< A_rank<< endl;
   cout<< "Hessian (Lambda) matrix size = "<< hessian.rows()<< " x "<< hessian.cols()<< endl;
 
   // get variances for the last state
@@ -60,7 +60,7 @@ void post_process(
   // upper bound lambda
   double effective_n= get_dof_from_graph(factor_graph, counters);
   double chi_squared_dof= effective_n - A.cols();
-  double r= 2 * factor_graph.error(result_fl);
+  double r= 2 * factor_graph.error(result);
   boost::math::chi_squared_distribution<> chi2_dist_lambda(chi_squared_dof);
   double lambda= pow( sqrt(r) + sqrt(boost::math::quantile(chi2_dist_lambda, 1-1e-5)), 2 );
   cout<< "effective number of measurements: "<< effective_n<< endl;
@@ -71,11 +71,11 @@ void post_process(
   cout<< "----------- Hypothesis 0 ----------"<< "\n\n";
   
   // check matrix M before elimination
-  Matrix M = (Eigen::MatrixXd::Identity(A.rows(), A.rows()) - A*S);
+  Matrix M= (Eigen::MatrixXd::Identity(A.rows(), A.rows()) - A*S);
   Eigen::FullPivLU<Matrix> M_lu(M);
   M_lu.setThreshold(1e-7);
   cout<< "size of M = "<< M.rows() << " x "<< M.cols()<< endl;
-  cout << "rank of M is " << M_lu.rank() << endl;
+  cout<< "rank of M is " << M_lu.rank()<< endl;
 
   // compute integrity
   boost::math::chi_squared_distribution<> chi2_dist_raim(1);
@@ -88,9 +88,9 @@ void post_process(
   h_LIR["z"]= 1 - boost::math::cdf(chi2_dist_raim, 
                       pow(params.AL_z / sqrt(var["z"]), 2) );
 
-  cout<< "LIR for h in x: "<< h_LIR["x"]<< endl;
-  cout<< "LIR for h in y: "<< h_LIR["y"]<< endl;
-  cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
+  cout<< "LIR for h_0 in x: "<< h_LIR["x"]<< endl;
+  cout<< "LIR for h_0 in y: "<< h_LIR["y"]<< endl;
+  cout<< "LIR for h_0 in z: "<< h_LIR["z"]<< endl;
 
 
   // ----------- loop over hypotheses --------------
@@ -119,22 +119,18 @@ void post_process(
     // number of msmts for hypothesis
     int h_n= row_inds.size();
 
-    // DEBUG
-    // cout<< "Rows to be extracted: ";
-    // printIntVector( row_inds );
-
     if (h_n == 0) {
       cout<< "empty hypothesis"<< endl;
       continue;
     }
     
     // extract rows & cols from M
-    Matrix h_M = extractMatrixRowsAndColumns(M, row_inds, row_inds);
+    Matrix h_M = extract_matrix_rows_and_columns(M, row_inds, row_inds);
     Eigen::FullPivLU<Matrix> h_M_lu(h_M);
     h_M_lu.setThreshold(1e-5);
     double h_M_rank= h_M_lu.rank();
-    cout<< "size of M is = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
-    cout << "rank of M is " << h_M_rank << endl; 
+    cout<< "size of M = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
+    cout<< "rank(M) = " << h_M_rank << endl; 
     
     // compute LIR only if h_M is full rank
     if (h_M_rank != h_M.rows()){
@@ -148,9 +144,9 @@ void post_process(
     
     // vector D
     map<string, Vector> D;
-    D["x"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["x"];
-    D["y"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["y"];
-    D["z"]= h_M_inv_sqrt * extractMatrixRows(S_transpose, row_inds) * t_vector["z"];
+    D["x"]= h_M_inv_sqrt * extract_matrix_rows(S_transpose, row_inds) * t_vector["x"];
+    D["y"]= h_M_inv_sqrt * extract_matrix_rows(S_transpose, row_inds) * t_vector["y"];
+    D["z"]= h_M_inv_sqrt * extract_matrix_rows(S_transpose, row_inds) * t_vector["z"];
 
     // get kappa
     map<string, double> k;

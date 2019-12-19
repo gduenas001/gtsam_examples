@@ -111,7 +111,7 @@ Matrix extractJacobianRows(Matrix &M, vector<int> &row_inds){
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds){
+Matrix extract_matrix_rows(Matrix &A, vector<int> &row_inds){
 
   Matrix B(row_inds.size(), A.cols());
   for (int i = 0; i < row_inds.size(); ++i){
@@ -125,7 +125,7 @@ Matrix extractMatrixRows(Matrix &A, vector<int> &row_inds){
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds){
+Matrix extract_matrix_columns(Matrix &A, vector<int> &col_inds){
 
   Matrix B(A.rows(), col_inds.size());
   for (int j = 0; j < col_inds.size(); ++j){
@@ -139,7 +139,7 @@ Matrix extractMatrixColumns(Matrix &A, vector<int> &col_inds){
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-Matrix extractMatrixRowsAndColumns(Matrix &A, 
+Matrix extract_matrix_rows_and_columns(Matrix &A, 
 								   vector<int> &row_inds, 
 								   vector<int> &col_inds){
 

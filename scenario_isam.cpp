@@ -8,7 +8,7 @@
 // - check if the multiple iterations make any difference
 // - write python post-process data
 // - change "odom" by "imu"
-
+// - log with a logger (not cout)
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
@@ -87,11 +87,13 @@ int main(int argc, char** argv) {
                             initial_estimate, 
                             new_timestamps);
   result= fixed_lag_smoother.calculateEstimate();
+
   solutions.push_back(Solution(fixed_lag_smoother, 
                                result, 
                                counters, 
                                scenario,
                                params.workspace) );
+
   newgraph= NonlinearFactorGraph();
   initial_estimate.clear();
   new_timestamps.clear();
@@ -221,7 +223,7 @@ int main(int argc, char** argv) {
                                    scenario,
                                    params.workspace));
 
-	  // reset variables
+	    // reset variables
       counters.update_A_rows(params.lag, params.is_verbose);
       newgraph= NonlinearFactorGraph();
       params.accum.resetIntegration();
@@ -233,11 +235,10 @@ int main(int argc, char** argv) {
 
   
   // post process data showing each hypothesis
-  post_process(result,
-               isam_result,
-               fixed_lag_smoother,
-               counters,
-               params);
+  // post_process(result,
+  //              fixed_lag_smoother,
+  //              counters,
+  //              params);
 
   return 0;
 }

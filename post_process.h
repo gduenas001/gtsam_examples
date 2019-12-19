@@ -16,7 +16,6 @@ NOTE: This function is work in progress and is messy.
 */
 void post_process(
 	gtsam::Values result_fl,
-    gtsam::FixedLagSmoother::Result isam_result_fl,
     gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
   	Counters &counters,
 	Params &params);
