@@ -18,7 +18,6 @@ void post_process(
           Values result_fl,
 		      FixedLagSmoother::Result isam_result_fl, // TODO: is this used?
           IncrementalFixedLagSmoother &fixed_lag_smoother,
-		      map<string, vector<int>> A_rows_per_type,
           Counters &counters,
           Params &params){
 

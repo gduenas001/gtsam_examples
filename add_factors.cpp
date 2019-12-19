@@ -6,19 +6,15 @@ using namespace gtsam;
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-int add_prior_factor(NonlinearFactorGraph &new_graph, 
+void add_prior_factor(NonlinearFactorGraph &new_graph, 
                      FixedLagSmoother::KeyTimestampMap &new_timestamps,
                      Values &initial_estimate,
                      const Scenario &scenario,
                      default_random_engine &noise_generator, 
-                     map<string, vector<int>> &A_rows_per_type,
                      Counters &counters,
                      Params &params){
 
   if (params.is_verbose) {cout<< "Adding prior factors..."<< '\n';}
-
-  // initialize the count on the rows of A
-  int A_rows_count = 0;
 
   // Add a prior on pose x0. This indirectly specifies where the origin is.
   noiseModel::Diagonal::shared_ptr
@@ -51,12 +47,6 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
   new_graph.add(pose_prior);
   initial_estimate.insert(X(0), prior_pose_msmt);
   new_timestamps[X(0)]= counters.current_time;
-
-  // keep track of Jacobian rows
-  A_rows_per_type.insert(pair<string, vector<int>> 
-          ("prior_pose", returnIncrVector(0,6)));
-  A_rows_count += 6;
-
   
   // new way of keeping track
   vector<int> rows= returnIncrVector(0,6);
@@ -84,11 +74,6 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
   new_graph.add(vel_prior_factor);
   initial_estimate.insert(V(0), prior_vel_msmt);
   new_timestamps[V(0)]= counters.current_time;
-
-  // keep track of Jacobians rows
-  A_rows_per_type.insert(pair<string, vector<int>> 
-          ("prior_vel", returnIncrVector(A_rows_count,3)));
-  A_rows_count += 3;
 
   // new way of keeping track
   rows= returnIncrVector(counters.num_A_rows, 3);
@@ -126,11 +111,6 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
   initial_estimate.insert(B(0), prior_bias_msmt);
   new_timestamps[B(0)]= counters.current_time;
 
-  // keep track of Jacobians rows
-  A_rows_per_type.insert(pair<string, vector<int>> 
-          ("prior_bias", returnIncrVector(A_rows_count,6)));
-  A_rows_count += 6;
-
   // new way of keeping track
   rows= returnIncrVector(counters.num_A_rows, 6);
   for (int i = 0; i < rows.size(); ++i){
@@ -144,8 +124,7 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
   
   if (params.is_verbose) {cout<< "...prior factor added"<< '\n';}
 
-  // return the count of the rows of A
-  return A_rows_count;
+  return;
 }
 
 
@@ -153,19 +132,12 @@ int add_prior_factor(NonlinearFactorGraph &new_graph,
 // -------------------------------------------------------
 void add_lidar_factor(NonlinearFactorGraph &newgraph,
 					RangeBearingFactorMap &range_bearing_factor,
-					map<string, vector<int>> &A_rows_per_type, 
-					int &A_rows_count,
-          Counters &counters,
+					Counters &counters,
           bool is_verbose){
 
   if (is_verbose) {cout<< "Adding lidar factor..."<< '\n';}
 
   newgraph.add(range_bearing_factor);
-  vector<int> lidar_rows= returnIncrVector(A_rows_count, 3);
-  A_rows_per_type["lidar"].insert( A_rows_per_type["lidar"].end(),
-        	  lidar_rows.begin(), lidar_rows.end() );
-  A_rows_count += 3;
-
 
   // new way of keeping track
   vector<int> rows= returnIncrVector(counters.num_A_rows, 3);
@@ -186,18 +158,12 @@ void add_lidar_factor(NonlinearFactorGraph &newgraph,
 // -------------------------------------------------------
 void add_gps_factor(NonlinearFactorGraph &newgraph,
 			   GPSFactor &gps_factor,
-				 map<string, vector<int>> &A_rows_per_type, 
-				 int &A_rows_count,
          Counters &counters,
          bool is_verbose) {
 
   if (is_verbose) {cout<< "Adding GPS factor..."<< '\n';}
 
 	newgraph.add(gps_factor);
-	vector<int> gps_rows=  returnIncrVector(A_rows_count, 3);
-	A_rows_per_type["gps"].insert( A_rows_per_type["gps"].end(),
-				gps_rows.begin(), gps_rows.end() );
-	A_rows_count += 3;
 
   // new way of keeping track
   vector<int> rows= returnIncrVector(counters.num_A_rows, 3);
@@ -218,18 +184,12 @@ void add_gps_factor(NonlinearFactorGraph &newgraph,
 // -------------------------------------------------------
 void add_imu_factor(NonlinearFactorGraph &newgraph,
 		    CombinedImuFactor &imufac,
-			  map<string, vector<int>> &A_rows_per_type, 
-			  int &A_rows_count,
         Counters &counters,
         bool is_verbose) {
 
   if (is_verbose) {cout<< "Adding imu factor"<< '\n';}
 
 	newgraph.add(imufac);
-	vector<int> odom_rows= returnIncrVector(A_rows_count, 15);
-	A_rows_per_type["odom"].insert( A_rows_per_type["odom"].end(),
-	     	    odom_rows.begin(), odom_rows.end() );
-	A_rows_count += 15;
 
    // new way of keeping track
   vector<int> rows= returnIncrVector(counters.num_A_rows, 15);
@@ -244,4 +204,12 @@ void add_imu_factor(NonlinearFactorGraph &newgraph,
   
   if (is_verbose) {cout<< "...imu factor added"<< '\n';}
 }
+
+
+
+
+
+
+
+
 

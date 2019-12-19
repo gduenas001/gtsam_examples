@@ -18,6 +18,5 @@ void post_process(
 	gtsam::Values result_fl,
     gtsam::FixedLagSmoother::Result isam_result_fl,
     gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
-	std::map<std::string, std::vector<int>> A_rows_per_type,
   	Counters &counters,
 	Params &params);

@@ -33,26 +33,22 @@ Add a prior factors in:
 the priors are sampled from their corresponding
 noise distributions is set in the parameters.
 */
-int add_prior_factor(
+void add_prior_factor(
          gtsam::NonlinearFactorGraph &new_graph, 
          gtsam::FixedLagSmoother::KeyTimestampMap &new_timestamps,
          gtsam::Values &initial_estimate,
          const gtsam::Scenario &scenario,
          std::default_random_engine &noise_generator, 
-         std::map<string, vector<int>> &A_rows_per_type,
          Counters &counters,
          Params &params);
 
 
 /*
 Add lidar factor to factor graph.
-It also keep A_rows_per_type updated.
 */
 void add_lidar_factor(
       gtsam::NonlinearFactorGraph &newgraph,
       RangeBearingFactorMap &range_bearing_factor,
-      std::map<string, vector<int>> &A_rows_per_type, 
-      int &A_rows_count,
       Counters &counters,
       bool is_verbose);
 
@@ -60,13 +56,10 @@ void add_lidar_factor(
 
 /*
 Add GPS factor to factor graph.
-It also keep A_rows_per_type updated.
 */
 void add_gps_factor(
       gtsam::NonlinearFactorGraph &newgraph,
       GPSFactor &gps_factor,
-      std::map<string, vector<int>> &A_rows_per_type, 
-      int &A_rows_count,
       Counters &counters,
       bool is_verbose);
 
@@ -75,13 +68,10 @@ void add_gps_factor(
 
 /*
 Add IMU factor to factor graph.
-It also keep A_rows_per_type updated.
 */
 void add_imu_factor(
       gtsam::NonlinearFactorGraph &newgraph,
       gtsam::CombinedImuFactor &imufac,
-      std::map<string, vector<int>> &A_rows_per_type, 
-      int &A_rows_count,
       Counters &counters,
       bool is_verbose);
 

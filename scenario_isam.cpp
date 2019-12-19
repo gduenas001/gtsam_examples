@@ -72,20 +72,15 @@ int main(int argc, char** argv) {
   NavState prev_state, predict_state;
   imuBias::ConstantBias prev_bias;
   FixedLagSmoother::Result isam_result;
-  map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
-  A_rows_per_type.insert( pair<string, vector<int>> ("lidar", {}) );
-  A_rows_per_type.insert( pair<string, vector<int>> ("odom", {}) );
-  A_rows_per_type.insert( pair<string, vector<int>> ("gps", {}) );
-
+  
   // add prior factor
-  int A_rows_count= add_prior_factor(newgraph,
-                                  	new_timestamps,
-                            		    initial_estimate, 
-                              		  scenario,
-                                  	noise_generator,
-                              		  A_rows_per_type,
-                                  	counters,
-                                  	params);
+  add_prior_factor(newgraph,
+                	new_timestamps,
+          		    initial_estimate, 
+            		  scenario,
+                	noise_generator,
+                	counters,
+                	params);
 
   // solve the graph once
   fixed_lag_smoother.update(newgraph, 
@@ -159,8 +154,6 @@ int main(int argc, char** argv) {
 
       add_imu_factor(newgraph,
                     imu_factor,
-                    A_rows_per_type, 
-                    A_rows_count,
                     counters,
                     params.is_verbose);
 
@@ -177,11 +170,9 @@ int main(int argc, char** argv) {
                           params.gps_cov);
 
       add_gps_factor(newgraph,
-                    gps_factor,
-                    A_rows_per_type,
-                    A_rows_count,
-                    counters,
-                    params.is_verbose);
+                     gps_factor,
+                     counters,
+                     params.is_verbose);
 
       // lidar measurements
       for (int j = 0; j < params.landmarks.size(); ++j) {
@@ -203,11 +194,9 @@ int main(int argc, char** argv) {
                              params.lidar_cov);
 
         add_lidar_factor(newgraph,
-                        range_bearing_factor,
-                        A_rows_per_type, 
-                        A_rows_count,
-                        counters,
-                        params.is_verbose);
+                         range_bearing_factor,
+                         counters,
+                         params.is_verbose);
       }      
       
       // Incremental solution
@@ -247,7 +236,6 @@ int main(int argc, char** argv) {
   post_process(result,
                isam_result,
                fixed_lag_smoother,
-               A_rows_per_type,
                counters,
                params);
 
