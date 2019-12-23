@@ -259,9 +259,8 @@ map<string, Vector> buildt_vector(int size){
 // -------------------------------------------------------
 // -------------------------------------------------------
 map<string,double> get_variances_for_last_pose(
-                  IncrementalFixedLagSmoother fixed_lag_smoother,
-                  // BatchFixedLagSmoother fixed_lag_smoother,
-                  Counters &counters){
+                  const IncrementalFixedLagSmoother &fixed_lag_smoother,
+                  const Counters &counters){
 
   map<string,double> var;
   Matrix P_x= fixed_lag_smoother.marginalCovariance(X(counters.current_factor));
@@ -276,7 +275,6 @@ map<string,double> get_variances_for_last_pose(
   var["vx"]= P_v(0,0);
   var["vy"]= P_v(1,1);
   var["vz"]= P_v(2,2);
-
 
   return var;
 }

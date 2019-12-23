@@ -168,9 +168,11 @@ getVariancesForLastPose(gtsam::ISAM2 &isam,
 Returns the variances for the last estimated pose:
 "roll" - "pitch" - "yaw" - "x" - "y" - "z"
 */
-std::map<string,double> get_variances_for_last_pose(
-                  gtsam::IncrementalFixedLagSmoother fixed_lag_smoother,
-                  Counters &counters);
+std::map<string,double> 
+get_variances_for_last_pose(
+              const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
+              const Counters &counters);
+
 
 /*
 Generate lidar (range & bearing) measurements to all

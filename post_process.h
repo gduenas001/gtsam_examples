@@ -15,7 +15,7 @@ LIR for x, y, and z coordinates in inertial frame.
 NOTE: This function is work in progress and is messy.
 */
 void post_process(
-	gtsam::Values result_fl,
-    gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
+	const gtsam::Values result_fl,
+    const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
   	Counters &counters,
-	Params &params);
+	const Params &params);

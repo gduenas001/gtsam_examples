@@ -15,17 +15,18 @@ typedef std::vector< std::pair<int, double> > pair_vector;
 
 
 void post_process(
-          Values result,
-          IncrementalFixedLagSmoother &fixed_lag_smoother,
+          const Values result,
+          const IncrementalFixedLagSmoother &fixed_lag_smoother,
           Counters &counters,
-          Params &params){
+          const Params &params){
 
   // get the factor graph & Jacobian from isam
-  NonlinearFactorGraph factor_graph= fixed_lag_smoother.getFactors();
+  NonlinearFactorGraph 
+  factor_graph= fixed_lag_smoother.getFactors();
 
   // get the linear graph
   boost::shared_ptr<GaussianFactorGraph> 
-                  lin_graph= factor_graph.linearize(fixed_lag_smoother.getLinearizationPoint());
+  lin_graph= factor_graph.linearize(fixed_lag_smoother.getLinearizationPoint());
  
   // get matrices
   Matrix hessian= (lin_graph->hessian()).first;
@@ -54,7 +55,8 @@ void post_process(
           sqrt(var["y"])<< ", "<< 
           sqrt(var["z"])<< ")"<< endl;
   
-  // builds a map for vector t for each coordinate TODO: change to lat, long, vert (needs rotations)
+  // builds a map for vector t for each coordinate 
+  // TODO: change to lat, long, vert (needs rotations)
   map<string, Vector> t_vector= buildt_vector(A.cols());
   
   // upper bound lambda
@@ -94,7 +96,7 @@ void post_process(
 
 
   // ----------- loop over hypotheses --------------
-  vector<string> factor_types= return_unique_vector (counters.types);
+  vector<string> factor_types= return_unique_vector(counters.types);
   for (vector<string>::iterator 
             it_type= factor_types.begin(); 
             it_type != factor_types.end();
@@ -178,66 +180,6 @@ void post_process(
   
   }
 
-
-
-
-
-
-
-  // // ----------- reduced factor graph --------------
-  // {
-  //   GaussianFactorGraph fg= lin_graph->clone();
-  //   int factor_count= -1;
-  //   for (auto factor : fg){
-  //     ++factor_count;
-  //     if (!factor) {continue;}
-
-  //     string type= counters.types[factor_count];
-
-  //     // remove lidar factors
-  //     if (type == "lidar"){fg.remove(factor_count);}
-  //     if (type == "marginalized_prior"){fg.remove(factor_count);}
-  //   }
-
-
-
-  //   Matrix A= fg.jacobian().first;
-  //   double n = A.rows(); double m = A.cols();
-  //   Eigen::FullPivLU<Matrix> A_lu(A);
-  //   A_lu.setThreshold(1e-7);
-  //   double A_rank= A_lu.rank();
-  //   cout<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols()<< endl;
-  //   cout<< "n = "<< n<< "\nm = "<< m<< endl;
-  //   cout<< "rank of A: "<< A_rank<< endl;
-  
-
-  //   cout<< "print reduced graph without lidar & marginalized factors"<< endl;
-  //   factor_count= -1;
-  //   double sum= 0, size= 0;
-  //   for (auto factor : fg){
-  //     ++factor_count;
-  //     if (!factor) {continue;}
-
-  //     // double factor_error= 2 * factor->error(result_fl);
-  //     double factor_size= factor->size();
-      
-  //     cout<< "factor # "<< factor_count<< "\t"
-  //         << "type: "<< counters.types[factor_count]<< "\t"
-  //         << "size: "<< factor_size<< "\t"
-  //         // << "error: "<< 2 * factor_error<< "\t"
-  //         << " with keys: ";
-  //     factor->printKeys();
-  //     // sum += factor_error;
-  //     size += factor_size;
-  //   }
-  //   cout<< "reduce factor size: "<< size<< endl;
-
-  //   cout<< "----------------------"<< endl;
-  // }
-  // // -----------------------------------
-
-
-  
 
   // save factor graph as graphviz dot file
   // Use this to convert to png image
