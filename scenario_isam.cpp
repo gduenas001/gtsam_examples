@@ -17,7 +17,7 @@
 #include <typeinfo>
 #include <boost/math/distributions/chi_squared.hpp>
 #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
-#include <gtswam_unstable/nonlinear/BatchFixedLagSmoother.h>
+#include <gtsam_unstable/nonlinear/BatchFixedLagSmoother.h>
 
 
 
@@ -89,14 +89,13 @@ int main(int argc, char** argv) {
   A_rows_per_type.insert( pair<string, vector<int>> ("gps", {}) );
 
   // add prior factor
-  int A_rows_count= add_prior_factor(newgraph,
-                                  	new_timestamps,
-                            		    initial_estimate, 
-                              		  scenario,
-                                  	noise_generator,
-                              		  A_rows_per_type,
-                                  	counters,
-                                  	params);
+  add_prior_factor(newgraph,
+                	 new_timestamps,
+          		     initial_estimate, 
+            		   scenario,
+                	 noise_generator,
+                	 counters,
+                	 params);
 
   // solve the graph once
   fixed_lag_smoother.update(newgraph, 
@@ -169,12 +168,10 @@ int main(int argc, char** argv) {
                                    B(counters.prev_factor),    B(counters.current_factor), 
                                    params.accum);
 
-      addOdomFactor(newgraph,
-                    imu_factor,
-                    A_rows_per_type, 
-                    A_rows_count,
-                    counters,
-                    params.is_verbose);
+      add_imu_factor(newgraph,
+                     imu_factor,
+                     counters,
+                     params.is_verbose);
 
    
       // Adding GPS factor
@@ -190,8 +187,6 @@ int main(int argc, char** argv) {
 
       add_gps_factor(newgraph,
                     gps_factor,
-                    A_rows_per_type,
-                    A_rows_count,
                     counters,
                     params.is_verbose);
 
@@ -216,8 +211,6 @@ int main(int argc, char** argv) {
 
         add_lidar_factor(newgraph,
                         range_bearing_factor,
-                        A_rows_per_type, 
-                        A_rows_count,
                         counters,
                         params.is_verbose);
       }      
