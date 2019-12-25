@@ -9,12 +9,14 @@ using namespace gtsam;
 // -------------------------------------------------------
 default_random_engine 
 initialize_noise_generator(int seed){
+  LOG(DEBUG)<< "Initilizing noise generator";
   default_random_engine noise_generator;
   if (seed == -1) {
     noise_generator.seed(std::chrono::system_clock::now().time_since_epoch().count());
   } else {
     noise_generator.seed(seed);
   }
+  LOG(DEBUG)<< "Exit initialize_noise_generator";
   return noise_generator;
 }
 
@@ -47,8 +49,9 @@ Vector6 error_average(std::vector<Pose3> poses){
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-ConstantTwistScenario createConstantTwistScenario(double radius, double linear_velocity) {
+ConstantTwistScenario create_constant_twist_scenario(double radius, double linear_velocity) {
 
+  LOG(DEBUG)<< "Creating constant twist scenario";
   // Start with a camera on x-axis looking at origin (only use pose_0 from here to generate the scenario)
   const Point3 up(0, 0, 1), target(0, 0, 0);
   const Point3 position(radius, 0, 0);
@@ -60,6 +63,7 @@ ConstantTwistScenario createConstantTwistScenario(double radius, double linear_v
   Vector3 angular_velocity_vector(0, -angular_velocity, 0);
   Vector3 linear_velocity_vector(linear_velocity, 0, 0);
 
+  LOG(DEBUG)<< "Exit create_constant_twist_scenario";
   return ConstantTwistScenario(angular_velocity_vector, linear_velocity_vector, pose_0);
 }
 
@@ -67,6 +71,7 @@ ConstantTwistScenario createConstantTwistScenario(double radius, double linear_v
 // -------------------------------------------------------
 // -------------------------------------------------------
 std::vector<Point3> create_landmarks(double radius){
+  LOG(DEBUG)<< "Creating landmarks";
 
   double distance = radius + radius/10;
   std::vector<Point3> landmarks;
@@ -74,7 +79,8 @@ std::vector<Point3> create_landmarks(double radius){
   landmarks.push_back( Point3(0, distance, -distance) );
   landmarks.push_back( Point3(-distance, 0, distance) );
   landmarks.push_back( Point3(0, -distance, -distance) );
-  
+
+  LOG(DEBUG)<< "Exit create_landmarks";  
   return landmarks;
 }
 
@@ -327,7 +333,7 @@ Vector3 sim_imu_w(Vector3 true_imu_w,
   if (is_noisy){
     Point3 gyro_noise = generate_random_point( noise_generator, imu_gyro_dist );                      
     return true_imu_w + gyro_noise.vector();
-  }else{
+  } else {
     return true_imu_w;
   }
 }
@@ -354,10 +360,16 @@ string prepare_log(const Params &params){
   string workspace(buffer);
   workspace= "../results/" + workspace;
 
+  // Load configuration from file
+  el::Configurations conf(params.logger_config_file);
+  conf.parseFromText("*GLOBAL:\n FILENAME = " 
+                     + workspace 
+                     + "/log.log");
+  el::Loggers::reconfigureAllLoggers(conf);
+  LOG(DEBUG) << "Logger initialized";
+
   // create the folder
-  if (params.is_verbose){
-    cout<< "creating folder "<< workspace<< endl;
-  }
+  LOG(DEBUG)<< "creating folder "<< workspace;
   string cmd("mkdir -p " + workspace);
   system(cmd.c_str());
 
@@ -402,6 +414,7 @@ string prepare_log(const Params &params){
   stream << "v_body_x  v_body_y  v_body_z\n";
   stream.close();
 
+  LOG(DEBUG) << "Exit prepare_log";
   return workspace;
 }
 

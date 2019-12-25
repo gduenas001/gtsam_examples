@@ -9,6 +9,7 @@ Helper functions for the main code.
 
 #include <random>
 #include <fstream>
+#include <iostream>
 #include <gtsam/geometry/SimpleCamera.h> 
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/navigation/Scenario.h>
@@ -23,6 +24,12 @@ Helper functions for the main code.
 #include <string>
 #include <chrono> 
 #include <ctime>
+#include <boost/log/trivial.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/expressions.hpp>
+
+
+#include "third_party/easyloggingpp/src/easylogging++.h"
 
 
 #include "RangeBearingFactorMap.h"
@@ -76,8 +83,8 @@ measurements. The simulated robot moves in circles at a
 constant speed.
 */
 gtsam::ConstantTwistScenario 
-createConstantTwistScenario(double radius = 30, 
-                            double linear_velocity = 25);
+create_constant_twist_scenario(double radius = 30, 
+                               double linear_velocity = 25);
 
 /*
 Creates the map of landmarks and stores them in a vector
@@ -238,6 +245,9 @@ std::vector<T> return_unique_vector(std::vector<T> vec){
     
   return vec;
 };
+
+
+// void init_logging();
 
 /*
 creates a folder with the current date + time, i.e.

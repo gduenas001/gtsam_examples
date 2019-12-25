@@ -23,6 +23,7 @@ add_executable(main
   			   add_factors.cpp
   			   Solution.cpp
   			   calculate_LIR.cpp
+  			   ./third_party/easyloggingpp/src/easylogging++.cc
 )
 
 

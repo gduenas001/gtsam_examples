@@ -100,8 +100,10 @@ bool add_parameter(string name, string value, Params &params){
     params.workspace= string(value.c_str());
   } else if (name == "landmark") {
     params.landmarks.push_back(read_landmark(value));
+  } else if (name == "logger_config_file") {
+    params.logger_config_file= string(value.c_str());
 
-    // name doesn't exist -> return false
+  // name doesn't exist -> return false
   } else {
     cout<< "name "<< name<< " is not a member of params"<< endl;
     return false;

@@ -71,8 +71,11 @@ seed= -1
 # fixed-lag smoother lag time
 lag= 5
 
-# workspace folder
+# workspace folder (initilized in prepare_log with current day and time)
 workspace=""
+
+# logger config file
+logger_config_file= ../logger.conf
 
 # landmarks
 landmark= 33, 0, 33

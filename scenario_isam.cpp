@@ -10,6 +10,10 @@
 // - change "odom" by "imu"
 // - log with a logger (not cout)
 
+
+
+
+
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <typeinfo>
@@ -19,19 +23,24 @@
 
 
 #include "helpers.h"
-#include "post_process.h"
 #include "parser.h"
 #include "Counters.h"
 #include "add_factors.h"
 #include "Solution.h"
+// #include "post_process.h"
+#include "calculate_LIR.h"
+
 
 using namespace std;
 using namespace gtsam;
 
+// init log file
+INITIALIZE_EASYLOGGINGPP
+
 
 // ----------------------------------------------------
 int main(int argc, char** argv) {
-
+  
   // parse the options
   Params params= load_params_from_file();
   if (params.is_verbose){print_params(params);}
@@ -49,8 +58,8 @@ int main(int argc, char** argv) {
   
   // scenario to simulate measurements and ground truth
   ConstantTwistScenario 
-  scenario= createConstantTwistScenario(params.scenario_radius,
-                                        params.scenario_linear_vel);
+  scenario= create_constant_twist_scenario(params.scenario_radius,
+                                           params.scenario_linear_vel);
 
   // save data - initilize vector of solutions
   vector<Solution> solutions;
@@ -97,7 +106,7 @@ int main(int argc, char** argv) {
   newgraph= NonlinearFactorGraph();
   initial_estimate.clear();
   new_timestamps.clear();
-  if (params.is_verbose){cout<< "Graph initilized"<< '\n';}
+  LOG(INFO)<< "Graph initilized";
 
   // Simulate poses and imu measurements, adding them to the factor graph
   while (counters.current_time < params.sim_time){
@@ -124,10 +133,8 @@ int main(int argc, char** argv) {
 
     // GPS update
     if (counters.gps_time_accum > params.dt_gps) {
-      if (params.is_verbose) {
-        cout<< "GPS update"<< '\n';
-        cout<< "Time: "<< counters.current_time<< '\n';
-      }
+      LOG(INFO)<< "Time: "<< counters.current_time;
+      LOG(DEBUG)<< "GPS/lidar update";
 
       // increase the factor count
       counters.increase_factors_count();
@@ -215,6 +222,13 @@ int main(int argc, char** argv) {
       if (counters.current_time  > params.lag){
         counters.add_factor("marginalized_prior");
       }
+
+      // compute the LIR
+      calculate_LIR(result,
+                    fixed_lag_smoother,
+                    counters,
+                    params);
+
 
       // save the solution
       solutions.push_back(Solution(fixed_lag_smoother, 

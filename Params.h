@@ -116,6 +116,9 @@ struct Params{
   // workspace folder
   std::string workspace;
 
+  // logger config file
+  std::string logger_config_file= "../logger.conf";
+
   // landmarks
   std::vector<gtsam::Point3> landmarks;
 };
