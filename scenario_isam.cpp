@@ -5,17 +5,16 @@
 // - Change naming convention of functions -> use underscores, not capital letters
 // - save_data to support fixed-lag smoother
 // - add option for the python plot
-// - check if the multiple iterations make any difference
-// - write python post-process data
-// - change "odom" by "imu"
-// - log with a logger (not cout)
+
+
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <typeinfo>
 #include <boost/math/distributions/chi_squared.hpp>
 #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
-#include <gtsam_unstable/nonlinear/BatchFixedLagSmoother.h>
+#include <gtswam_unstable/nonlinear/BatchFixedLagSmoother.h>
+
 
 
 #include "helpers.h"
@@ -71,29 +70,35 @@ int main(int argc, char** argv) {
   Counters counters(params);
   NavState prev_state, predict_state;
   imuBias::ConstantBias prev_bias;
+  vector<Point3> true_positions;
+  vector<Pose3> online_error; // error when computed online
+  true_positions.push_back( scenario.pose(0).translation() );
   FixedLagSmoother::Result isam_result;
-  
+  map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
+  A_rows_per_type.insert( pair<string, vector<int>> ("lidar", {}) );
+  A_rows_per_type.insert( pair<string, vector<int>> ("odom", {}) );
+  A_rows_per_type.insert( pair<string, vector<int>> ("gps", {}) );
+
   // add prior factor
-  add_prior_factor(newgraph,
-                	new_timestamps,
-          		    initial_estimate, 
-            		  scenario,
-                	noise_generator,
-                	counters,
-                	params);
+  int A_rows_count= add_prior_factor(newgraph,
+                                  	new_timestamps,
+                            		    initial_estimate, 
+                              		  scenario,
+                                  	noise_generator,
+                              		  A_rows_per_type,
+                                  	counters,
+                                  	params);
 
   // solve the graph once
   fixed_lag_smoother.update(newgraph, 
                             initial_estimate, 
                             new_timestamps);
   result= fixed_lag_smoother.calculateEstimate();
-
   solutions.push_back(Solution(fixed_lag_smoother, 
                                result, 
                                counters, 
                                scenario,
                                params.workspace) );
-
   newgraph= NonlinearFactorGraph();
   initial_estimate.clear();
   new_timestamps.clear();
@@ -103,7 +108,7 @@ int main(int argc, char** argv) {
   while (counters.current_time < params.sim_time){
 
     counters.increase_time();
-      
+    
     // Simulate acceleration and gyro measurements in (actual) body frame
     Vector3 msmt_acc= sim_imu_acc(scenario,
                                   noise_generator,
@@ -136,7 +141,10 @@ int main(int argc, char** argv) {
       new_timestamps[X(counters.current_factor)]= counters.current_time;
       new_timestamps[V(counters.current_factor)]= counters.current_time;
       new_timestamps[B(counters.current_factor)]= counters.current_time;
-      
+
+      // save the current position
+      true_positions.push_back( scenario.pose(counters.current_time).translation() );
+
       // predict from IMU accumulated msmts
       prev_state= NavState(result.at<Pose3>  (X(counters.prev_factor)), 
                            result.at<Vector3>(V(counters.prev_factor)));
@@ -154,8 +162,10 @@ int main(int argc, char** argv) {
                                    B(counters.prev_factor),    B(counters.current_factor), 
                                    params.accum);
 
-      add_imu_factor(newgraph,
+      addOdomFactor(newgraph,
                     imu_factor,
+                    A_rows_per_type, 
+                    A_rows_count,
                     counters,
                     params.is_verbose);
 
@@ -172,9 +182,11 @@ int main(int argc, char** argv) {
                           params.gps_cov);
 
       add_gps_factor(newgraph,
-                     gps_factor,
-                     counters,
-                     params.is_verbose);
+                    gps_factor,
+                    A_rows_per_type,
+                    A_rows_count,
+                    counters,
+                    params.is_verbose);
 
       // lidar measurements
       for (int j = 0; j < params.landmarks.size(); ++j) {
@@ -196,9 +208,11 @@ int main(int argc, char** argv) {
                              params.lidar_cov);
 
         add_lidar_factor(newgraph,
-                         range_bearing_factor,
-                         counters,
-                         params.is_verbose);
+                        range_bearing_factor,
+                        A_rows_per_type, 
+                        A_rows_count,
+                        counters,
+                        params.is_verbose);
       }      
       
       // Incremental solution
@@ -211,6 +225,11 @@ int main(int argc, char** argv) {
 
       result= fixed_lag_smoother.calculateEstimate();
       
+      // compute error TODO: compute error inside solutions
+      online_error.push_back(compute_error(
+                            scenario.pose(counters.current_time),
+                            result.at<Pose3>(X(counters.current_factor)) ));
+
       // if there's been marginalization -> add factor
       if (counters.current_time  > params.lag){
         counters.add_factor("marginalized_prior");
@@ -233,10 +252,19 @@ int main(int argc, char** argv) {
     }
   } // end for loop
 
+  // save the data 
+  // TODO: save in solutions
+  // TODO: give option to save in different folder
+  save_data(result,
+           true_positions,
+           params.landmarks,
+           online_error);
   
-  // post process data showing each hypothesis
+  // // post process data showing each hypothesis
   // post_process(result,
+  //              isam_result,
   //              fixed_lag_smoother,
+  //              A_rows_per_type,
   //              counters,
   //              params);
 
