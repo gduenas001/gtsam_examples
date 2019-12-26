@@ -7,11 +7,6 @@
 // - add option for the python plot
 
 
-
-
-
-
-
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <typeinfo>
@@ -137,8 +132,7 @@ int main(int argc, char** argv) {
 
     // GPS update
     if (counters.gps_time_accum > params.dt_gps) {
-      LOG(INFO)<< "Time: "<< counters.current_time;
-      LOG(DEBUG)<< "GPS/lidar update";
+      LOG(INFO)<< "--------- Time: "<< counters.current_time<< " ---------";
 
       // increase the factor count
       counters.increase_factors_count();
@@ -235,6 +229,9 @@ int main(int argc, char** argv) {
         counters.add_factor("marginalized_prior");
       }
 
+      // update counters (with marginalization if neccessary)
+      counters.update_A_rows(params.lag);
+
       // compute the LIR
       calculate_LIR(result,
                     fixed_lag_smoother,
@@ -250,7 +247,6 @@ int main(int argc, char** argv) {
                                    params.workspace));
 
 	    // reset variables
-      counters.update_A_rows(params.lag, params.is_verbose);
       newgraph= NonlinearFactorGraph();
       params.accum.resetIntegration();
       initial_estimate.clear();

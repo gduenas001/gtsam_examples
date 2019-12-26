@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Params.h"
+#include "third_party/easyloggingpp/src/easylogging++.h"
 
 using namespace std;
 using namespace gtsam;
@@ -97,8 +98,7 @@ public:
 	removes rows corresponding to factors that were
 	factorized
 	*/
-	void update_A_rows(const double lag,
-					   const bool is_verbose);
+	void update_A_rows(const double lag);
 };
 
 

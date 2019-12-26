@@ -1,6 +1,7 @@
 
 #include "Counters.h"
 
+
 using namespace std;
 using namespace gtsam;
 
@@ -13,19 +14,23 @@ void Counters::add_factor(string type){
 
 
 // ----------------------------------------------------
-void Counters::update_A_rows(const double lag,
-							 const bool is_verbose){
+void Counters::update_A_rows(const double lag) {
 
 	// if there has not being marginalization -> return
-	if (this->current_time <= lag){ return; }
+	if (this->current_time <= lag) {
+		LOG(DEBUG)<< "Time: "<< this->current_time
+				  << " lag: "<< lag
+				  << " -> no marginalization";
+		return; 
+	}
 
 	// time at the beggining of the sliding window
 	double time_threshold= this->current_time - lag;
 
-	if (is_verbose){
-	cout<< "Remove factors from time"<< time_threshold
-		<< "until current time: "<< this->current_time<< '\n';
-	}
+	LOG(DEBUG)<< "Remove factors from time"
+			  << time_threshold
+			  << "until current time: "
+			  << this->current_time;
 
 	int num_erased_rows= 0;
 	for (map<string, pair_vector>::iterator

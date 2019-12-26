@@ -27,6 +27,19 @@ void calculate_LIR(
   NonlinearFactorGraph 
   factor_graph= fixed_lag_smoother.getFactors();
 
+
+  // print all factors
+  int factor_count= -1;
+  for (auto factor : factor_graph) {
+    if (!factor){continue;}
+
+    ++factor_count;
+    LOG(DEBUG)<< "factor #"<< factor_count
+              << " dim: "<< factor->dim()
+              << " type: "<< counters.types[factor_count]
+              << " #keys: "<< factor->keys().size();
+  }
+
   // get the linear graph
   boost::shared_ptr<GaussianFactorGraph> 
   lin_graph= factor_graph.linearize(fixed_lag_smoother.getLinearizationPoint());
@@ -74,6 +87,8 @@ void calculate_LIR(
   LOG(DEBUG)<< "r: "<< r;
   LOG(DEBUG)<< "Non-centrality parameter upper bound, lambda: "<< lambda;
 
+
+
   LOG(DEBUG)<< "----------- Hypothesis 0 ----------";
   
   // check matrix M before elimination
@@ -112,7 +127,8 @@ void calculate_LIR(
                 << "\ttime: "<< counters.A_rows[h_type][i].second;
     }    
 
-    // extract the row indexes 
+    
+    // extract the row indexes
     vector<int> row_inds;
     transform(counters.A_rows[h_type].begin(), 
               counters.A_rows[h_type].end(), 
@@ -130,16 +146,17 @@ void calculate_LIR(
     // extract rows & cols from M
     Matrix h_M = extract_matrix_rows_and_columns(M, row_inds, row_inds);
     Eigen::FullPivLU<Matrix> h_M_lu(h_M);
-    h_M_lu.setThreshold(1e-5);
+    h_M_lu.setThreshold(1e-7);
     double h_M_rank= h_M_lu.rank();
-    if (params.is_verbose) {
-      cout<< "size of M = "<< h_M.rows() << " x "<< h_M.cols()<< endl;
-      cout<< "rank(M) = " << h_M_rank << endl; 
-    }
+    LOG(DEBUG)<< "size of M = "
+              << h_M.rows()<< " x "
+              << h_M.cols();
+    LOG(DEBUG)<< "rank(M) = "<< h_M_rank;
+
 
     // compute LIR only if h_M is full rank
     if (h_M_rank != h_M.rows()){
-      cout<< "M for hypothesis "<< h_type<< " is rank deficient"<< endl;
+      LOG(WARNING)<< "M for hypothesis "<< h_type<< " is rank deficient";
       continue;
     }
 
@@ -158,12 +175,18 @@ void calculate_LIR(
     k["x"]= D["x"].squaredNorm() / var["x"];
     k["y"]= D["y"].squaredNorm() / var["y"];
     k["z"]= D["z"].squaredNorm() / var["z"];
+    LOG(DEBUG)<< "k x: "<< k["x"];
+    LOG(DEBUG)<< "k y: "<< k["y"];
+    LOG(DEBUG)<< "k z: "<< k["z"];
 
     // non-centrality parameter
     map<string, double> mu;
     mu["x"]= k["x"] * lambda;
     mu["y"]= k["y"] * lambda;
     mu["z"]= k["z"] * lambda;
+    LOG(DEBUG)<< "mu x: "<< mu["x"];
+    LOG(DEBUG)<< "mu y: "<< mu["y"];
+    LOG(DEBUG)<< "mu z: "<< mu["z"];
 
     // compute integrity
     h_LIR["x"]= 1 - boost::math::cdf(
@@ -176,11 +199,10 @@ void calculate_LIR(
                         boost::math::non_central_chi_squared(1, mu["z"]), 
                         pow(params.AL_z / sqrt(var["z"]), 2) );
     
-    if (params.is_verbose) {
-      cout<< "LIR for h in x: "<< h_LIR["x"]<< endl;
-      cout<< "LIR for h in y: "<< h_LIR["y"]<< endl;
-      cout<< "LIR for h in z: "<< h_LIR["z"]<< endl;
-    }
+    LOG(DEBUG)<< "LIR for h in x: "<< h_LIR["x"];
+    LOG(DEBUG)<< "LIR for h in y: "<< h_LIR["y"];
+    LOG(DEBUG)<< "LIR for h in z: "<< h_LIR["z"];
+    
   }
 
 
