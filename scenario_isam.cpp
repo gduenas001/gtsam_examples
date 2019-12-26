@@ -216,14 +216,8 @@ int main(int argc, char** argv) {
       for (int i = 0; i < 3; ++i) {
         isam_result= fixed_lag_smoother.update();
       }
-
       result= fixed_lag_smoother.calculateEstimate();
       
-      // compute error TODO: compute error inside solutions
-      online_error.push_back(compute_error(
-                            scenario.pose(counters.current_time),
-                            result.at<Pose3>(X(counters.current_factor)) ));
-
       // if there's been marginalization -> add factor
       if (counters.current_time  > params.lag){
         counters.add_factor("marginalized_prior");
@@ -237,7 +231,6 @@ int main(int argc, char** argv) {
                     fixed_lag_smoother,
                     counters,
                     params);
-
 
       // save the solution
       solutions.push_back(Solution(fixed_lag_smoother, 
@@ -254,22 +247,7 @@ int main(int argc, char** argv) {
       counters.reset_timer();
     }
   } // end for loop
-
-  // save the data 
-  // TODO: save in solutions
-  // TODO: give option to save in different folder
-  save_data(result,
-           true_positions,
-           params.landmarks,
-           online_error);
   
-  // // post process data showing each hypothesis
-  // post_process(result,
-  //              isam_result,
-  //              fixed_lag_smoother,
-  //              A_rows_per_type,
-  //              counters,
-  //              params);
-
+  LOG(INFO)<< "End of simulation";
   return 0;
 }

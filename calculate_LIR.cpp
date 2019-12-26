@@ -1,12 +1,13 @@
 
-#include "post_process.h"
 #include <boost/math/distributions/chi_squared.hpp>
 #include <boost/math/distributions/non_central_chi_squared.hpp>
-
 
 #include <vector> 
 #include <algorithm> 
 #include <typeinfo>
+
+#include "post_process.h"
+#include "calculate_LIR.h"
 
 using namespace std;
 using namespace gtsam;
@@ -15,6 +16,7 @@ using namespace gtsam;
 typedef std::vector< std::pair<int, double> > pair_vector;
 
 
+// -------------------------------------------------------
 void calculate_LIR(
           const Values result,
           const IncrementalFixedLagSmoother &fixed_lag_smoother,
@@ -23,17 +25,20 @@ void calculate_LIR(
 
   LOG(INFO)<< "calculating LIR";
 
+  // initilize LIR class
+  LIR lir;
+
   // get the factor graph & Jacobian from isam
   NonlinearFactorGraph 
   factor_graph= fixed_lag_smoother.getFactors();
 
 
-  // print all factors
+  // log all factors with their types
   int factor_count= -1;
   for (auto factor : factor_graph) {
+    ++factor_count;
     if (!factor){continue;}
 
-    ++factor_count;
     LOG(DEBUG)<< "factor #"<< factor_count
               << " dim: "<< factor->dim()
               << " type: "<< counters.types[factor_count]
@@ -57,7 +62,9 @@ void calculate_LIR(
   double A_rank= A_lu.rank();
 
    // get variances for the last state
-  map<string,double> var= get_variances_for_last_pose(fixed_lag_smoother, counters);
+  map<string,double> 
+  var= get_variances_for_last_pose(fixed_lag_smoother, 
+                                   counters);
   
   // number of measurements and states
   LOG(DEBUG)<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols();
@@ -73,7 +80,8 @@ void calculate_LIR(
 
   // builds a map for vector t for each coordinate 
   // TODO: change to lat, long, vert (needs rotations)
-  map<string, Vector> t_vector= buildt_vector(A.cols());
+  map<string, Vector> 
+  t_vector= buildt_vector(A.cols());
   
   // upper bound lambda
   double effective_n= get_dof_from_graph(factor_graph, counters);
@@ -89,7 +97,7 @@ void calculate_LIR(
 
 
 
-  LOG(DEBUG)<< "----------- Hypothesis 0 ----------";
+  LOG(DEBUG)<< "--> Hypothesis null";
   
   // check matrix M before elimination
   Matrix M= (Eigen::MatrixXd::Identity(A.rows(), A.rows()) - A*S);
@@ -100,28 +108,36 @@ void calculate_LIR(
 
   // compute integrity
   boost::math::chi_squared_distribution<> chi2_dist_raim(1);
-  map<string, double> h_LIR;
 
-  h_LIR["x"]= 1 - boost::math::cdf(chi2_dist_raim, 
-                      pow(params.AL_x / sqrt(var["x"]), 2) );
-  h_LIR["y"]= 1 - boost::math::cdf(chi2_dist_raim, 
-                      pow(params.AL_y / sqrt(var["y"]), 2) );
-  h_LIR["z"]= 1 - boost::math::cdf(chi2_dist_raim, 
-                      pow(params.AL_z / sqrt(var["z"]), 2) );
-  
-  LOG(DEBUG)<< "LIR for h_0 in x: "<< h_LIR["x"];
-  LOG(DEBUG)<< "LIR for h_0 in y: "<< h_LIR["y"];
-  LOG(DEBUG)<< "LIR for h_0 in z: "<< h_LIR["z"];
+  {
+    // set the null hypthesis LIR
+    H_LIR h_lir;
+    h_lir.set("x", 1 - boost::math::cdf(chi2_dist_raim, 
+                        pow(params.AL_x / sqrt(var["x"]), 2)) );
+    h_lir.set("y", 1 - boost::math::cdf(chi2_dist_raim, 
+                        pow(params.AL_x / sqrt(var["y"]), 2)) );
+    h_lir.set("z", 1 - boost::math::cdf(chi2_dist_raim, 
+                        pow(params.AL_x / sqrt(var["z"]), 2)) );
+
+    // set to main LIR variable
+    lir.set("null", h_lir);
+
+    
+    LOG(DEBUG)<< "LIR for h_0 in x: "<< lir.null.x;
+    LOG(DEBUG)<< "LIR for h_0 in y: "<< lir.null.y;
+    LOG(DEBUG)<< "LIR for h_0 in z: "<< lir.null.z;
+  } 
 
   // ----------- loop over hypotheses --------------
-  vector<string> factor_types= return_unique_vector(counters.types);
+  vector<string> 
+  factor_types= return_unique_vector(counters.types);
   for (vector<string>::iterator 
             it_type= factor_types.begin(); 
             it_type != factor_types.end();
             ++it_type) {
 
     string h_type= *it_type;
-    LOG(DEBUG)<< "----------- Hypothesis "<< h_type <<" ----------";
+    LOG(DEBUG)<< "--> Hypothesis "<< h_type;
     for (int i= 0; i < counters.A_rows[h_type].size(); ++i) {
       LOG(DEBUG)<< "row:  "<< counters.A_rows[h_type][i].first
                 << "\ttime: "<< counters.A_rows[h_type][i].second;
@@ -139,7 +155,7 @@ void calculate_LIR(
     int h_n= row_inds.size();
 
     if (h_n == 0) {
-      LOG(WARNING)<< "empty hypothesis";
+      LOG(WARNING)<< h_type<< " hypothesis is empty";
       continue;
     }
     
@@ -189,19 +205,25 @@ void calculate_LIR(
     LOG(DEBUG)<< "mu z: "<< mu["z"];
 
     // compute integrity
-    h_LIR["x"]= 1 - boost::math::cdf(
+    H_LIR h_lir;
+    h_lir.set("x", 1 - boost::math::cdf(
                         boost::math::non_central_chi_squared(1, mu["x"]),
-                        pow(params.AL_x / sqrt(var["x"]), 2) );
-    h_LIR["y"]= 1 - boost::math::cdf(
-                        boost::math::non_central_chi_squared(1, mu["y"]), 
-                        pow(params.AL_y / sqrt(var["y"]), 2) );
-    h_LIR["z"]= 1 - boost::math::cdf(
-                        boost::math::non_central_chi_squared(1, mu["z"]), 
-                        pow(params.AL_z / sqrt(var["z"]), 2) );
-    
-    LOG(DEBUG)<< "LIR for h in x: "<< h_LIR["x"];
-    LOG(DEBUG)<< "LIR for h in y: "<< h_LIR["y"];
-    LOG(DEBUG)<< "LIR for h in z: "<< h_LIR["z"];
+                        pow(params.AL_x / sqrt(var["x"]), 2)) );
+
+    h_lir.set("y", 1 - boost::math::cdf(
+                        boost::math::non_central_chi_squared(1, mu["y"]),
+                        pow(params.AL_y / sqrt(var["y"]), 2)) );
+
+    h_lir.set("z", 1 - boost::math::cdf(
+                        boost::math::non_central_chi_squared(1, mu["z"]),
+                        pow(params.AL_z / sqrt(var["z"]), 2)) );
+
+    // copy to LIR main variable
+    lir.set(h_type, h_lir);
+
+    LOG(DEBUG)<< "LIR for h in x: "<< h_lir.x;
+    LOG(DEBUG)<< "LIR for h in y: "<< h_lir.y;
+    LOG(DEBUG)<< "LIR for h in z: "<< h_lir.z;
     
   }
 

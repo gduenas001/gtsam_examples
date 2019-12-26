@@ -256,6 +256,12 @@ map<string, Vector> buildt_vector(int size){
 	t_vector["y"](size-9)= 1;
 	t_vector["z"](size-8)= 1;
 
+  const Eigen::IOFormat eigen_fmt;
+  cout<< t_vector["x"].format(eigen_fmt);
+  LOG(DEBUG)<< "t-vector: ";
+  // LOG(DEBUG)<< t_vector["y"];
+  // LOG(DEBUG)<< t_vector["z"];
+
 	return t_vector;
 }
 

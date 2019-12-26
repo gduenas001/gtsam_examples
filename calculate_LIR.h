@@ -4,6 +4,7 @@
 #include "helpers.h"
 #include "Counters.h"
 #include "Params.h"
+#include "LIR.h"
 
 
 /*

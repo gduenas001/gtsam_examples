@@ -9,6 +9,7 @@
 
 
 #include "Counters.h"
+#include "LIR.h"
 
 using namespace std;
 using namespace gtsam;
@@ -27,7 +28,6 @@ struct Residual{
 };
 
 
-
 // -------------------------------------------------------
 class Residuals{
 
@@ -43,7 +43,6 @@ public:
 	Residual marginalized_prior;
 	Residual sum;
 };
-
 
 
 // -------------------------------------------------------
@@ -75,6 +74,9 @@ public:
 
 	// residuals
 	Residuals residuals;
+
+	// LIR
+	LIR lir;
 
 	/*
 	writes the solution to this file

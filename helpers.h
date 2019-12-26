@@ -27,6 +27,7 @@ Helper functions for the main code.
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/expressions.hpp>
+#include <Eigen/Dense>
 
 
 #include "third_party/easyloggingpp/src/easylogging++.h"
@@ -246,8 +247,6 @@ std::vector<T> return_unique_vector(std::vector<T> vec){
   return vec;
 };
 
-
-// void init_logging();
 
 /*
 creates a folder with the current date + time, i.e.
