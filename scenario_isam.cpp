@@ -95,7 +95,8 @@ int main(int argc, char** argv) {
                                result, 
                                counters, 
                                scenario,
-                               params.workspace) );
+                               params.workspace,
+                               lir) );
   newgraph= NonlinearFactorGraph();
   initial_estimate.clear();
   new_timestamps.clear();
@@ -228,7 +229,8 @@ int main(int argc, char** argv) {
                                    result, 
                                    counters, 
                                    scenario,
-                                   params.workspace));
+                                   params.workspace,
+                                   lir));
 
 	    // reset variables
       newgraph= NonlinearFactorGraph();

@@ -57,7 +57,8 @@ public:
 			 const gtsam::Values &result, 
 			 const Counters &counters,
 			 const ConstantTwistScenario &scenario,
-			 const std::string &workspace);
+			 const std::string &workspace,
+			 const LIR &lir);
 
 	// time of the solution
 	double time;

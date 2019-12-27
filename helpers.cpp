@@ -252,9 +252,9 @@ map<string, Vector> buildt_vector(int size){
 	t_vector["x"]= Vector::Zero(size);
 	t_vector["y"]= Vector::Zero(size);
 	t_vector["z"]= Vector::Zero(size);
-	t_vector["x"](size-10)= 1;
-	t_vector["y"](size-9)= 1;
-	t_vector["z"](size-8)= 1;
+	t_vector["x"](size-11)= 1;
+	t_vector["y"](size-10)= 1;
+	t_vector["z"](size-9)= 1;
 
   const Eigen::IOFormat eigen_fmt;
   LOG(DEBUG)<< "t-vector: ";
@@ -416,6 +416,14 @@ string prepare_log(const Params &params){
   stream.open(filename.c_str(), fstream::out);
   stream << "time  x  y  z  roll  pitch  yaw  ";
   stream << "v_body_x  v_body_y  v_body_z\n";
+  stream.close();
+
+  // create lir file with names in first line
+  filename= workspace + "/lir.csv";
+  stream.open(filename.c_str(), fstream::out);
+  stream << "time  null_x  null_y  null_z  "
+                  "lidar_x  lidar_y  lidar_z  "
+                  "gps_x  gps_y  gps_z\n";
   stream.close();
 
   LOG(DEBUG) << "Exit prepare_log";

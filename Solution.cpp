@@ -11,10 +11,14 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 				   const gtsam::Values &result, 
 				   const Counters &counters,
 				   const ConstantTwistScenario &scenario,
-				   const string &workspace){
+				   const string &workspace,
+				   const LIR &lir){
 
 	// time
 	this->time= counters.current_time;
+
+	// copy LIR
+	this->lir= lir;
 
 	// estimate state
 	this->nav_state= NavState(
@@ -162,13 +166,34 @@ bool Solution::write_to_file(const string &workspace){
 	// write time + error (15dof) to a file
 	filename= workspace + "/errors.csv";
 	stream.open(filename.c_str(), fstream::app);
-	stream << this->time << ",";
+	stream<< this->time << ",";
 	for (int i = 0; i < 15; ++i) {
 		stream << this->error[i] << ",";
 	}
 	stream << '\n';
 	stream.close();
 	
+	// write time + LIR_x + LIR_y + LIR_z to a file
+	filename= workspace + "/lir.csv";
+	stream.open(filename.c_str(), fstream::app);
+	stream<< this->time << ",";
+	stream // null
+		  << this->lir.null.x << ","
+		  << this->lir.null.y << ","
+		  << this->lir.null.z << ","
+		   // lidar
+		  << this->lir.lidar.x << ","
+		  << this->lir.lidar.y << ","
+		  << this->lir.lidar.z << ","
+		   // gps
+		  << this->lir.gps.x << ","
+		  << this->lir.gps.y << ","
+		  << this->lir.gps.z;
+		  
+	stream<< '\n';
+	stream.close();
+	
+
 	return true;
 }
 
