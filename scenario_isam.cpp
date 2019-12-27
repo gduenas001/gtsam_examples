@@ -71,18 +71,12 @@ int main(int argc, char** argv) {
 
 
   // initialize variables
+  LIR lir;
   Counters counters(params);
   NavState prev_state, predict_state;
   imuBias::ConstantBias prev_bias;
-  vector<Point3> true_positions;
-  vector<Pose3> online_error; // error when computed online
-  true_positions.push_back( scenario.pose(0).translation() );
   FixedLagSmoother::Result isam_result;
-  map<string, vector<int>> A_rows_per_type; // stores wich msmts to which hypothesis
-  A_rows_per_type.insert( pair<string, vector<int>> ("lidar", {}) );
-  A_rows_per_type.insert( pair<string, vector<int>> ("odom", {}) );
-  A_rows_per_type.insert( pair<string, vector<int>> ("gps", {}) );
-
+  
   // add prior factor
   add_prior_factor(newgraph,
                 	 new_timestamps,
@@ -141,9 +135,6 @@ int main(int argc, char** argv) {
       new_timestamps[X(counters.current_factor)]= counters.current_time;
       new_timestamps[V(counters.current_factor)]= counters.current_time;
       new_timestamps[B(counters.current_factor)]= counters.current_time;
-
-      // save the current position
-      true_positions.push_back( scenario.pose(counters.current_time).translation() );
 
       // predict from IMU accumulated msmts
       prev_state= NavState(result.at<Pose3>  (X(counters.prev_factor)), 
@@ -227,7 +218,7 @@ int main(int argc, char** argv) {
       counters.update_A_rows(params.lag);
 
       // compute the LIR
-      calculate_LIR(result,
+      lir= calculate_LIR(result,
                     fixed_lag_smoother,
                     counters,
                     params);

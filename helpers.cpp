@@ -257,15 +257,13 @@ map<string, Vector> buildt_vector(int size){
 	t_vector["z"](size-8)= 1;
 
   const Eigen::IOFormat eigen_fmt;
-  cout<< t_vector["x"].format(eigen_fmt);
   LOG(DEBUG)<< "t-vector: ";
-  // LOG(DEBUG)<< t_vector["y"];
-  // LOG(DEBUG)<< t_vector["z"];
-
+  LOG(DEBUG)<< "x: "<< t_vector["x"].transpose().format(eigen_fmt);
+  LOG(DEBUG)<< "y: "<< t_vector["y"].transpose().format(eigen_fmt);
+  LOG(DEBUG)<< "z: "<< t_vector["z"].transpose().format(eigen_fmt);
+  
 	return t_vector;
 }
-
-
 
 
 // -------------------------------------------------------

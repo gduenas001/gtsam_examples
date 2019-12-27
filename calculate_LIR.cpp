@@ -17,7 +17,7 @@ typedef std::vector< std::pair<int, double> > pair_vector;
 
 
 // -------------------------------------------------------
-void calculate_LIR(
+LIR calculate_LIR(
           const Values result,
           const IncrementalFixedLagSmoother &fixed_lag_smoother,
           Counters &counters,
@@ -226,6 +226,8 @@ void calculate_LIR(
     LOG(DEBUG)<< "LIR for h in z: "<< h_lir.z;
     
   }
+
+  return lir;
 
 
   // save factor graph as graphviz dot file
