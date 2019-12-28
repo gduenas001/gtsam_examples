@@ -377,16 +377,12 @@ string prepare_log(const Params &params){
   string cmd("mkdir -p " + workspace);
   system(cmd.c_str());
 
-  // copy the params
-  cmd= "cp ../params.txt " + workspace;
-  system(cmd.c_str());
-
   // create residuals file with names in first line
   fstream stream;
   string filename= workspace + "/residuals.csv";
   stream.open(filename.c_str(), fstream::out);
   stream << "time  imu  gps  lidar  ";
-  stream << "prior_pose  prior_vel  ";
+  stream << "prior_pose  prior_vel  prior_bias  ";
   stream << "marginalized_prior  sum  ";
   stream << "#imu  #gps  #lidar  ";
   stream << "#prior_pose  #prior_vel  ";
@@ -424,6 +420,15 @@ string prepare_log(const Params &params){
   stream << "time  null_x  null_y  null_z  "
                   "lidar_x  lidar_y  lidar_z  "
                   "gps_x  gps_y  gps_z\n";
+  stream.close();
+
+  // copy the params
+  cmd= "cp ../params.txt " + workspace;
+  system(cmd.c_str());
+  // add the workspace to params
+  filename= workspace + "/params.txt";
+  stream.open(filename.c_str(), fstream::app);
+  stream << "workspace= "<< workspace<< "\n";
   stream.close();
 
   LOG(DEBUG) << "Exit prepare_log";

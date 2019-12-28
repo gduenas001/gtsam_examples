@@ -3,8 +3,8 @@
 // - data association for landmarks
 // - different frequencies for GPS and lidar
 // - Change naming convention of functions -> use underscores, not capital letters
-// - save_data to support fixed-lag smoother
 // - add option for the python plot
+// - check t vector depending on the order of variables
 
 
 #include <gtsam/slam/dataset.h>
@@ -15,13 +15,11 @@
 #include <gtsam_unstable/nonlinear/BatchFixedLagSmoother.h>
 
 
-
 #include "helpers.h"
 #include "parser.h"
 #include "Counters.h"
 #include "add_factors.h"
 #include "Solution.h"
-// #include "post_process.h"
 #include "calculate_LIR.h"
 
 
@@ -37,7 +35,6 @@ int main(int argc, char** argv) {
   
   // parse the options
   Params params= load_params_from_file();
-  if (params.is_verbose){print_params(params);}
   params_parser(argc, argv, params);
 
   // build variable from params
@@ -242,5 +239,14 @@ int main(int argc, char** argv) {
   } // end for loop
   
   LOG(INFO)<< "End of simulation";
+
+
+  // // print path with python
+  // string command = "python ../python_plot.py";
+  string command = 
+  "python ../python/post_process.py --workspace " + params.workspace;
+  system(command.c_str());
+
+
   return 0;
 }

@@ -121,7 +121,7 @@ bool Solution::write_to_file(const string &workspace){
     	   << Point3(this->imu_bias.accelerometer()).z() << "," 
     	   << Point3(this->imu_bias.gyroscope()).x() << "," 
     	   << Point3(this->imu_bias.gyroscope()).y() << "," 
-    	   << Point3(this->imu_bias.gyroscope()).z() << "," 
+    	   << Point3(this->imu_bias.gyroscope()).z()
     	   << endl;
 	stream.close();
 	
@@ -137,7 +137,7 @@ bool Solution::write_to_file(const string &workspace){
     	   << this->true_nav_state.pose().rotation().yaw() << "," 
     	   << this->true_nav_state.bodyVelocity()[0] << ","
     	   << this->true_nav_state.bodyVelocity()[1] << ","
-    	   << this->true_nav_state.bodyVelocity()[2] << ","
+    	   << this->true_nav_state.bodyVelocity()[2]
     	   << endl;
 	stream.close();
 	
@@ -159,16 +159,16 @@ bool Solution::write_to_file(const string &workspace){
     	   << this->residuals.prior_pose.num_factors << "," 
     	   << this->residuals.prior_vel.num_factors << "," 
     	   << this->residuals.marginalized_prior.num_factors << "," 
-    	   << this->residuals.sum.num_factors << "," 
+    	   << this->residuals.sum.num_factors
     	   << endl;
 	stream.close();
 	
 	// write time + error (15dof) to a file
 	filename= workspace + "/errors.csv";
 	stream.open(filename.c_str(), fstream::app);
-	stream<< this->time << ",";
+	stream<< this->time;
 	for (int i = 0; i < 15; ++i) {
-		stream << this->error[i] << ",";
+		stream<< ", "<< this->error[i];
 	}
 	stream << '\n';
 	stream.close();
