@@ -50,6 +50,7 @@ def main():
 
     # plot errors Vs residuals
     fig_res, axs_res= plt.subplots(4)
+    plt.xlabel('Time [s]')
 
     # plot errors
     for errors_name, ind in zip(errors_names, range(0, errors.shape[1])):
@@ -58,8 +59,8 @@ def main():
            errors_name == 'z':
             axs_res[0].plot(errors[:,0], errors[:,ind], \
                         label= errors_name)
+            axs_res[0].grid()
             axs_res[0].legend()
-
 
     # plot residuals
     axs_ind= 1 # start at the second plot
@@ -69,27 +70,49 @@ def main():
            res_name == 'lidar':
             axs_res[axs_ind].plot(residuals[:,0], residuals[:,ind], \
                               label=res_name)
+            axs_res[axs_ind].grid()
             axs_res[axs_ind].legend()
             axs_ind += 1
 
+    # save figure
+    filename= os.path.join(params['workspace'], 'errors.png')
+    fig_res.savefig(filename, dpi=400)
 
     # plot LIR
     fig_lir, axs_lir= plt.subplots(3)
+    plt.xlabel('Time [s]')
+    plt.grid()
+
+    # plot errors
+    for errors_name, ind in zip(errors_names, range(0, errors.shape[1])):
+        if errors_name == 'x' or \
+           errors_name == 'y' or \
+           errors_name == 'z':
+            axs_lir[0].plot(errors[:,0], errors[:,ind], \
+                        label= errors_name)
+            axs_lir[0].grid()
+            axs_lir[0].legend()
+
+    
     for hypo_name, ind in zip(hypo_names, range(0,lir.shape[1])):
-        print hypo_name
         if 'gps' in hypo_name:
             axs_lir[1].plot(lir[:,0], \
                             residuals[:,ind], \
                             label=hypo_name)
+            axs_lir[1].grid()
             axs_lir[1].legend()
         if 'lidar' in hypo_name:
             axs_lir[2].plot(lir[:,0], \
                             residuals[:,ind], \
                             label=hypo_name)
+            axs_lir[2].grid()
             axs_lir[2].legend()
-            
+    # save figure
+    filename= os.path.join(params['workspace'], 'lir.png')
+    fig_lir.savefig(filename, dpi=400)
 
-    plt.show()
+
+    # plt.show()
         
 
     # # initialize 
