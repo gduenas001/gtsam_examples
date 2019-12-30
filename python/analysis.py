@@ -2,12 +2,26 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-import csv
+# import csv
 from scipy.stats import chi2
 from astropy.visualization import hist
 import scipy.stats as scipy
 import argparse
 import itertools
+
+class Data(object):
+    '''
+    Data class to store the data saved in the files
+    Usually the dictionary contains two keys:
+    - values
+    - names
+    '''
+
+    def __init__(self):
+        self.residuals= {}
+        self.errors= {}
+        self.lir= {}
+        
 
 
 
@@ -24,96 +38,13 @@ def main():
 
     # read params
     filename= os.path.join(args['workspace'], 'params.txt')
-    params= load(filename)
+    params= load_params(filename)
 
-    # read residuals form csv
-    filename= os.path.join(params['workspace'], 'residuals.csv')
-    residuals= np.genfromtxt(filename, delimiter=',', skip_header=1)
-    with open(filename, 'r') as f:
-        line= f.readline().strip()
-        res_names= line.split('  ')
-        
-    # read errors from csv
-    filename= os.path.join(params['workspace'], 'errors.csv')
-    errors= np.genfromtxt(filename, delimiter=',', skip_header=1)
-    with open(filename, 'r') as f:
-        line= f.readline().strip()
-        errors_names= line.split(' ')
+    # load data
+    data= load_data(params['workspace'])
 
-    # read LIR from csv
-    filename= os.path.join(params['workspace'], 'lir.csv')
-    lir= np.genfromtxt(filename, delimiter=',', skip_header=1)
-    with open(filename, 'r') as f:
-        line= f.readline().strip()
-        hypo_names= line.split('  ')
-    
-
-    # plot errors Vs residuals
-    fig_res, axs_res= plt.subplots(4)
-    plt.xlabel('Time [s]')
-
-    # plot errors
-    for errors_name, ind in zip(errors_names, range(0, errors.shape[1])):
-        if errors_name == 'x' or \
-           errors_name == 'y' or \
-           errors_name == 'z':
-            axs_res[0].plot(errors[:,0], errors[:,ind], \
-                        label= errors_name)
-            axs_res[0].grid()
-            axs_res[0].legend()
-
-    # plot residuals
-    axs_ind= 1 # start at the second plot
-    for res_name, ind in zip(res_names, range(0,residuals.shape[1])):
-        if res_name == 'imu' or\
-           res_name == 'gps' or\
-           res_name == 'lidar':
-            axs_res[axs_ind].plot(residuals[:,0], residuals[:,ind], \
-                              label=res_name)
-            axs_res[axs_ind].grid()
-            axs_res[axs_ind].legend()
-            axs_ind += 1
-
-    # save figure
-    filename= os.path.join(params['workspace'], 'errors.png')
-    fig_res.savefig(filename, dpi=400)
-
-    # plot LIR
-    fig_lir, axs_lir= plt.subplots(3)
-    plt.xlabel('Time [s]')
-    plt.grid()
-
-    # plot errors
-    for errors_name, ind in zip(errors_names, range(0, errors.shape[1])):
-        if errors_name == 'x' or \
-           errors_name == 'y' or \
-           errors_name == 'z':
-            axs_lir[0].plot(errors[:,0], errors[:,ind], \
-                        label= errors_name)
-            axs_lir[0].grid()
-            axs_lir[0].legend()
-
-    
-    for hypo_name, ind in zip(hypo_names, range(0,lir.shape[1])):
-        if 'gps' in hypo_name:
-            axs_lir[1].plot(lir[:,0], \
-                            residuals[:,ind], \
-                            label=hypo_name)
-            axs_lir[1].grid()
-            axs_lir[1].legend()
-        if 'lidar' in hypo_name:
-            axs_lir[2].plot(lir[:,0], \
-                            residuals[:,ind], \
-                            label=hypo_name)
-            axs_lir[2].grid()
-            axs_lir[2].legend()
-    # save figure
-    filename= os.path.join(params['workspace'], 'lir.png')
-    fig_lir.savefig(filename, dpi=400)
-
-
-    # plt.show()
-        
+    # save plots 
+    make_plots(params['workspace'], data)
 
     # # initialize 
     # res= {}
@@ -174,7 +105,12 @@ def main():
 
 
 
-def load(filename):
+def load_params(filename):
+    '''
+    Loads the parameters from the copy of params
+    stored in the folder of the log
+    '''
+
     # initilize params dict
     params= {}
 
@@ -201,6 +137,140 @@ def load(filename):
         params[name]= value
 
     return params
+
+
+
+def load_data(workspace, \
+              residuals= True, \
+              errors= True, \
+              lir= True):
+    '''
+    Loads residuals, errors and LIR if set to true
+    Returns a Data obj with dictionary entries:
+    - names
+    - values
+    '''
+
+    data= Data()
+    # read residuals form csv
+    if residuals:
+        filename= os.path.join(workspace, 'residuals.csv')
+        data.residuals['values']= np.genfromtxt(filename, delimiter=',', skip_header=1)
+        with open(filename, 'r') as f:
+            line= f.readline().strip()
+            data.residuals['names']= line.split('  ')
+        
+    # read errors from csv
+    if errors:
+        filename= os.path.join(workspace, 'errors.csv')
+        data.errors['values']= np.genfromtxt(filename, delimiter=',', skip_header=1)
+        with open(filename, 'r') as f:
+            line= f.readline().strip()
+            data.errors['names']= line.split(' ')
+
+    # read LIR from csv 
+    if lir:
+        filename= os.path.join(workspace, 'lir.csv')
+        # skip two lines b/c at time 0, LIR is not set
+        data.lir['values']= np.genfromtxt(filename, delimiter=',', skip_header=2)
+        # set zeros to 1e-12 (careful, set times to 1e-12 too)
+        mask= data.lir['values'] < 1e-12
+        data.lir['values'][mask]= 1e-12
+        with open(filename, 'r') as f:
+            line= f.readline().strip()
+            data.lir['names']= line.split('  ')
+
+
+    # return data
+    return data
+    
+
+
+def make_plots(workspace, \
+               data, \
+               residuals= True, \
+               errors= True, \
+               lir= True):
+    '''
+    Plots the data loaded in load_data and set to true
+    '''
+    
+    # plot errors Vs residuals
+    fig_res, axs_res= plt.subplots(4)
+    plt.xlabel('Time [s]')
+
+    # plot errors
+    for errors_name, ind in zip(data.errors['names'], \
+                                    range(0, data.errors['values'].shape[1])):
+        if errors_name == 'x' or \
+           errors_name == 'y' or \
+           errors_name == 'z':
+            axs_res[0].plot(data.errors['values'][:,0], \
+                        data.errors['values'][:,ind], \
+                        label= errors_name)
+            axs_res[0].grid(b=True)
+            axs_res[0].legend()
+
+    # plot residuals
+    axs_ind= 1 # start at the second plot
+    for res_name, ind in zip(data.residuals['names'], \
+                         range(0,data.residuals['values'].shape[1])):
+        if res_name == 'imu' or\
+           res_name == 'gps' or\
+           res_name == 'lidar':
+            axs_res[axs_ind].plot(data.residuals['values'][:,0], \
+                              data.residuals['values'][:,ind], \
+                              label=res_name)
+            axs_res[axs_ind].grid(b=True)
+            axs_res[axs_ind].legend()
+            axs_ind += 1
+
+    # save figure
+    filename= os.path.join(workspace, 'residuals.png')
+    fig_res.savefig(filename, dpi=400)
+
+    # plot LIR
+    fig_lir, axs_lir= plt.subplots(3)
+
+    for errors_name, ind in zip(data.errors['names'], \
+                            range(0, data.errors['values'].shape[1])):
+        if errors_name == 'x' or \
+           errors_name == 'y' or \
+           errors_name == 'z':
+            axs_lir[0].plot(data.errors['values'][:,0], \
+                       data.errors['values'][:,ind], \
+                       label= errors_name)
+            axs_lir[0].grid(b=True)
+            axs_lir[0].legend()
+
+    
+    for hypo_name, ind in zip(data.lir['names'], \
+                          range(0, data.lir['values'].shape[1])):
+        if 'gps' in hypo_name:
+            axs_lir[1].plot(data.lir['values'][:,0], \
+                            data.lir['values'][:,ind], \
+                            label=hypo_name)
+            axs_lir[1].grid(b=True)
+            axs_lir[1].set_yscale('log')
+            axs_lir[1].legend()
+        if 'lidar' in hypo_name:
+            axs_lir[2].plot(data.lir['values'][:,0], \
+                            data.lir['values'][:,ind], \
+                            label=hypo_name)
+            axs_lir[2].grid(b=True)
+            axs_lir[2].set_yscale('log')
+            axs_lir[2].legend()
+
+    # configure the plot
+    plt.xlabel('Time [s]')
+
+    # save figure
+    filename= os.path.join(workspace, 'lir.png')
+    fig_lir.savefig(filename, dpi=400)
+    
+
+
+
 
 if __name__ == '__main__':
     main()

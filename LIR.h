@@ -4,6 +4,18 @@
 // -------------------------------------------------------
 class H_LIR {
 public:
+	H_LIR() {
+		this->x= -1;
+		this->y= -1;
+		this->z= -1;
+		this->lateral= -1;
+		this->longitudinal= -1;
+		this->vertical= -1;
+		this->roll= -1;
+		this->pitch= -1;
+		this->yaw= -1;
+	}
+
 	void set(std::string state,
 		double lir){
 		if (state == "x") {
@@ -47,7 +59,7 @@ public:
 	/*
 	*/
 	void set(std::string hypothesis, 
-			 H_LIR &h_lir){
+			 H_LIR &h_lir) {
 		if (hypothesis == "null") {
 			this->null= h_lir;
 		} else if (hypothesis == "lidar") {

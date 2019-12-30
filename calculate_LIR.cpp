@@ -96,7 +96,6 @@ LIR calculate_LIR(
   LOG(DEBUG)<< "Non-centrality parameter upper bound, lambda: "<< lambda;
 
 
-
   LOG(DEBUG)<< "--> Hypothesis null";
   
   // check matrix M before elimination
@@ -107,17 +106,17 @@ LIR calculate_LIR(
   LOG(DEBUG)<< "rank of M is " << M_lu.rank();
 
   // compute integrity
-  boost::math::chi_squared_distribution<> chi2_dist_raim(1);
+  boost::math::chi_squared_distribution<> chi2_dist_1dof(1);
 
   {
     // set the null hypthesis LIR
     H_LIR h_lir;
-    h_lir.set("x", 1 - boost::math::cdf(chi2_dist_raim, 
+    h_lir.set("x", 1 - boost::math::cdf(chi2_dist_1dof, 
                         pow(params.AL_x / sqrt(var["x"]), 2)) );
-    h_lir.set("y", 1 - boost::math::cdf(chi2_dist_raim, 
-                        pow(params.AL_x / sqrt(var["y"]), 2)) );
-    h_lir.set("z", 1 - boost::math::cdf(chi2_dist_raim, 
-                        pow(params.AL_x / sqrt(var["z"]), 2)) );
+    h_lir.set("y", 1 - boost::math::cdf(chi2_dist_1dof, 
+                        pow(params.AL_y / sqrt(var["y"]), 2)) );
+    h_lir.set("z", 1 - boost::math::cdf(chi2_dist_1dof, 
+                        pow(params.AL_z / sqrt(var["z"]), 2)) );
 
     // set to main LIR variable
     lir.set("null", h_lir);
@@ -236,9 +235,6 @@ LIR calculate_LIR(
   // ofstream os("isam_example.dot");
   // factor_graph.saveGraph(os, result_fl);
 
-  // // print path with python
-  // string command = "python ../python_plot.py";
-  // system(command.c_str());
 
   // GTSAM_PRINT(result);
 
