@@ -5,9 +5,7 @@
 // - Change naming convention of functions -> use underscores, not capital letters
 // - add option for the python plot
 // - check t vector depending on the order of variables
-// - python post_process: save figures
 // - python post_process: plot variance over time
-// - python post_process: make lir plots logarithmic
 
 
 #include <gtsam/slam/dataset.h>

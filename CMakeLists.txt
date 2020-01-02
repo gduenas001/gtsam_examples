@@ -18,7 +18,6 @@ add_executable(main
   			   helpers.cpp
   			   RangeBearingFactorMap.cpp
   			   parser.cpp
-  			   post_process.cpp
   			   Counters.cpp
   			   add_factors.cpp
   			   Solution.cpp

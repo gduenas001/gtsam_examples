@@ -20,6 +20,12 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 	// copy LIR
 	this->lir= lir;
 
+	// get current variance
+	Eigen::Matrix<double, 6, 1> variance_vector;
+	get_variances_for_last_pose(fixed_lag_smoother,
+								counters,
+								&variance_vector);
+
 	// estimate state
 	this->nav_state= NavState(
 					    result.at<Pose3>  (X(counters.current_factor)), 

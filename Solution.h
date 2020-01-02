@@ -8,6 +8,7 @@
 #include <fstream>
 
 
+#include "helpers.h"
 #include "Counters.h"
 #include "LIR.h"
 
@@ -62,6 +63,9 @@ public:
 
 	// time of the solution
 	double time;
+
+	// variance
+	Eigen::Matrix<double, 15, 1> variance;
 
 	// estimate state (15dof)
 	gtsam::NavState nav_state;

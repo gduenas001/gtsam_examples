@@ -157,29 +157,23 @@ of interest.
 std::map<std::string, gtsam::Vector> 
 buildt_vector(int size);
 
+
+
 /*
 Retruns the variances for the last estimated pose in the
 graph as a map.
 e.g. var["x"] or var["roll"]
+or as a 15dof Eigen::Vector.
 TODO: I think that this are the variances in x-y-z
 in the inertial frame. Check if they actually are the
 variances in lateral-longitudinal-vertical. If not, 
 calculate the variances in lateral-longitudinal-vertical.
 */
-std::map<std::string, double> 
-getVariancesForLastPose(gtsam::ISAM2 &isam,
-                        Counters &counters);
-  
-
-
-/*
-Returns the variances for the last estimated pose:
-"roll" - "pitch" - "yaw" - "x" - "y" - "z"
-*/
-std::map<string,double> 
-get_variances_for_last_pose(
+template <typename T>
+void get_variances_for_last_pose(
               const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
-              const Counters &counters);
+              const Counters &counters,
+              T *var);
 
 
 /*
@@ -308,3 +302,17 @@ Calculate the effective number of measurements in all
 factors of the type. See getDOFfromGraph.
 */
 double getDOFfromFactorType(int dim, std::string type);
+
+/*
+Retruns the variances for the last estimated pose in the
+graph as a map.
+e.g. var["x"] or var["roll"]
+TODO: I think that this are the variances in x-y-z
+in the inertial frame. Check if they actually are the
+variances in lateral-longitudinal-vertical. If not, 
+calculate the variances in lateral-longitudinal-vertical.
+*/
+std::map<std::string, double> 
+getVariancesForLastPose(gtsam::ISAM2 &isam,
+                        Counters &counters);
+  
