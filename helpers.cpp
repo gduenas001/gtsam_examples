@@ -427,7 +427,7 @@ string prepare_log(const Params &params){
   // create errors file with names in first line
   filename= workspace + "/errors.csv";
   stream.open(filename.c_str(), fstream::out);
-  stream << "time  roll  pitch  yaw x  y  z  ";
+  stream << "time  roll  pitch  yaw  x  y  z  ";
   stream << "v_body_x  v_body_y  v_body_z  ";
   stream << "biad_accel_x   biad_accel_y  biad_accel_z  ";
   stream << "biad_gyro_x  biad_accel_y  biad_accel_z\n";

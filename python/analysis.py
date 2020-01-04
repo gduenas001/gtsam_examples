@@ -8,6 +8,7 @@ from astropy.visualization import hist
 import scipy.stats as scipy
 import argparse
 import itertools
+import logging
 
 class Data(object):
     '''
@@ -20,6 +21,7 @@ class Data(object):
     def __init__(self):
         self.residuals= {}
         self.errors= {}
+        self.var= {}
         self.lir= {}
         
 
@@ -143,6 +145,7 @@ def load_params(filename):
 def load_data(workspace, \
               residuals= True, \
               errors= True, \
+              variances= True, \
               lir= True):
     '''
     Loads residuals, errors and LIR if set to true
@@ -167,6 +170,15 @@ def load_data(workspace, \
         with open(filename, 'r') as f:
             line= f.readline().strip()
             data.errors['names']= line.split(' ')
+
+    # read variances from csv
+    if variances:
+        filename= os.path.join(workspace, 'variance.csv')
+        data.var['values']= np.genfromtxt(filename, delimiter=',', skip_header=1)
+        with open(filename, 'r') as f:
+            line= f.readline().strip()
+            data.var['names']= line.split(' ')
+
 
     # read LIR from csv 
     if lir:
@@ -195,7 +207,7 @@ def make_plots(workspace, \
     Plots the data loaded in load_data and set to true
     '''
     
-    # plot errors Vs residuals
+    # --> figure residuals
     fig_res, axs_res= plt.subplots(4)
     plt.xlabel('Time [s]')
 
@@ -229,9 +241,66 @@ def make_plots(workspace, \
     filename= os.path.join(workspace, 'residuals.png')
     fig_res.savefig(filename, dpi=400)
 
-    # plot LIR
-    fig_lir, axs_lir= plt.subplots(3)
 
+    # --> figure variances
+    fig_var, axs_var= plt.subplots(3)
+    plt.xlabel('Time [s]')
+
+    # plot errors
+    for errors_name, ind in zip(data.errors['names'], \
+                            range(0, data.errors['values'].shape[1])):
+        if errors_name == 'x':
+            axs_var[0].plot(data.errors['values'][:,0], \
+                       np.abs(data.errors['values'][:,ind]), \
+                       label= errors_name + ' error')
+            axs_var[0].grid(b=True)
+            axs_var[0].legend()
+        if errors_name == 'y':
+            axs_var[1].plot(data.errors['values'][:,0], \
+                       np.abs(data.errors['values'][:,ind]), \
+                       label= errors_name + ' error')
+            axs_var[1].grid(b=True)
+            axs_var[1].legend()
+        if errors_name == 'yaw':
+            axs_var[2].plot(data.errors['values'][:,0], \
+                       np.abs(data.errors['values'][:,ind]), \
+                       label= errors_name + ' error')
+            axs_var[2].grid(b=True)
+            axs_var[2].legend()
+
+    # plot variances
+    for var_name, ind in zip(data.var['names'], \
+                          range(0, data.var['values'].shape[1])):
+        if var_name == 'x':
+            axs_var[0].plot(data.var['values'][:,0], \
+                            np.sqrt(data.var['values'][:,ind]), \
+                            label=var_name + ' 1sig. SD')
+            axs_var[0].grid(b=True)
+            axs_var[0].legend()
+        if var_name == 'y':
+            axs_var[1].plot(data.var['values'][:,0], \
+                            np.sqrt(data.var['values'][:,ind]), \
+                            label=var_name + ' 1sig. SD')
+            axs_var[1].grid(b=True)
+            axs_var[1].legend()
+        if var_name == 'yaw':
+            axs_var[2].plot(data.var['values'][:,0], \
+                            np.sqrt(data.var['values'][:,ind]), \
+                            label=var_name + ' 1sig. SD')
+            axs_var[2].grid(b=True)
+            axs_var[2].legend()
+
+
+    # save figure
+    filename= os.path.join(workspace, 'variances.png')
+    fig_var.savefig(filename, dpi=400)
+
+
+    # --> figure LIR
+    fig_lir, axs_lir= plt.subplots(3)
+    plt.xlabel('Time [s]')
+
+    # plot errors
     for errors_name, ind in zip(data.errors['names'], \
                             range(0, data.errors['values'].shape[1])):
         if errors_name == 'x' or \
@@ -243,7 +312,7 @@ def make_plots(workspace, \
             axs_lir[0].grid(b=True)
             axs_lir[0].legend()
 
-    
+    # plot LIR per hypothesis
     for hypo_name, ind in zip(data.lir['names'], \
                           range(0, data.lir['values'].shape[1])):
         if 'gps' in hypo_name:
@@ -261,14 +330,10 @@ def make_plots(workspace, \
             axs_lir[2].set_yscale('log')
             axs_lir[2].legend()
 
-    # configure the plot
-    plt.xlabel('Time [s]')
-
     # save figure
     filename= os.path.join(workspace, 'lir.png')
     fig_lir.savefig(filename, dpi=400)
     
-
 
 
 

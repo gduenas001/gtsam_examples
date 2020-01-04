@@ -5,8 +5,10 @@
 // - Change naming convention of functions -> use underscores, not capital letters
 // - add option for the python plot
 // - check t vector depending on the order of variables
-// - python post_process: plot variance over time
-
+// - use TRACE to indicate when functions are enter and exit and DEBUG to show data (disabled by default)
+// - log data in python and save to file
+// - check if the variances correcpond to each other (use python logging for this)
+// - plot the estimated and true paths + landmarks
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
