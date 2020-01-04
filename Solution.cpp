@@ -21,11 +21,10 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 	this->lir= lir;
 
 	// get current variance
-	Eigen::Matrix<double, 6, 1> variance_vector;
-	get_variances_for_last_pose(fixed_lag_smoother,
-								counters,
-								&variance_vector);
-
+	this->variance= get_variances_for_last_pose(
+							fixed_lag_smoother,
+      			            counters);
+	
 	// estimate state
 	this->nav_state= NavState(
 					    result.at<Pose3>  (X(counters.current_factor)), 
@@ -48,7 +47,8 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 			this->imu_bias.vector();
 
 	// get the factor graph & Jacobian from isam
-	NonlinearFactorGraph factor_graph= fixed_lag_smoother.getFactors();
+	NonlinearFactorGraph 
+	factor_graph= fixed_lag_smoother.getFactors();
 
 	// save the sum of residuals per type
 	int factor_count= -1;
@@ -147,6 +147,28 @@ bool Solution::write_to_file(const string &workspace){
     	   << endl;
 	stream.close();
 	
+	// write time + residuals to a file
+	filename= workspace + "/variance.csv";
+	stream.open(filename.c_str(), fstream::app);
+	stream << this->time << "," 
+		   << this->variance["roll"] << "," 
+    	   << this->variance["pitch"] << "," 
+    	   << this->variance["yaw"] << "," 
+    	   << this->variance["x"] << "," 
+    	   << this->variance["y"] << "," 
+    	   << this->variance["z"] << "," 
+    	   << this->variance["vx"] << "," 
+    	   << this->variance["vy"] << "," 
+    	   << this->variance["vz"] << "," 
+    	   << this->variance["b_accel_x"] << "," 
+    	   << this->variance["b_accel_y"] << "," 
+    	   << this->variance["b_accel_z"] << "," 
+    	   << this->variance["b_gyro_x"] << "," 
+    	   << this->variance["b_gyro_y"] << "," 
+    	   << this->variance["b_gyro_z"]
+    	   << endl;
+	stream.close();
+
 	// write time + residuals to a file
 	filename= workspace + "/residuals.csv";
 	stream.open(filename.c_str(), fstream::app);

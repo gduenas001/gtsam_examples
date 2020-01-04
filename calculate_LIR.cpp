@@ -62,10 +62,9 @@ LIR calculate_LIR(
   double A_rank= A_lu.rank();
 
    // get variances for the last state
-  map<string,double> var;
-  get_variances_for_last_pose(fixed_lag_smoother, 
-                              counters,
-                              &var);
+  map<string,double> 
+  var= get_variances_for_last_pose(fixed_lag_smoother, 
+                                   counters);
   
   // number of measurements and states
   LOG(DEBUG)<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols();

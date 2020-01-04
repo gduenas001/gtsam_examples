@@ -268,43 +268,60 @@ map<string, Vector> buildt_vector(int size){
 
 // -------------------------------------------------------
 // -------------------------------------------------------
-template <typename T>
-void get_variances_for_last_pose(
-                const IncrementalFixedLagSmoother &fixed_lag_smoother,
-                const Counters &counters,
-                T *var){
+map<string, double> 
+get_variances_for_last_pose(
+            const IncrementalFixedLagSmoother &fixed_lag_smoother,
+            const Counters &counters) {
+
+  // initilize map
+  map<string, double> var;
 
   // get the matrices
   Matrix P_x= fixed_lag_smoother.marginalCovariance(X(counters.current_factor));
   Matrix P_v= fixed_lag_smoother.marginalCovariance(V(counters.current_factor));
   Matrix P_b= fixed_lag_smoother.marginalCovariance(B(counters.current_factor));
     
-  if (dynamic_cast< Eigen::Matrix<double, 6, 1>* >(var) == nullptr) {
-    // pose
-    *var["roll"]= P_x(0,0);
-    *var["pitch"]= P_x(1,1);
-    *var["yaw"]= P_x(2,2);
-    *var["x"]= P_x(3,3);
-    *var["y"]= P_x(4,4);
-    *var["z"]= P_x(5,5);
-    // velocity
-    *var["vx"]= P_v(0,0);
-    *var["vy"]= P_v(1,1);
-    *var["vz"]= P_v(2,2);
-    // IMU biases
-    *var["b_accel_x"]= P_b(0,0);
-    *var["b_accel_y"]= P_b(1,1);
-    *var["b_accel_z"]= P_b(2,2);
-    *var["b_gyro_x"]= P_b(3,3);
-    *var["b_gyro_y"]= P_b(4,4);
-    *var["b_gyro_z"]= P_b(5,5);
+  // pose
+  var["roll"]= P_x(0,0);
+  var["pitch"]= P_x(1,1);
+  var["yaw"]= P_x(2,2);
+  var["x"]= P_x(3,3);
+  var["y"]= P_x(4,4);
+  var["z"]= P_x(5,5);
+  // velocity
+  var["vx"]= P_v(0,0);
+  var["vy"]= P_v(1,1);
+  var["vz"]= P_v(2,2);
+  // IMU biases
+  var["b_accel_x"]= P_b(0,0);
+  var["b_accel_y"]= P_b(1,1);
+  var["b_accel_z"]= P_b(2,2);
+  var["b_gyro_x"]= P_b(3,3);
+  var["b_gyro_y"]= P_b(4,4);
+  var["b_gyro_z"]= P_b(5,5); 
 
-  } else if (dynamic_cast<std::map<std::string, double>*>(var) == nullptr) {
-    *var= P_x.diagonal();
-  } else {
-    LOG(FATAL)<< "Options are <dictionary> or <vector>";
-  }
+  return var;
+}
+
+
+// -------------------------------------------------------
+// -------------------------------------------------------
+Eigen::Matrix<double, 15, 1> 
+get_last_pose_P_diag(const IncrementalFixedLagSmoother &fixed_lag_smoother,
+                     const Counters &counters) {
+
+  LOG(DEBUG)<< "Starting get_last_pose_P_diag";
+  // initilize 
+  Eigen::Matrix<double, 15, 1> var_diag;
+
+  // get the matrices
+  var_diag.head<6>()= fixed_lag_smoother.marginalCovariance(X(counters.current_factor)).diagonal();
+  var_diag.segment<3>(6)= fixed_lag_smoother.marginalCovariance(V(counters.current_factor)).diagonal();
+  var_diag.tail<6>()= fixed_lag_smoother.marginalCovariance(B(counters.current_factor)).diagonal();
   
+  LOG(DEBUG)<< "Exiting get_last_pose_P_diag";
+  return var_diag;
+
 }
 
 
@@ -421,8 +438,8 @@ string prepare_log(const Params &params){
   stream.open(filename.c_str(), fstream::out);
   stream << "time  x  y  z  roll  pitch  yaw  ";
   stream << "v_body_x  v_body_y  v_body_z  ";
-  stream << "biad_accel_x   biad_accel_y  biad_accel_z  ";
-  stream << "biad_gyro_x  biad_accel_y  biad_accel_z\n";
+  stream << "bias_accel_x   bias_accel_y  bias_accel_z  ";
+  stream << "bias_gyro_x  bias_gyro_y  bias_gyro_z\n";
   stream.close();
 
   // create true_state file with names in first line
@@ -430,6 +447,15 @@ string prepare_log(const Params &params){
   stream.open(filename.c_str(), fstream::out);
   stream << "time  x  y  z  roll  pitch  yaw  ";
   stream << "v_body_x  v_body_y  v_body_z\n";
+  stream.close();
+
+  // create variance file with names in first line
+  filename= workspace + "/variance.csv";
+  stream.open(filename.c_str(), fstream::out);
+  stream << "time  roll  pitch  yaw  x  y  z  ";
+  stream << "v_x  v_y  v_z  ";
+  stream << "bias_accel_x   bias_accel_y  bias_accel_z  ";
+  stream << "bias_gyro_x  bias_gyro_y  bias_gyro_z\n";
   stream.close();
 
   // create lir file with names in first line
