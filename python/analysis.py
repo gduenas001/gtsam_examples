@@ -9,6 +9,8 @@ import scipy.stats as scipy
 import argparse
 import itertools
 import logging
+from mpl_toolkits.mplot3d import Axes3D
+
 
 class Data(object):
     '''
@@ -23,8 +25,9 @@ class Data(object):
         self.errors= {}
         self.var= {}
         self.lir= {}
+        self.estimated_states= {}
+        self.true_states= {}
         
-
 
 
 def main():
@@ -39,14 +42,19 @@ def main():
     args= vars(parser.parse_args())
 
     # read params
-    filename= os.path.join(args['workspace'], 'params.txt')
-    params= load_params(filename)
+    params= load_params(args['workspace'])
 
     # load data
     data= load_data(params['workspace'])
 
     # save plots 
-    make_plots(params['workspace'], data)
+    make_plots(data, \
+               params, \
+               workspace= params['workspace'], \
+               residuals_plot= False, \
+               variances_plot= False, \
+               lir_plot= False, \
+               trajectory_plot= True)
 
     # # initialize 
     # res= {}
@@ -107,12 +115,15 @@ def main():
 
 
 
-def load_params(filename):
+def load_params(workspace):
     '''
     Loads the parameters from the copy of params
     stored in the folder of the log
     '''
 
+    # the full path to the params file
+    filename= os.path.join(workspace, 'params.txt')
+    
     # initilize params dict
     params= {}
 
@@ -132,11 +143,24 @@ def load_params(filename):
         # get the name & value
         name, value= line.split("=")
         value= value.strip()
-        if value.isdigit():
-            value= float(value)
 
-        # add to params dict
-        params[name]= value
+        # add the landmarks differently
+        if name == 'landmark':
+            x,y,z= value.split(',')
+            value= [float(x), float(y), float(z)]
+            if 'landmark' in params:
+                    params[name].append(value)
+            else:
+                params[name]= []
+                params[name].append(value)
+                
+        # for the other parameters
+        else:
+            if value.isdigit():
+                value= float(value)
+
+            # add to params dict
+            params[name]= value
 
     return params
 
@@ -146,7 +170,8 @@ def load_data(workspace, \
               residuals= True, \
               errors= True, \
               variances= True, \
-              lir= True):
+              lir= True, \
+              trajectory= True):
     '''
     Loads residuals, errors and LIR if set to true
     Returns a Data obj with dictionary entries:
@@ -192,23 +217,69 @@ def load_data(workspace, \
             line= f.readline().strip()
             data.lir['names']= line.split('  ')
 
+    # read estimated and true states
+    if trajectory:
+        # read estimated states
+        filename= os.path.join(workspace, 'estimated_states.csv')
+        data.estimated_states['values']= np.genfromtxt(filename, \
+                                                       delimiter=',', \
+                                                       skip_header=1)
+        with open(filename, 'r') as f:
+            line= f.readline().strip()
+            data.estimated_states['names']= line.split('  ')
+        
+        # read true states
+        filename= os.path.join(workspace, 'true_states.csv')
+        data.true_states['values']= np.genfromtxt(filename, \
+                                                       delimiter=',', \
+                                                       skip_header=1)
+        with open(filename, 'r') as f:
+            line= f.readline().strip()
+            data.true_states['names']= line.split('  ')
 
     # return data
     return data
     
 
 
-def make_plots(workspace, \
-               data, \
-               residuals= True, \
-               errors= True, \
-               lir= True):
+def make_plots(data, \
+               params, \
+               workspace= [], \
+               residuals_plot= True, \
+               variances_plot= True, \
+               lir_plot= True, \
+               trajectory_plot= True):
     '''
     Plots the data loaded in load_data and set to true
+    - residuals
+    - variances (and errors)
+    - LIR
+    - trajectory with estimate + true positions
     '''
-    
+
+    # if workspace is not specified, used the one in params
+    if workspace == []:
+        workspace= params['workspace']
+
     # --> figure residuals
-    fig_res, axs_res= plt.subplots(4)
+    if residuals_plot:
+        make_residuals_plot(data, workspace)
+    
+    # --> figure variances
+    if variances_plot:
+        make_variance_plot(data, workspace)
+
+    # --> figure LIR
+    if lir_plot:
+        make_lir_plot(data, workspace)
+    
+    # --> plot trajectory + landmarks
+    if trajectory_plot:
+        make_trajectory_plot(data, params, workspace)
+
+
+def make_residuals_plot(data, workspace):
+    fig, axs= plt.subplots(4)
     plt.xlabel('Time [s]')
 
     # plot errors
@@ -217,11 +288,11 @@ def make_plots(workspace, \
         if errors_name == 'x' or \
            errors_name == 'y' or \
            errors_name == 'z':
-            axs_res[0].plot(data.errors['values'][:,0], \
+            axs[0].plot(data.errors['values'][:,0], \
                         data.errors['values'][:,ind], \
                         label= errors_name)
-            axs_res[0].grid(b=True)
-            axs_res[0].legend()
+            axs[0].grid(b=True)
+            axs[0].legend()
 
     # plot residuals
     axs_ind= 1 # start at the second plot
@@ -230,74 +301,74 @@ def make_plots(workspace, \
         if res_name == 'imu' or\
            res_name == 'gps' or\
            res_name == 'lidar':
-            axs_res[axs_ind].plot(data.residuals['values'][:,0], \
+            axs[axs_ind].plot(data.residuals['values'][:,0], \
                               data.residuals['values'][:,ind], \
                               label=res_name)
-            axs_res[axs_ind].grid(b=True)
-            axs_res[axs_ind].legend()
+            axs[axs_ind].grid(b=True)
+            axs[axs_ind].legend()
             axs_ind += 1
 
     # save figure
     filename= os.path.join(workspace, 'residuals.png')
-    fig_res.savefig(filename, dpi=400)
+    fig.savefig(filename, dpi=400)
 
 
-    # --> figure variances
-    fig_var, axs_var= plt.subplots(3)
+def make_variance_plot(data, workspace):
+    fig, axs= plt.subplots(3)
     plt.xlabel('Time [s]')
 
     # plot errors
     for errors_name, ind in zip(data.errors['names'], \
                             range(0, data.errors['values'].shape[1])):
         if errors_name == 'x':
-            axs_var[0].plot(data.errors['values'][:,0], \
+            axs[0].plot(data.errors['values'][:,0], \
                        np.abs(data.errors['values'][:,ind]), \
                        label= errors_name + ' error')
-            axs_var[0].grid(b=True)
-            axs_var[0].legend()
+            axs[0].grid(b=True)
+            axs[0].legend()
         if errors_name == 'y':
-            axs_var[1].plot(data.errors['values'][:,0], \
+            axs[1].plot(data.errors['values'][:,0], \
                        np.abs(data.errors['values'][:,ind]), \
                        label= errors_name + ' error')
-            axs_var[1].grid(b=True)
-            axs_var[1].legend()
+            axs[1].grid(b=True)
+            axs[1].legend()
         if errors_name == 'yaw':
-            axs_var[2].plot(data.errors['values'][:,0], \
+            axs[2].plot(data.errors['values'][:,0], \
                        np.abs(data.errors['values'][:,ind]), \
                        label= errors_name + ' error')
-            axs_var[2].grid(b=True)
-            axs_var[2].legend()
+            axs[2].grid(b=True)
+            axs[2].legend()
 
     # plot variances
     for var_name, ind in zip(data.var['names'], \
                           range(0, data.var['values'].shape[1])):
         if var_name == 'x':
-            axs_var[0].plot(data.var['values'][:,0], \
+            axs[0].plot(data.var['values'][:,0], \
                             np.sqrt(data.var['values'][:,ind]), \
                             label=var_name + ' 1sig. SD')
-            axs_var[0].grid(b=True)
-            axs_var[0].legend()
+            axs[0].grid(b=True)
+            axs[0].legend()
         if var_name == 'y':
-            axs_var[1].plot(data.var['values'][:,0], \
+            axs[1].plot(data.var['values'][:,0], \
                             np.sqrt(data.var['values'][:,ind]), \
                             label=var_name + ' 1sig. SD')
-            axs_var[1].grid(b=True)
-            axs_var[1].legend()
+            axs[1].grid(b=True)
+            axs[1].legend()
         if var_name == 'yaw':
-            axs_var[2].plot(data.var['values'][:,0], \
+            axs[2].plot(data.var['values'][:,0], \
                             np.sqrt(data.var['values'][:,ind]), \
                             label=var_name + ' 1sig. SD')
-            axs_var[2].grid(b=True)
-            axs_var[2].legend()
+            axs[2].grid(b=True)
+            axs[2].legend()
 
 
     # save figure
     filename= os.path.join(workspace, 'variances.png')
-    fig_var.savefig(filename, dpi=400)
+    fig.savefig(filename, dpi=400)
 
 
-    # --> figure LIR
-    fig_lir, axs_lir= plt.subplots(3)
+def make_lir_plot(data, workspace):
+    fig, axs= plt.subplots(3)
     plt.xlabel('Time [s]')
 
     # plot errors
@@ -306,34 +377,71 @@ def make_plots(workspace, \
         if errors_name == 'x' or \
            errors_name == 'y' or \
            errors_name == 'z':
-            axs_lir[0].plot(data.errors['values'][:,0], \
-                       data.errors['values'][:,ind], \
-                       label= errors_name)
-            axs_lir[0].grid(b=True)
-            axs_lir[0].legend()
+            axs[0].plot(data.errors['values'][:,0], \
+                        data.errors['values'][:,ind], \
+                        label= errors_name)
+            axs[0].grid(b=True)
+            axs[0].legend()
 
     # plot LIR per hypothesis
     for hypo_name, ind in zip(data.lir['names'], \
                           range(0, data.lir['values'].shape[1])):
         if 'gps' in hypo_name:
-            axs_lir[1].plot(data.lir['values'][:,0], \
-                            data.lir['values'][:,ind], \
-                            label=hypo_name)
-            axs_lir[1].grid(b=True)
-            axs_lir[1].set_yscale('log')
-            axs_lir[1].legend()
+            axs[1].plot(data.lir['values'][:,0], \
+                        data.lir['values'][:,ind], \
+                        label=hypo_name)
+            axs[1].grid(b=True)
+            axs[1].set_yscale('log')
+            axs[1].legend()
         if 'lidar' in hypo_name:
-            axs_lir[2].plot(data.lir['values'][:,0], \
-                            data.lir['values'][:,ind], \
-                            label=hypo_name)
-            axs_lir[2].grid(b=True)
-            axs_lir[2].set_yscale('log')
-            axs_lir[2].legend()
+            axs[2].plot(data.lir['values'][:,0], \
+                        data.lir['values'][:,ind], \
+                        label=hypo_name)
+            axs[2].grid(b=True)
+            axs[2].set_yscale('log')
+            axs[2].legend()
 
     # save figure
     filename= os.path.join(workspace, 'lir.png')
-    fig_lir.savefig(filename, dpi=400)
-    
+    fig.savefig(filename, dpi=400)
+
+
+def make_trajectory_plot(data, params, workspace):
+    # initialize figure
+    fig= plt.figure()
+    axs= plt.subplot(111, projection='3d')
+
+    # plot estimated + true trajectory
+    axs.plot(data.estimated_states['values'][:,1], \
+                  data.estimated_states['values'][:,2], \
+                  data.estimated_states['values'][:,3], \
+                  color= 'b', linestyle='-', marker='o')
+
+    axs.plot(data.true_states['values'][:,1], \
+                  data.true_states['values'][:,2], \
+                  data.true_states['values'][:,3], \
+                  color= 'r', linestyle='-')
+
+    # plot landmarks
+    axs.scatter3D(params['landmark'][:][0], \
+                  params['landmark'][:][1], \
+                  params['landmark'][:][2], \
+                  color= 'g', marker='^', s=100)
+
+    # add axis
+    axs.set_xlabel('X [m]')
+    axs.set_ylabel('Y [m]')
+    axs.set_zlabel('Z [m]')
+
+     # save figure
+    filename= os.path.join(workspace, 'trajectory_1.png')
+    fig.savefig(filename, dpi=400)
+
+    filename= os.path.join(workspace, 'trajectory_2.png')
+    axs.view_init(azim=30)
+    fig.savefig(filename, dpi=400)
+
+
 
 
 

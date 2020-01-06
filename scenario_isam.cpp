@@ -7,8 +7,8 @@
 // - check t vector depending on the order of variables
 // - use TRACE to indicate when functions are enter and exit and DEBUG to show data (disabled by default)
 // - log data in python and save to file
-// - check if the variances correcpond to each other (use python logging for this)
-// - plot the estimated and true paths + landmarks
+// - check if the variances correspond to each other (use python logging for this)
+
 
 #include <gtsam/slam/dataset.h>
 #include <gtsam/slam/BetweenFactor.h>
