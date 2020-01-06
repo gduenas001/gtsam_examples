@@ -29,7 +29,8 @@ class Data(object):
         self.true_states= {}
         
 
-
+# -------------------------------------------------------
+# --------------------------- MAIN ----------------------
 def main():
 
     # Construct the argument parser
@@ -52,9 +53,9 @@ def main():
                params, \
                workspace= params['workspace'], \
                residuals_plot= False, \
-               variances_plot= False, \
-               lir_plot= False, \
-               trajectory_plot= True)
+               variances_plot= True, \
+               lir_plot= True, \
+               trajectory_plot= False)
 
     # # initialize 
     # res= {}
@@ -114,7 +115,8 @@ def main():
     # plt.show()
 
 
-
+# -------------------------------------------------------
+# -------------------------------------------------------
 def load_params(workspace):
     '''
     Loads the parameters from the copy of params
@@ -165,7 +167,8 @@ def load_params(workspace):
     return params
 
 
-
+# -------------------------------------------------------
+# -------------------------------------------------------
 def load_data(workspace, \
               residuals= True, \
               errors= True, \
@@ -241,7 +244,8 @@ def load_data(workspace, \
     return data
     
 
-
+# -------------------------------------------------------
+# -------------------------------------------------------
 def make_plots(data, \
                params, \
                workspace= [], \
@@ -278,6 +282,8 @@ def make_plots(data, \
         make_trajectory_plot(data, params, workspace)
 
 
+# -------------------------------------------------------
+# -------------------------------------------------------
 def make_residuals_plot(data, workspace):
     fig, axs= plt.subplots(4)
     plt.xlabel('Time [s]')
@@ -313,11 +319,16 @@ def make_residuals_plot(data, workspace):
     fig.savefig(filename, dpi=400)
 
 
+# -------------------------------------------------------
+# -------------------------------------------------------
 def make_variance_plot(data, workspace):
+
+    # first figure for (x y z)
     fig, axs= plt.subplots(3)
     plt.xlabel('Time [s]')
+    plt.ylabel('Errors + 1sig. SD [m]')
 
-    # plot errors
+    # plot errors (x y z)
     for errors_name, ind in zip(data.errors['names'], \
                             range(0, data.errors['values'].shape[1])):
         if errors_name == 'x':
@@ -332,41 +343,101 @@ def make_variance_plot(data, workspace):
                        label= errors_name + ' error')
             axs[1].grid(b=True)
             axs[1].legend()
-        if errors_name == 'yaw':
+        if errors_name == 'z':
             axs[2].plot(data.errors['values'][:,0], \
                        np.abs(data.errors['values'][:,ind]), \
                        label= errors_name + ' error')
             axs[2].grid(b=True)
-            axs[2].legend()
+            axs[2].legend()        
 
-    # plot variances
+    # plot variances (x y z)
     for var_name, ind in zip(data.var['names'], \
                           range(0, data.var['values'].shape[1])):
         if var_name == 'x':
             axs[0].plot(data.var['values'][:,0], \
-                            np.sqrt(data.var['values'][:,ind]), \
-                            label=var_name + ' 1sig. SD')
+                        np.sqrt(data.var['values'][:,ind]), \
+                        linestyle='--', \
+                        label=var_name + ' 1sig. SD')
             axs[0].grid(b=True)
             axs[0].legend()
         if var_name == 'y':
             axs[1].plot(data.var['values'][:,0], \
-                            np.sqrt(data.var['values'][:,ind]), \
-                            label=var_name + ' 1sig. SD')
+                        np.sqrt(data.var['values'][:,ind]), \
+                        linestyle='--', \
+                        label=var_name + ' 1sig. SD')
+            axs[1].grid(b=True)
+            axs[1].legend()
+        if var_name == 'z':
+            axs[2].plot(data.var['values'][:,0], \
+                        np.sqrt(data.var['values'][:,ind]), \
+                        linestyle='--', \
+                        label=var_name + ' 1sig. SD')
+            axs[2].grid(b=True)
+            axs[2].legend()
+
+    # save figure
+    filename= os.path.join(workspace, 'variances_xyz.png')
+    fig.savefig(filename, dpi=400)
+
+    # second figure for (roll pitch yaw)
+    fig, axs= plt.subplots(3)
+    plt.xlabel('Time [s]')
+    plt.ylabel('Error + 1sig. SD [Rad]')
+
+     # plot errors (roll pitch yaw)
+    for errors_name, ind in zip(data.errors['names'], \
+                            range(0, data.errors['values'].shape[1])):
+        if errors_name == 'roll':
+            axs[0].plot(data.errors['values'][:,0], \
+                        np.abs(data.errors['values'][:,ind]), \
+                        label=errors_name + ' 1sig. SD')
+            axs[0].grid(b=True)
+            axs[0].legend()
+        if errors_name == 'pitch':
+            axs[1].plot(data.errors['values'][:,0], \
+                        np.abs(data.errors['values'][:,ind]), \
+                        label=errors_name + ' 1sig. SD')
+            axs[1].grid(b=True)
+            axs[1].legend()
+        if errors_name == 'yaw':
+            axs[2].plot(data.errors['values'][:,0], \
+                        np.abs(data.errors['values'][:,ind]), \
+                        label=errors_name + ' 1sig. SD')
+            axs[2].grid(b=True)
+            axs[2].legend()
+
+    # plot variances (roll pitch yaw)
+    for var_name, ind in zip(data.var['names'], \
+                          range(0, data.var['values'].shape[1])):
+        if var_name == 'roll':
+            axs[0].plot(data.var['values'][:,0], \
+                        np.sqrt(data.var['values'][:,ind]), \
+                        linestyle='--', \
+                        label=var_name + ' 1sig. SD')
+            axs[0].grid(b=True)
+            axs[0].legend()
+        if var_name == 'pitch':
+            axs[1].plot(data.var['values'][:,0], \
+                        np.sqrt(data.var['values'][:,ind]), \
+                        linestyle='--', \
+                        label=var_name + ' 1sig. SD')
             axs[1].grid(b=True)
             axs[1].legend()
         if var_name == 'yaw':
             axs[2].plot(data.var['values'][:,0], \
-                            np.sqrt(data.var['values'][:,ind]), \
-                            label=var_name + ' 1sig. SD')
+                        np.sqrt(data.var['values'][:,ind]), \
+                        linestyle='--', \
+                        label=var_name + ' 1sig. SD')
             axs[2].grid(b=True)
             axs[2].legend()
 
-
     # save figure
-    filename= os.path.join(workspace, 'variances.png')
+    filename= os.path.join(workspace, 'variances_rpy.png')
     fig.savefig(filename, dpi=400)
 
 
+# -------------------------------------------------------
+# -------------------------------------------------------
 def make_lir_plot(data, workspace):
     fig, axs= plt.subplots(3)
     plt.xlabel('Time [s]')
@@ -406,20 +477,22 @@ def make_lir_plot(data, workspace):
     fig.savefig(filename, dpi=400)
 
 
+# -------------------------------------------------------
+# -------------------------------------------------------
 def make_trajectory_plot(data, params, workspace):
     # initialize figure
     fig= plt.figure()
     axs= plt.subplot(111, projection='3d')
 
     # plot estimated + true trajectory
-    axs.plot(data.estimated_states['values'][:,1], \
-                  data.estimated_states['values'][:,2], \
-                  data.estimated_states['values'][:,3], \
+    axs.plot(data.estimated_states['values'][:,4], \
+                  data.estimated_states['values'][:,5], \
+                  data.estimated_states['values'][:,6], \
                   color= 'b', linestyle='-', marker='o')
 
-    axs.plot(data.true_states['values'][:,1], \
-                  data.true_states['values'][:,2], \
-                  data.true_states['values'][:,3], \
+    axs.plot(data.true_states['values'][:,4], \
+                  data.true_states['values'][:,5], \
+                  data.true_states['values'][:,6], \
                   color= 'r', linestyle='-')
 
     # plot landmarks
@@ -440,8 +513,6 @@ def make_trajectory_plot(data, params, workspace):
     filename= os.path.join(workspace, 'trajectory_2.png')
     axs.view_init(azim=30)
     fig.savefig(filename, dpi=400)
-
-
 
 
 

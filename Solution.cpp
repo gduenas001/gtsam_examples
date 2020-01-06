@@ -113,12 +113,12 @@ bool Solution::write_to_file(const string &workspace){
 	filename= workspace + "/estimated_states.csv";
 	stream.open(filename.c_str(), fstream::app);
 	stream << this->time << "," 
-		   << this->nav_state.pose().x() << "," 
-    	   << this->nav_state.pose().y() << "," 
-    	   << this->nav_state.pose().z() << "," 
     	   << this->nav_state.pose().rotation().roll() << "," 
     	   << this->nav_state.pose().rotation().pitch() << "," 
     	   << this->nav_state.pose().rotation().yaw() << "," 
+    	   << this->nav_state.pose().x() << "," 
+    	   << this->nav_state.pose().y() << "," 
+    	   << this->nav_state.pose().z() << "," 
     	   << this->nav_state.bodyVelocity()[0] << ","
     	   << this->nav_state.bodyVelocity()[1] << ","
     	   << this->nav_state.bodyVelocity()[2] << ","
@@ -135,12 +135,12 @@ bool Solution::write_to_file(const string &workspace){
 	filename= workspace + "/true_states.csv";
 	stream.open(filename.c_str(), fstream::app);
 	stream << this->time << "," 
-		   << this->true_nav_state.pose().x() << "," 
-    	   << this->true_nav_state.pose().y() << "," 
-    	   << this->true_nav_state.pose().z() << "," 
     	   << this->true_nav_state.pose().rotation().roll() << "," 
     	   << this->true_nav_state.pose().rotation().pitch() << "," 
     	   << this->true_nav_state.pose().rotation().yaw() << "," 
+    	   << this->true_nav_state.pose().x() << "," 
+    	   << this->true_nav_state.pose().y() << "," 
+    	   << this->true_nav_state.pose().z() << "," 
     	   << this->true_nav_state.bodyVelocity()[0] << ","
     	   << this->true_nav_state.bodyVelocity()[1] << ","
     	   << this->true_nav_state.bodyVelocity()[2]

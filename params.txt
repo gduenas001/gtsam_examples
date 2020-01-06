@@ -30,7 +30,7 @@ bearing_noise_sigma = 0.05233333333 # (3 deg)
 
 # default simulation time [sec] 
 # (to increase the simulation time: "--sim_time <time_in_secs>"
-sim_time= 10
+sim_time= 100
 
 # prob allocation for the upper bound of lambda
 P_lambda= 1e-5
@@ -83,8 +83,3 @@ landmark= 0, -33, -33
 # landmark= 0, 33, 0
 # landmark= -33, 0.0, 0.0
 # landmark= 0, -33, 0
-
-# (deprecated) for debugging
-is_verbose= 0
-
-# workspace folder (initilized in prepare_log with current day and time)

@@ -9,14 +9,14 @@ using namespace gtsam;
 // -------------------------------------------------------
 default_random_engine 
 initialize_noise_generator(int seed){
-  LOG(DEBUG)<< "Initilizing noise generator";
+  LOG(TRACE)<< "Enter initialize_noise_generator";
   default_random_engine noise_generator;
   if (seed == -1) {
     noise_generator.seed(std::chrono::system_clock::now().time_since_epoch().count());
   } else {
     noise_generator.seed(seed);
   }
-  LOG(DEBUG)<< "Exit initialize_noise_generator";
+  LOG(TRACE)<< "Exit initialize_noise_generator";
   return noise_generator;
 }
 
@@ -51,7 +51,7 @@ Vector6 error_average(std::vector<Pose3> poses){
 // -------------------------------------------------------
 ConstantTwistScenario create_constant_twist_scenario(double radius, double linear_velocity) {
 
-  LOG(DEBUG)<< "Creating constant twist scenario";
+  LOG(TRACE)<< "Enter create_constant_twist_scenario";
   // Start with a camera on x-axis looking at origin (only use pose_0 from here to generate the scenario)
   const Point3 up(0, 0, 1), target(0, 0, 0);
   const Point3 position(radius, 0, 0);
@@ -63,7 +63,7 @@ ConstantTwistScenario create_constant_twist_scenario(double radius, double linea
   Vector3 angular_velocity_vector(0, -angular_velocity, 0);
   Vector3 linear_velocity_vector(linear_velocity, 0, 0);
 
-  LOG(DEBUG)<< "Exit create_constant_twist_scenario";
+  LOG(TRACE)<< "Exit create_constant_twist_scenario";
   return ConstantTwistScenario(angular_velocity_vector, linear_velocity_vector, pose_0);
 }
 
@@ -71,7 +71,7 @@ ConstantTwistScenario create_constant_twist_scenario(double radius, double linea
 // -------------------------------------------------------
 // -------------------------------------------------------
 std::vector<Point3> create_landmarks(double radius){
-  LOG(DEBUG)<< "Creating landmarks";
+  LOG(TRACE)<< "Enter create_landmarks";  
 
   double distance = radius + radius/10;
   std::vector<Point3> landmarks;
@@ -80,7 +80,7 @@ std::vector<Point3> create_landmarks(double radius){
   landmarks.push_back( Point3(-distance, 0, distance) );
   landmarks.push_back( Point3(0, -distance, -distance) );
 
-  LOG(DEBUG)<< "Exit create_landmarks";  
+  LOG(TRACE)<< "Exit create_landmarks";  
   return landmarks;
 }
 
@@ -100,9 +100,6 @@ std::vector<int> returnIncrVector(int start, int num_elem){
 // -------------------------------------------------------
 // -------------------------------------------------------
 Matrix extractJacobianRows(Matrix &M, vector<int> &row_inds){
-  /*
-  extracte rows from Jacobians
-  */
 
   Matrix h_M( row_inds.size(), row_inds.size() );
   for (int i = 0; i < row_inds.size(); ++i){
@@ -273,6 +270,8 @@ get_variances_for_last_pose(
             const IncrementalFixedLagSmoother &fixed_lag_smoother,
             const Counters &counters) {
 
+  LOG(TRACE)<< "Enter get_variances_for_last_pose";
+
   // initilize map
   map<string, double> var;
 
@@ -300,6 +299,7 @@ get_variances_for_last_pose(
   var["b_gyro_y"]= P_b(4,4);
   var["b_gyro_z"]= P_b(5,5); 
 
+  LOG(TRACE)<< "Exit get_variances_for_last_pose";
   return var;
 }
 
@@ -310,7 +310,7 @@ Eigen::Matrix<double, 15, 1>
 get_last_pose_P_diag(const IncrementalFixedLagSmoother &fixed_lag_smoother,
                      const Counters &counters) {
 
-  LOG(DEBUG)<< "Starting get_last_pose_P_diag";
+  LOG(TRACE)<< "Enter get_last_pose_P_diag";
   // initilize 
   Eigen::Matrix<double, 15, 1> var_diag;
 
@@ -319,7 +319,7 @@ get_last_pose_P_diag(const IncrementalFixedLagSmoother &fixed_lag_smoother,
   var_diag.segment<3>(6)= fixed_lag_smoother.marginalCovariance(V(counters.current_factor)).diagonal();
   var_diag.tail<6>()= fixed_lag_smoother.marginalCovariance(B(counters.current_factor)).diagonal();
   
-  LOG(DEBUG)<< "Exiting get_last_pose_P_diag";
+  LOG(TRACE)<< "Exit get_last_pose_P_diag";
   return var_diag;
 
 }
@@ -389,6 +389,8 @@ int return_first_element(const pair<int, double> &p){
 // -------------------------------------------------------
 string prepare_log(const Params &params){
 
+  LOG(TRACE)<< "Enter prepare_log";
+
   // create a string with todays day + time
   time_t rawtime;
   struct tm * timeinfo;
@@ -436,7 +438,7 @@ string prepare_log(const Params &params){
   // create estimated_state file with names in first line
   filename= workspace + "/estimated_states.csv";
   stream.open(filename.c_str(), fstream::out);
-  stream << "time  x  y  z  roll  pitch  yaw  ";
+  stream << "time  roll  pitch  yaw  x  y  z  ";
   stream << "v_body_x  v_body_y  v_body_z  ";
   stream << "bias_accel_x   bias_accel_y  bias_accel_z  ";
   stream << "bias_gyro_x  bias_gyro_y  bias_gyro_z\n";
@@ -445,7 +447,7 @@ string prepare_log(const Params &params){
   // create true_state file with names in first line
   filename= workspace + "/true_states.csv";
   stream.open(filename.c_str(), fstream::out);
-  stream << "time  x  y  z  roll  pitch  yaw  ";
+  stream << "time  roll  pitch  yaw  x  y  z  ";
   stream << "v_body_x  v_body_y  v_body_z\n";
   stream.close();
 
@@ -475,7 +477,7 @@ string prepare_log(const Params &params){
   stream << "workspace= "<< workspace<< "\n";
   stream.close();
 
-  LOG(DEBUG) << "Exit prepare_log";
+  LOG(TRACE) << "Exit prepare_log";
   return workspace;
 }
 
@@ -505,6 +507,8 @@ void save_data(Values result,
               std::vector<Point3> true_positions,
               std::vector<Point3> landmarks,
               std::vector<Pose3> online_error){
+
+  LOG(TRACE)<< "Enter save_data";
 
   // initialize variables
   string filename = "";
@@ -555,6 +559,8 @@ void save_data(Values result,
          << ave_error[3] <<","<< ave_error[4] <<","<< ave_error[5]<< endl;
          
   stream.close();
+
+  LOG(TRACE)<< "Exit save_data";
 }
 
 

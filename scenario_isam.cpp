@@ -15,7 +15,6 @@
 #include <typeinfo>
 #include <boost/math/distributions/chi_squared.hpp>
 #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
-#include <gtsam_unstable/nonlinear/BatchFixedLagSmoother.h>
 
 
 #include "helpers.h"
@@ -156,8 +155,7 @@ int main(int argc, char** argv) {
 
       add_imu_factor(newgraph,
                      imu_factor,
-                     counters,
-                     params.is_verbose);
+                     counters);
 
    
       // Adding GPS factor
@@ -173,8 +171,7 @@ int main(int argc, char** argv) {
 
       add_gps_factor(newgraph,
                     gps_factor,
-                    counters,
-                    params.is_verbose);
+                    counters);
 
       // lidar measurements
       for (int j = 0; j < params.landmarks.size(); ++j) {
@@ -197,8 +194,7 @@ int main(int argc, char** argv) {
 
         add_lidar_factor(newgraph,
                         range_bearing_factor,
-                        counters,
-                        params.is_verbose);
+                        counters);
       }      
       
       // Incremental solution
@@ -238,14 +234,14 @@ int main(int argc, char** argv) {
       initial_estimate.clear();
       new_timestamps.clear();
       counters.reset_timer();
-    }
+
+    } // end of GPS update
   } // end for loop
   
   LOG(INFO)<< "End of simulation";
 
 
-  // // print path with python
-  // string command = "python ../python_plot.py";
+  // print path with python
   string command = 
   "python ../python/analysis.py --workspace " + params.workspace;
   system(command.c_str());

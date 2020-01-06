@@ -14,7 +14,7 @@ void add_prior_factor(NonlinearFactorGraph &new_graph,
                      Counters &counters,
                      Params &params){
 
-  if (params.is_verbose) {cout<< "Adding prior factors..."<< '\n';}
+  LOG(TRACE)<< "Enter add_prior_factor";
 
   // Add a prior on pose x0. This indirectly specifies where the origin is.
   noiseModel::Diagonal::shared_ptr
@@ -123,7 +123,7 @@ void add_prior_factor(NonlinearFactorGraph &new_graph,
   // keep track of the factor types inserted
   counters.add_factor("prior_bias");
   
-  if (params.is_verbose) {cout<< "...prior factor added"<< '\n';}
+  LOG(TRACE)<< "Exit add_prior_factor";
 
   return;
 }
@@ -133,10 +133,9 @@ void add_prior_factor(NonlinearFactorGraph &new_graph,
 // -------------------------------------------------------
 void add_lidar_factor(NonlinearFactorGraph &newgraph,
 					RangeBearingFactorMap &range_bearing_factor,
-					Counters &counters,
-          bool is_verbose){
+					Counters &counters){
 
-  if (is_verbose) {cout<< "Adding lidar factor..."<< '\n';}
+  LOG(TRACE)<< "Enter add_lidar_factor";
 
   newgraph.add(range_bearing_factor);
 
@@ -151,7 +150,7 @@ void add_lidar_factor(NonlinearFactorGraph &newgraph,
   // keep track of the factor types inserted
   counters.add_factor("lidar");
 
-  if (is_verbose) {cout<< "...lidar factor added"<< '\n';}
+  LOG(TRACE)<< "Exit add_lidar_factor";
 }
 
 
@@ -159,10 +158,9 @@ void add_lidar_factor(NonlinearFactorGraph &newgraph,
 // -------------------------------------------------------
 void add_gps_factor(NonlinearFactorGraph &newgraph,
 			   GPSFactor &gps_factor,
-         Counters &counters,
-         bool is_verbose) {
+         Counters &counters) {
 
-  if (is_verbose) {cout<< "Adding GPS factor..."<< '\n';}
+  LOG(TRACE)<< "Enter add_gps_factor";
 
 	newgraph.add(gps_factor);
 
@@ -177,7 +175,7 @@ void add_gps_factor(NonlinearFactorGraph &newgraph,
   // keep track of the factor types inserted
   counters.add_factor("gps");
   
-  if (is_verbose) {cout<< "...GPS factor added"<< '\n';}
+  LOG(TRACE)<< "Exit add_gps_factor";
 }
 
 
@@ -185,10 +183,9 @@ void add_gps_factor(NonlinearFactorGraph &newgraph,
 // -------------------------------------------------------
 void add_imu_factor(NonlinearFactorGraph &newgraph,
 		    CombinedImuFactor &imufac,
-        Counters &counters,
-        bool is_verbose) {
+        Counters &counters) {
 
-  if (is_verbose) {cout<< "Adding imu factor"<< '\n';}
+  LOG(TRACE)<< "Enter add_imu_factor";
 
 	newgraph.add(imufac);
 
@@ -203,7 +200,7 @@ void add_imu_factor(NonlinearFactorGraph &newgraph,
   // keep track of the factor types inserted
   counters.add_factor("odom");
   
-  if (is_verbose) {cout<< "...imu factor added"<< '\n';}
+  LOG(TRACE)<< "Exit add_imu_factor";
 }
 
 

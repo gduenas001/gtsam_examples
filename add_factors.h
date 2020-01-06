@@ -49,9 +49,7 @@ Add lidar factor to factor graph.
 void add_lidar_factor(
       gtsam::NonlinearFactorGraph &newgraph,
       RangeBearingFactorMap &range_bearing_factor,
-      Counters &counters,
-      bool is_verbose);
-
+      Counters &counters);
 
 
 /*
@@ -60,10 +58,7 @@ Add GPS factor to factor graph.
 void add_gps_factor(
       gtsam::NonlinearFactorGraph &newgraph,
       GPSFactor &gps_factor,
-      Counters &counters,
-      bool is_verbose);
-
-
+      Counters &counters);
 
 
 /*
@@ -72,7 +67,5 @@ Add IMU factor to factor graph.
 void add_imu_factor(
       gtsam::NonlinearFactorGraph &newgraph,
       gtsam::CombinedImuFactor &imufac,
-      Counters &counters,
-      bool is_verbose);
-
+      Counters &counters);
 
