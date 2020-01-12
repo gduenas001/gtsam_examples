@@ -33,10 +33,12 @@ Helper functions for the main code.
 #include "third_party/easyloggingpp/src/easylogging++.h"
 
 
+#include "Solution.h"
 #include "RangeBearingFactorMap.h"
 #include "Params.h"
 #include "RangeBearingMeasurement.h"
 #include "Counters.h"
+
 
 using namespace gtsam;
 using namespace std;
@@ -174,7 +176,9 @@ get_variances_for_last_pose(
               const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
               const Counters &counters);
 
-
+Variances get_variances_for_last_pose_new(
+            const IncrementalFixedLagSmoother &fixed_lag_smoother,
+            const Counters &counters);
 /*
 Returns the variances for the last estimated pose in the
 graph as a map in a 15x1 vector

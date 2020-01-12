@@ -1,5 +1,5 @@
 
-
+#include "helpers.h"
 #include "Solution.h"
 
 using namespace std;
@@ -22,6 +22,9 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 
 	// get current variance
 	this->variance= get_variances_for_last_pose(
+							fixed_lag_smoother,
+      			            counters);
+	this->variances_new= get_variances_for_last_pose_new(
 							fixed_lag_smoother,
       			            counters);
 	
@@ -168,6 +171,29 @@ bool Solution::write_to_file(const string &workspace){
     	   << this->variance["b_gyro_z"]
     	   << endl;
 	stream.close();
+
+	// write time + residuals to a file
+	filename= workspace + "/variances_new.csv";
+	stream.open(filename.c_str(), fstream::app);
+	stream << this->time << "," 
+		   << this->variances_new.roll.value << "," 
+    	   << this->variances_new.pitch.value << "," 
+    	   << this->variances_new.yaw.value << "," 
+    	   << this->variances_new.x.value << "," 
+    	   << this->variances_new.y.value << "," 
+    	   << this->variances_new.z.value << "," 
+    	   << this->variances_new.v_x.value << "," 
+    	   << this->variances_new.v_y.value << "," 
+    	   << this->variances_new.v_z.value << "," 
+    	   << this->variances_new.b_accel_x.value << "," 
+    	   << this->variances_new.b_accel_y.value << "," 
+    	   << this->variances_new.b_accel_z.value << "," 
+    	   << this->variances_new.b_gyro_x.value << "," 
+    	   << this->variances_new.b_gyro_y.value << "," 
+    	   << this->variances_new.b_gyro_z.value
+    	   << endl;
+	stream.close();
+
 
 	// write time + residuals to a file
 	filename= workspace + "/residuals.csv";

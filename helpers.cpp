@@ -303,6 +303,23 @@ get_variances_for_last_pose(
   return var;
 }
 
+// -------------------------------------------------------
+// -------------------------------------------------------
+Variances
+get_variances_for_last_pose_new(
+            const IncrementalFixedLagSmoother &fixed_lag_smoother,
+            const Counters &counters) {
+
+  LOG(TRACE)<< "Enter get_variances_for_last_pose";
+
+  // get the matrices
+  Matrix P_x= fixed_lag_smoother.marginalCovariance(X(counters.current_factor));
+  Matrix P_v= fixed_lag_smoother.marginalCovariance(V(counters.current_factor));
+  Matrix P_b= fixed_lag_smoother.marginalCovariance(B(counters.current_factor));
+
+  LOG(TRACE)<< "Exit get_variances_for_last_pose";
+  return Variances(P_x, P_v, P_b);
+}
 
 // -------------------------------------------------------
 // -------------------------------------------------------
@@ -431,7 +448,7 @@ string prepare_log(const Params &params){
   stream.open(filename.c_str(), fstream::out);
   stream << "time  roll  pitch  yaw  x  y  z  ";
   stream << "v_body_x  v_body_y  v_body_z  ";
-  stream << "biad_accel_x   biad_accel_y  biad_accel_z  ";
+  stream << "biad_accel_x  biad_accel_y  biad_accel_z  ";
   stream << "biad_gyro_x  biad_accel_y  biad_accel_z\n";
   stream.close();
 
@@ -440,7 +457,7 @@ string prepare_log(const Params &params){
   stream.open(filename.c_str(), fstream::out);
   stream << "time  roll  pitch  yaw  x  y  z  ";
   stream << "v_body_x  v_body_y  v_body_z  ";
-  stream << "bias_accel_x   bias_accel_y  bias_accel_z  ";
+  stream << "bias_accel_x  bias_accel_y  bias_accel_z  ";
   stream << "bias_gyro_x  bias_gyro_y  bias_gyro_z\n";
   stream.close();
 
@@ -456,7 +473,16 @@ string prepare_log(const Params &params){
   stream.open(filename.c_str(), fstream::out);
   stream << "time  roll  pitch  yaw  x  y  z  ";
   stream << "v_x  v_y  v_z  ";
-  stream << "bias_accel_x   bias_accel_y  bias_accel_z  ";
+  stream << "bias_accel_x  bias_accel_y  bias_accel_z  ";
+  stream << "bias_gyro_x  bias_gyro_y  bias_gyro_z\n";
+  stream.close();
+
+  // create variance file with names in first line
+  filename= workspace + "/variances_new.csv";
+  stream.open(filename.c_str(), fstream::out);
+  stream << "time  roll  pitch  yaw  x  y  z  ";
+  stream << "v_x  v_y  v_z  ";
+  stream << "bias_accel_x  bias_accel_y  bias_accel_z  ";
   stream << "bias_gyro_x  bias_gyro_y  bias_gyro_z\n";
   stream.close();
 
