@@ -6,8 +6,10 @@
 #include <algorithm> 
 #include <typeinfo>
 
-#include "post_process.h"
+// #include "post_process.h"
 #include "calculate_LIR.h"
+#include "helpers.h"
+
 
 using namespace std;
 using namespace gtsam;
@@ -23,7 +25,7 @@ LIR calculate_LIR(
           Counters &counters,
           const Params &params){
 
-  LOG(INFO)<< "calculating LIR";
+  LOG(TRACE)<< "Enter calculating_LIR";
 
   // initilize LIR class
   LIR lir;
@@ -62,21 +64,22 @@ LIR calculate_LIR(
   double A_rank= A_lu.rank();
 
    // get variances for the last state
-  map<string,double> 
-  var= get_variances_for_last_pose(fixed_lag_smoother, 
-                                   counters);
+  Variances variances= 
+  get_variances_for_last_pose_new(fixed_lag_smoother, 
+                                  counters);
   
+
   // number of measurements and states
   LOG(DEBUG)<< "Jacobian matrix, A size = "<< A.rows()<< " x "<< A.cols();
   LOG(DEBUG)<< "rank(A): "<< A_rank;
   LOG(DEBUG)<< "Hessian (Lambda) matrix size = "<< hessian.rows()<< " x "<< hessian.cols();
   LOG(DEBUG)<< "std dev. (roll, pitch, yaw, x, y, z): \n"<< "("
-              << sqrt(var["roll"])<< ", "
-              << sqrt(var["pitch"])<< ", "
-              << sqrt(var["yaw"])<< ", "
-              << sqrt(var["x"])<< ", "
-              << sqrt(var["y"])<< ", "
-              << sqrt(var["z"])<< ")";
+              << sqrt(variances.roll)<< ", "
+              << sqrt(variances.pitch)<< ", "
+              << sqrt(variances.yaw)<< ", "
+              << sqrt(variances.x)<< ", "
+              << sqrt(variances.y)<< ", "
+              << sqrt(variances.z)<< ")";
 
   // builds a map for vector t for each coordinate 
   // TODO: change to lat, long, vert (needs rotations)
@@ -112,11 +115,11 @@ LIR calculate_LIR(
     // set the null hypthesis LIR
     H_LIR h_lir;
     h_lir.set("x", 1 - boost::math::cdf(chi2_dist_1dof, 
-                        pow(params.AL_x / sqrt(var["x"]), 2)) );
+                        pow(params.AL_x / sqrt(variances.x), 2)) );
     h_lir.set("y", 1 - boost::math::cdf(chi2_dist_1dof, 
-                        pow(params.AL_y / sqrt(var["y"]), 2)) );
+                        pow(params.AL_y / sqrt(variances.y), 2)) );
     h_lir.set("z", 1 - boost::math::cdf(chi2_dist_1dof, 
-                        pow(params.AL_z / sqrt(var["z"]), 2)) );
+                        pow(params.AL_z / sqrt(variances.z), 2)) );
 
     // set to main LIR variable
     lir.set("null", h_lir);
@@ -142,7 +145,6 @@ LIR calculate_LIR(
                 << "\ttime: "<< counters.A_rows[h_type][i].second;
     }    
 
-    
     // extract the row indexes
     vector<int> row_inds;
     transform(counters.A_rows[h_type].begin(), 
@@ -187,9 +189,9 @@ LIR calculate_LIR(
 
     // get kappa
     map<string, double> k;
-    k["x"]= D["x"].squaredNorm() / var["x"];
-    k["y"]= D["y"].squaredNorm() / var["y"];
-    k["z"]= D["z"].squaredNorm() / var["z"];
+    k["x"]= D["x"].squaredNorm() / variances.x;
+    k["y"]= D["y"].squaredNorm() / variances.y;
+    k["z"]= D["z"].squaredNorm() / variances.z;
     LOG(DEBUG)<< "k x: "<< k["x"];
     LOG(DEBUG)<< "k y: "<< k["y"];
     LOG(DEBUG)<< "k z: "<< k["z"];
@@ -207,15 +209,15 @@ LIR calculate_LIR(
     H_LIR h_lir;
     h_lir.set("x", 1 - boost::math::cdf(
                         boost::math::non_central_chi_squared(1, mu["x"]),
-                        pow(params.AL_x / sqrt(var["x"]), 2)) );
+                        pow(params.AL_x / sqrt(variances.x), 2)) );
 
     h_lir.set("y", 1 - boost::math::cdf(
                         boost::math::non_central_chi_squared(1, mu["y"]),
-                        pow(params.AL_y / sqrt(var["y"]), 2)) );
+                        pow(params.AL_y / sqrt(variances.y), 2)) );
 
     h_lir.set("z", 1 - boost::math::cdf(
                         boost::math::non_central_chi_squared(1, mu["z"]),
-                        pow(params.AL_z / sqrt(var["z"]), 2)) );
+                        pow(params.AL_z / sqrt(variances.z), 2)) );
 
     // copy to LIR main variable
     lir.set(h_type, h_lir);
@@ -225,6 +227,8 @@ LIR calculate_LIR(
     LOG(DEBUG)<< "LIR for h in z: "<< h_lir.z;
     
   }
+
+  LOG(TRACE)<< "Exit calculating_LIR";
 
   return lir;
 

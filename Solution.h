@@ -129,9 +129,7 @@ public:
 	double time;
 
 	// variance
-	// Eigen::Matrix<double, 15, 1> variance;
-	std::map<std::string, double> variance;
-	Variances variances_new;
+	Variances variances;
 
 	// estimate state (15dof)
 	gtsam::NavState nav_state;

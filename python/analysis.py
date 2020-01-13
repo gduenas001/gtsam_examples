@@ -350,7 +350,7 @@ def load_data(workspace, \
 
     # read variances from csv
     if load_variances:
-        filename= os.path.join(workspace, 'variance.csv')
+        filename= os.path.join(workspace, 'variances.csv')
         data.var['values']= np.genfromtxt(filename, delimiter=',', skip_header=1)
         with open(filename, 'r') as f:
             line= f.readline().strip()

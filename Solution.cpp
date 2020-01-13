@@ -21,10 +21,7 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 	this->lir= lir;
 
 	// get current variance
-	this->variance= get_variances_for_last_pose(
-							fixed_lag_smoother,
-      			            counters);
-	this->variances_new= get_variances_for_last_pose_new(
+	this->variances= get_variances_for_last_pose_new(
 							fixed_lag_smoother,
       			            counters);
 	
@@ -149,48 +146,26 @@ bool Solution::write_to_file(const string &workspace){
     	   << this->true_nav_state.bodyVelocity()[2]
     	   << endl;
 	stream.close();
-	
-	// write time + residuals to a file
-	filename= workspace + "/variance.csv";
-	stream.open(filename.c_str(), fstream::app);
-	stream << this->time << "," 
-		   << this->variance["roll"] << "," 
-    	   << this->variance["pitch"] << "," 
-    	   << this->variance["yaw"] << "," 
-    	   << this->variance["x"] << "," 
-    	   << this->variance["y"] << "," 
-    	   << this->variance["z"] << "," 
-    	   << this->variance["vx"] << "," 
-    	   << this->variance["vy"] << "," 
-    	   << this->variance["vz"] << "," 
-    	   << this->variance["b_accel_x"] << "," 
-    	   << this->variance["b_accel_y"] << "," 
-    	   << this->variance["b_accel_z"] << "," 
-    	   << this->variance["b_gyro_x"] << "," 
-    	   << this->variance["b_gyro_y"] << "," 
-    	   << this->variance["b_gyro_z"]
-    	   << endl;
-	stream.close();
 
-	// write time + residuals to a file
-	filename= workspace + "/variances_new.csv";
+	// write time + variances to a file
+	filename= workspace + "/variances.csv";
 	stream.open(filename.c_str(), fstream::app);
 	stream << this->time << "," 
-		   << this->variances_new.roll.value << "," 
-    	   << this->variances_new.pitch.value << "," 
-    	   << this->variances_new.yaw.value << "," 
-    	   << this->variances_new.x.value << "," 
-    	   << this->variances_new.y.value << "," 
-    	   << this->variances_new.z.value << "," 
-    	   << this->variances_new.v_x.value << "," 
-    	   << this->variances_new.v_y.value << "," 
-    	   << this->variances_new.v_z.value << "," 
-    	   << this->variances_new.b_accel_x.value << "," 
-    	   << this->variances_new.b_accel_y.value << "," 
-    	   << this->variances_new.b_accel_z.value << "," 
-    	   << this->variances_new.b_gyro_x.value << "," 
-    	   << this->variances_new.b_gyro_y.value << "," 
-    	   << this->variances_new.b_gyro_z.value
+		   << this->variances.roll.value << "," 
+    	   << this->variances.pitch.value << "," 
+    	   << this->variances.yaw.value << "," 
+    	   << this->variances.x.value << "," 
+    	   << this->variances.y.value << "," 
+    	   << this->variances.z.value << "," 
+    	   << this->variances.v_x.value << "," 
+    	   << this->variances.v_y.value << "," 
+    	   << this->variances.v_z.value << "," 
+    	   << this->variances.b_accel_x.value << "," 
+    	   << this->variances.b_accel_y.value << "," 
+    	   << this->variances.b_accel_z.value << "," 
+    	   << this->variances.b_gyro_x.value << "," 
+    	   << this->variances.b_gyro_y.value << "," 
+    	   << this->variances.b_gyro_z.value
     	   << endl;
 	stream.close();
 

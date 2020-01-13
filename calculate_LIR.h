@@ -1,10 +1,10 @@
 
 #pragma once
 
-#include "helpers.h"
 #include "Counters.h"
 #include "Params.h"
 #include "LIR.h"
+#include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 
 
 /*
