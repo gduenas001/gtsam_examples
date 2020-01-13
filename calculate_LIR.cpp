@@ -74,12 +74,12 @@ LIR calculate_LIR(
   LOG(DEBUG)<< "rank(A): "<< A_rank;
   LOG(DEBUG)<< "Hessian (Lambda) matrix size = "<< hessian.rows()<< " x "<< hessian.cols();
   LOG(DEBUG)<< "std dev. (roll, pitch, yaw, x, y, z): \n"<< "("
-              << sqrt(variances.roll)<< ", "
-              << sqrt(variances.pitch)<< ", "
-              << sqrt(variances.yaw)<< ", "
-              << sqrt(variances.x)<< ", "
-              << sqrt(variances.y)<< ", "
-              << sqrt(variances.z)<< ")";
+              << variances.roll.std()<< ", "
+              << variances.pitch.std()<< ", "
+              << variances.yaw.std()<< ", "
+              << variances.x.std()<< ", "
+              << variances.y.std()<< ", "
+              << variances.z.std()<< ")";
 
   // builds a map for vector t for each coordinate 
   // TODO: change to lat, long, vert (needs rotations)
@@ -115,11 +115,11 @@ LIR calculate_LIR(
     // set the null hypthesis LIR
     H_LIR h_lir;
     h_lir.set("x", 1 - boost::math::cdf(chi2_dist_1dof, 
-                        pow(params.AL_x / sqrt(variances.x), 2)) );
+                        pow(params.AL_x / variances.x.std(), 2)) );
     h_lir.set("y", 1 - boost::math::cdf(chi2_dist_1dof, 
-                        pow(params.AL_y / sqrt(variances.y), 2)) );
+                        pow(params.AL_y / variances.y.std(), 2)) );
     h_lir.set("z", 1 - boost::math::cdf(chi2_dist_1dof, 
-                        pow(params.AL_z / sqrt(variances.z), 2)) );
+                        pow(params.AL_z / variances.z.std(), 2)) );
 
     // set to main LIR variable
     lir.set("null", h_lir);
@@ -189,9 +189,9 @@ LIR calculate_LIR(
 
     // get kappa
     map<string, double> k;
-    k["x"]= D["x"].squaredNorm() / variances.x;
-    k["y"]= D["y"].squaredNorm() / variances.y;
-    k["z"]= D["z"].squaredNorm() / variances.z;
+    k["x"]= D["x"].squaredNorm() / variances.x.value;
+    k["y"]= D["y"].squaredNorm() / variances.y.value;
+    k["z"]= D["z"].squaredNorm() / variances.z.value;
     LOG(DEBUG)<< "k x: "<< k["x"];
     LOG(DEBUG)<< "k y: "<< k["y"];
     LOG(DEBUG)<< "k z: "<< k["z"];
@@ -209,15 +209,15 @@ LIR calculate_LIR(
     H_LIR h_lir;
     h_lir.set("x", 1 - boost::math::cdf(
                         boost::math::non_central_chi_squared(1, mu["x"]),
-                        pow(params.AL_x / sqrt(variances.x), 2)) );
+                        pow(params.AL_x / variances.x.std(), 2)) );
 
     h_lir.set("y", 1 - boost::math::cdf(
                         boost::math::non_central_chi_squared(1, mu["y"]),
-                        pow(params.AL_y / sqrt(variances.y), 2)) );
+                        pow(params.AL_y / variances.y.std(), 2)) );
 
     h_lir.set("z", 1 - boost::math::cdf(
                         boost::math::non_central_chi_squared(1, mu["z"]),
-                        pow(params.AL_z / sqrt(variances.z), 2)) );
+                        pow(params.AL_z / variances.z.std(), 2)) );
 
     // copy to LIR main variable
     lir.set(h_type, h_lir);

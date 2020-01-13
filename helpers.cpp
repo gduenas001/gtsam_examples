@@ -21,7 +21,6 @@ initialize_noise_generator(int seed){
 }
 
 
-
 // -------------------------------------------------------
 Point3 generate_random_point(std::default_random_engine &generator, std::normal_distribution<double> &distribution) {
   return Point3(distribution(generator),
@@ -469,16 +468,7 @@ string prepare_log(const Params &params){
   stream.close();
 
   // create variance file with names in first line
-  filename= workspace + "/variance.csv";
-  stream.open(filename.c_str(), fstream::out);
-  stream << "time  roll  pitch  yaw  x  y  z  ";
-  stream << "v_x  v_y  v_z  ";
-  stream << "bias_accel_x  bias_accel_y  bias_accel_z  ";
-  stream << "bias_gyro_x  bias_gyro_y  bias_gyro_z\n";
-  stream.close();
-
-  // create variance file with names in first line
-  filename= workspace + "/variances_new.csv";
+  filename= workspace + "/variances.csv";
   stream.open(filename.c_str(), fstream::out);
   stream << "time  roll  pitch  yaw  x  y  z  ";
   stream << "v_x  v_y  v_z  ";

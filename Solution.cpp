@@ -37,6 +37,12 @@ Solution::Solution(const gtsam::IncrementalFixedLagSmoother &fixed_lag_smoother,
 					scenario.velocity_n(counters.current_time) );
 	
 	// error (15dof)
+	this->errors.set_errors(
+		(nav_state.pose().rotation() * Rot3(true_nav_state.pose().rotation().transpose())).rpy(),
+		nav_state.pose().translation() - true_nav_state.pose().translation(),
+		nav_state.bodyVelocity() - true_nav_state.bodyVelocity(),
+		this->imu_bias.vector() );
+	
 	this->error.segment<3>(0)= 
 		    (nav_state.pose().rotation() * Rot3(true_nav_state.pose().rotation().transpose())).rpy();
 	this->error.segment<3>(3)= 

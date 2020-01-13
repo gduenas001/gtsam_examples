@@ -7,7 +7,6 @@
 #include <gtsam/navigation/Scenario.h>
 #include <fstream>
 
-
 #include "Counters.h"
 #include "LIR.h"
 
@@ -19,6 +18,10 @@ using symbol_shorthand::V;
 using symbol_shorthand::B;
 
 
+// -------------------------------------------------------
+struct Error {
+	double value;
+};
 
 // -------------------------------------------------------
 struct Residual {
@@ -41,6 +44,53 @@ public:
 		return std::sqrt(this->value);
 	}
 	double value= -1;
+};
+
+// -------------------------------------------------------
+class StateErrors {
+public:
+	StateErrors() {};
+
+	void set_errors(gtsam::Vector rpy_error,
+		   gtsam::Vector translation_error,
+		   gtsam::Vector velocity_error,
+		   gtsam::Vector bias_error) {
+
+		this->roll.value= rpy_error[0];
+		this->pitch.value= rpy_error[1];
+		this->yaw.value= rpy_error[2];
+
+		this->x.value= translation_error[0];
+		this->y.value= translation_error[1];
+		this->z.value= translation_error[2];
+
+		this->v_x.value= velocity_error[0];
+		this->v_y.value= velocity_error[1];
+		this->v_z.value= velocity_error[2];
+		
+		this->b_accel_x.value= bias_error[0];
+		this->b_accel_y.value= bias_error[1];
+		this->b_accel_z.value= bias_error[2];
+		this->b_gyro_x.value= bias_error[3];
+		this->b_gyro_y.value= bias_error[4];
+		this->b_gyro_z.value= bias_error[5];
+	};
+
+	Error roll;
+	Error pitch;
+	Error yaw;
+	Error x;
+	Error y;
+	Error z;
+	Error v_x;
+	Error v_y;
+	Error v_z;
+	Error b_accel_x;
+	Error b_accel_y;
+	Error b_accel_z;
+	Error b_gyro_x;
+	Error b_gyro_y;
+	Error b_gyro_z; 
 };
 
 // -------------------------------------------------------
@@ -140,6 +190,7 @@ public:
 
 	// error (15 dof)
 	Eigen::Matrix<double, 15, 1> error;
+	StateErrors errors;
 
 	// residuals
 	Residuals residuals;
@@ -153,6 +204,4 @@ public:
 	bool write_to_file(const std::string &workspace);
 
 };
-
-
 
